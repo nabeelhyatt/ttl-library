@@ -1,0 +1,345 @@
+import React, { useState } from 'react';
+
+const BoardGameList = () => {
+  const [filter, setFilter] = useState({
+    weight: 'all',
+    genre: 'all',
+    dewey: 'all',
+    asmodee: 'all'
+  });
+  
+  const [sortConfig, setSortConfig] = useState({
+    key: 'bggRank',
+    direction: 'ascending'
+  });
+  
+  // Weight scale conversion - standard BGG weight to TLCS decimal
+  const getBGGtoTLCSWeight = (weight) => {
+    if (weight < 1.5) return ".1"; // Light/Gateway
+    if (weight < 2.2) return ".2"; // Medium-Light
+    if (weight < 3.0) return ".3"; // Medium
+    if (weight < 3.8) return ".4"; // Medium-Heavy
+    return ".5"; // Heavy
+  };
+  
+  const games = [
+    // 100 - PURE STRATEGY
+    { id: 1, name: "Chess", publisher: "Various", bggRank: 352, weight: 3.7, dewey: "110.3", genre: "Abstract", description: "Classic abstract strategy with royal pieces", asmodee: false },
+    { id: 2, name: "Onitama", publisher: "Arcane Wonders", bggRank: 318, weight: 1.7, dewey: "110.2", genre: "Abstract", description: "Elegant martial arts chess with movement cards", asmodee: true },
+    { id: 3, name: "Santorini", publisher: "Roxley", bggRank: 160, weight: 1.7, dewey: "120.2", genre: "Abstract", description: "Build Greek island towers with god powers", asmodee: false },
+    { id: 4, name: "Hive", publisher: "Gen42 Games", bggRank: 174, weight: 2.3, dewey: "120.3", genre: "Abstract", description: "Bug-themed abstract with chess-like depth", asmodee: true },
+    { id: 5, name: "Tak", publisher: "Greater Than Games", bggRank: 291, weight: 2.3, dewey: "120.3", genre: "Abstract", description: "Create road using simple wooden pieces", asmodee: false },
+    { id: 6, name: "YINSH", publisher: "Rio Grande Games", bggRank: 306, weight: 2.5, dewey: "120.3", genre: "Abstract", description: "Place rings, flip markers, form rows", asmodee: false },
+    { id: 7, name: "Azul", publisher: "Next Move Games", bggRank: 62, weight: 1.8, dewey: "130.2", genre: "Abstract", description: "Draft colorful tiles to decorate your wall", asmodee: true },
+    { id: 8, name: "Azul: Summer Pavilion", publisher: "Next Move Games", bggRank: 228, weight: 2.0, dewey: "130.2", genre: "Abstract", description: "Draft colored tiles to create star patterns", asmodee: true },
+    { id: 9, name: "Sagrada", publisher: "Floodgate Games", bggRank: 161, weight: 1.9, dewey: "130.2", genre: "Abstract", description: "Draft dice to create stained glass windows", asmodee: false },
+    { id: 10, name: "Patchwork", publisher: "Lookout Games", bggRank: 143, weight: 1.7, dewey: "130.2", genre: "Abstract", description: "Tetris-like quilting with time and buttons", asmodee: true },
+    { id: 11, name: "Calico", publisher: "AEG", bggRank: 179, weight: 2.1, dewey: "130.3", genre: "Abstract", description: "Sew the coziest quilt for cats", asmodee: false },
+    { id: 12, name: "Splendor", publisher: "Space Cowboys", bggRank: 156, weight: 1.8, dewey: "140.2", genre: "Engine Building", description: "Collect gems, build your jewelry empire", asmodee: true },
+    { id: 13, name: "Century: Spice Road", publisher: "Plan B Games", bggRank: 347, weight: 1.8, dewey: "140.2", genre: "Engine Building", description: "Trade and upgrade spices for victory points", asmodee: false },
+    
+    // 200 - FAMILY FAVORITES
+    { id: 14, name: "Ticket to Ride", publisher: "Days of Wonder", bggRank: 108, weight: 1.9, dewey: "210.2", genre: "Family", description: "Collect cards, build routes across North America", asmodee: true },
+    { id: 15, name: "Catan", publisher: "Catan Studio", bggRank: 378, weight: 2.3, dewey: "210.3", genre: "Family", description: "Gather resources, build settlements, trade with others", asmodee: true },
+    { id: 16, name: "Carcassonne", publisher: "Z-Man Games", bggRank: 204, weight: 1.9, dewey: "210.2", genre: "Family", description: "Place tiles to build medieval landscape", asmodee: true },
+    { id: 17, name: "Pandemic", publisher: "Z-Man Games", bggRank: 91, weight: 2.4, dewey: "210.3", genre: "Co-op", description: "Work together to stop global disease outbreaks", asmodee: true },
+    { id: 18, name: "Wingspan", publisher: "Stonemaier Games", bggRank: 19, weight: 2.4, dewey: "220.3", genre: "Engine Building", description: "Attract birds to aviary through engine building", asmodee: false },
+    { id: 19, name: "Everdell", publisher: "Starling Games", bggRank: 24, weight: 2.8, dewey: "220.3", genre: "Worker Placement", description: "Animal city-building with worker placement mechanics", asmodee: false },
+    { id: 20, name: "7 Wonders", publisher: "Repos Production", bggRank: 59, weight: 2.3, dewey: "220.3", genre: "Card Drafting", description: "Draft cards to build ancient world wonder", asmodee: true },
+    { id: 21, name: "Takenoko", publisher: "Bombyx", bggRank: 257, weight: 2.0, dewey: "220.2", genre: "Family", description: "Grow bamboo while hungry panda eats it", asmodee: true },
+    { id: 22, name: "Kingdomino", publisher: "Blue Orange Games", bggRank: 107, weight: 1.5, dewey: "220.1", genre: "Tile Placement", description: "Build kingdom with domino-style tile placement", asmodee: false },
+    { id: 23, name: "King of Tokyo", publisher: "IELLO", bggRank: 301, weight: 1.5, dewey: "230.1", genre: "Dice", description: "Giant monsters battle for Tokyo with dice", asmodee: true },
+    { id: 24, name: "Love Letter", publisher: "Z-Man Games", bggRank: 441, weight: 1.2, dewey: "230.1", genre: "Card Game", description: "Micro deduction game of royal court intrigue", asmodee: true },
+    { id: 25, name: "Tsuro", publisher: "Calliope Games", bggRank: 1123, weight: 1.2, dewey: "230.1", genre: "Path Building", description: "Create pathways and stay on the board", asmodee: false },
+    { id: 26, name: "Just One", publisher: "Repos Production", bggRank: 127, weight: 1.1, dewey: "240.1", genre: "Party", description: "Collaborative word-guessing with hidden clue elimination", asmodee: true },
+    { id: 27, name: "Mysterium", publisher: "Libellud", bggRank: 200, weight: 1.9, dewey: "240.2", genre: "Party", description: "Ghost gives dream-like clues to solve murder", asmodee: true },
+    { id: 28, name: "Dixit", publisher: "Libellud", bggRank: 224, weight: 1.3, dewey: "240.1", genre: "Party", description: "Tell stories with abstract art, guess correct", asmodee: true },
+    { id: 29, name: "Codenames", publisher: "Czech Games Edition", bggRank: 139, weight: 1.3, dewey: "240.1", genre: "Party", description: "Word association with spies and civilians", asmodee: false },
+    
+    // 300 - PARTY TIME
+    { id: 30, name: "Wavelength", publisher: "Palm Court", bggRank: 340, weight: 1.3, dewey: "310.1", genre: "Party", description: "Guess where concepts fall on spectrum", asmodee: false },
+    { id: 31, name: "The Mind", publisher: "Pandasaurus Games", bggRank: 316, weight: 1.0, dewey: "310.1", genre: "Cooperative", description: "Play cards in order without communication", asmodee: false },
+    { id: 32, name: "Spyfall", publisher: "Cryptozoic", bggRank: 517, weight: 1.3, dewey: "310.1", genre: "Party", description: "Find the spy or figure out location", asmodee: false },
+    { id: 33, name: "Happy Salmon", publisher: "North Star Games", bggRank: 876, weight: 1.0, dewey: "310.1", genre: "Party", description: "Frantic action-matching game with silly movements", asmodee: false },
+    { id: 34, name: "One Night Ultimate Werewolf", publisher: "Bezier Games", bggRank: 401, weight: 1.4, dewey: "320.1", genre: "Social Deduction", description: "Fast deduction game with secret roles", asmodee: false },
+    { id: 35, name: "Secret Hitler", publisher: "Goat Wolf & Cabbage", bggRank: 112, weight: 1.7, dewey: "320.2", genre: "Social Deduction", description: "Find fascists before they take control", asmodee: false },
+    { id: 36, name: "The Resistance", publisher: "Indie Boards & Cards", bggRank: 249, weight: 1.9, dewey: "320.2", genre: "Social Deduction", description: "Determine spies among your resistance group", asmodee: false },
+    { id: 37, name: "Captain Sonar", publisher: "Matagot", bggRank: 199, weight: 2.9, dewey: "330.3", genre: "Team", description: "Real-time submarine battle between two teams", asmodee: true },
+    { id: 38, name: "Decrypto", publisher: "Le Scorpion Masqué", bggRank: 349, weight: 1.8, dewey: "330.2", genre: "Team", description: "Give coded clues, intercept opponent's messages", asmodee: true },
+    { id: 39, name: "Telestrations", publisher: "USAopoly", bggRank: 290, weight: 1.1, dewey: "340.1", genre: "Party", description: "Drawing telephone game leads to hilarity", asmodee: false },
+    { id: 40, name: "Medium", publisher: "Greater Than Games", bggRank: 1812, weight: 1.0, dewey: "340.1", genre: "Party", description: "Say same word by reading partner's mind", asmodee: false },
+    { id: 41, name: "Monikers", publisher: "Palm Court", bggRank: 331, weight: 1.2, dewey: "340.1", genre: "Party", description: "Get team to guess names through description", asmodee: false },
+    
+    // 400 - COOPERATIVE
+    { id: 42, name: "Forbidden Island", publisher: "Gamewright", bggRank: 673, weight: 1.7, dewey: "410.2", genre: "Cooperative", description: "Collect treasures before island sinks beneath waves", asmodee: false },
+    { id: 43, name: "Forbidden Desert", publisher: "Gamewright", bggRank: 348, weight: 2.0, dewey: "410.2", genre: "Cooperative", description: "Find flying machine parts in brutal desert", asmodee: false },
+    { id: 44, name: "Hanabi", publisher: "R&R Games", bggRank: 437, weight: 1.7, dewey: "410.2", genre: "Cooperative", description: "Create fireworks with limited communication allowed", asmodee: false },
+    { id: 45, name: "The Crew: The Quest for Planet Nine", publisher: "KOSMOS", bggRank: 27, weight: 2.0, dewey: "410.2", genre: "Cooperative", description: "Communication-limited cooperative trick-taking space mission", asmodee: true },
+    { id: 46, name: "Betrayal at House on the Hill", publisher: "Avalon Hill", bggRank: 493, weight: 2.4, dewey: "420.3", genre: "Adventure", description: "Explore haunted house until someone becomes monster", asmodee: true },
+    { id: 47, name: "Mansions of Madness", publisher: "Fantasy Flight Games", bggRank: 48, weight: 2.7, dewey: "420.3", genre: "Adventure", description: "App-driven Lovecraftian horror investigation and puzzle-solving", asmodee: true },
+    { id: 48, name: "Horrified", publisher: "Ravensburger", bggRank: 430, weight: 2.0, dewey: "420.2", genre: "Adventure", description: "Team up against classic Universal movie monsters", asmodee: false },
+    { id: 49, name: "Spirit Island", publisher: "Greater Than Games", bggRank: 11, weight: 3.9, dewey: "430.5", genre: "Strategy", description: "Island spirits defend homeland from colonial invaders", asmodee: false },
+    { id: 50, name: "Aeon's End", publisher: "Indie Boards & Cards", bggRank: 40, weight: 3.0, dewey: "430.4", genre: "Deckbuilder", description: "Mages defend last city through deck-building", asmodee: false },
+    { id: 51, name: "Robinson Crusoe", publisher: "Portal Games", bggRank: 52, weight: 3.8, dewey: "430.5", genre: "Adventure", description: "Survive and explore mysterious island together", asmodee: true },
+    { id: 52, name: "Pandemic Legacy: Season 1", publisher: "Z-Man Games", bggRank: 3, weight: 2.8, dewey: "440.3", genre: "Legacy", description: "Evolving disease-fighting campaign with permanent changes", asmodee: true },
+    { id: 53, name: "Gloomhaven: Jaws of the Lion", publisher: "Cephalofair Games", bggRank: 21, weight: 3.6, dewey: "440.4", genre: "Campaign", description: "Accessible version of massive dungeon-crawling campaign", asmodee: false },
+    
+    // 500 - EURO STRATEGY
+    { id: 54, name: "Brass: Birmingham", publisher: "Roxley", bggRank: 1, weight: 3.9, dewey: "510.5", genre: "Economic", description: "Build industry networks in Industrial Revolution", asmodee: false },
+    { id: 55, name: "Great Western Trail", publisher: "eggertspiele", bggRank: 9, weight: 3.7, dewey: "510.4", genre: "Economic", description: "Herd cattle from Texas to Kansas City", asmodee: true },
+    { id: 56, name: "Power Grid", publisher: "Rio Grande Games", bggRank: 51, weight: 3.3, dewey: "510.4", genre: "Economic", description: "Build power network, manage resource market", asmodee: false },
+    { id: 57, name: "Gizmos", publisher: "CMON", bggRank: 412, weight: 2.0, dewey: "510.2", genre: "Engine Building", description: "Build ingenious machines with cascading effects", asmodee: false },
+    { id: 58, name: "Agricola", publisher: "Lookout Games", bggRank: 23, weight: 3.6, dewey: "520.4", genre: "Worker Placement", description: "Develop farm and feed family through hardship", asmodee: true },
+    { id: 59, name: "Lords of Waterdeep", publisher: "Wizards of the Coast", bggRank: 117, weight: 2.5, dewey: "520.3", genre: "Worker Placement", description: "D&D-themed worker placement with city intrigue", asmodee: false },
+    { id: 60, name: "Dune: Imperium", publisher: "Dire Wolf", bggRank: 37, weight: 2.9, dewey: "520.3", genre: "Worker Placement", description: "Politics, intrigue, and spice on Arrakis", asmodee: false },
+    { id: 61, name: "Terraforming Mars", publisher: "FryxGames", bggRank: 4, weight: 3.2, dewey: "530.4", genre: "Engine Building", description: "Corporations compete terraforming red planet", asmodee: true },
+    { id: 62, name: "Wingspan", publisher: "Stonemaier Games", bggRank: 19, weight: 2.4, dewey: "530.3", genre: "Engine Building", description: "Attract birds to aviary through engine building", asmodee: false },
+    { id: 63, name: "Through the Ages", publisher: "Czech Games Edition", bggRank: 10, weight: 4.4, dewey: "530.5", genre: "Civilization", description: "Build civilization through cards and resource management", asmodee: false },
+    { id: 64, name: "Castles of Burgundy", publisher: "alea", bggRank: 13, weight: 3.0, dewey: "540.3", genre: "Tile Placement", description: "Build estate through strategic tile placement", asmodee: true },
+    { id: 65, name: "El Grande", publisher: "Rio Grande Games", bggRank: 49, weight: 3.1, dewey: "540.4", genre: "Area Control", description: "Vie for control of medieval Spain", asmodee: false },
+    { id: 66, name: "Tigris & Euphrates", publisher: "Fantasy Flight Games", bggRank: 89, weight: 3.5, dewey: "540.4", genre: "Tile Placement", description: "Build and destroy ancient civilizations", asmodee: true },
+    { id: 67, name: "Tapestry", publisher: "Stonemaier Games", bggRank: 193, weight: 2.9, dewey: "550.3", genre: "Civilization", description: "Alternative civilization development through unique tracks", asmodee: false },
+    { id: 68, name: "Nations", publisher: "Lautapelit.fi", bggRank: 84, weight: 3.4, dewey: "550.4", genre: "Civilization", description: "Guide nation through history via card development", asmodee: false },
+    { id: 69, name: "Gaia Project", publisher: "Z-Man Games", bggRank: 12, weight: 4.3, dewey: "550.5", genre: "Economic", description: "Space empires terraform and colonize planets", asmodee: true },
+    { id: 70, name: "Orleans", publisher: "dlp games", bggRank: 41, weight: 3.1, dewey: "550.4", genre: "Bag Building", description: "Medieval France bag-builder with multiple strategies", asmodee: true },
+    { id: 71, name: "The Estates", publisher: "Capstone Games", bggRank: 334, weight: 2.5, dewey: "560.3", genre: "Auction", description: "Ruthless bidding game about property development", asmodee: false },
+    { id: 72, name: "Ra", publisher: "Rio Grande Games", bggRank: 126, weight: 2.5, dewey: "560.3", genre: "Auction", description: "Ancient Egyptian auction game with push-your-luck", asmodee: false },
+    { id: 73, name: "Lisboa", publisher: "Eagle-Gryphon Games", bggRank: 84, weight: 4.5, dewey: "560.5", genre: "Economic", description: "Rebuild Lisbon after devastating 1755 earthquake", asmodee: false },
+    
+    // 600 - CONFLICT & POLITICS
+    { id: 74, name: "Root", publisher: "Leder Games", bggRank: 33, weight: 3.8, dewey: "610.4", genre: "Asymmetric", description: "Woodland creatures vie for forest dominance", asmodee: false },
+    { id: 75, name: "Blood Rage", publisher: "CMON", bggRank: 30, weight: 2.9, dewey: "610.3", genre: "Area Control", description: "Vikings battle during Ragnarök for glory", asmodee: false },
+    { id: 76, name: "Kemet", publisher: "Matagot", bggRank: 100, weight: 3.0, dewey: "610.4", genre: "Area Control", description: "Ancient Egyptian gods empower armies' conquest", asmodee: true },
+    { id: 77, name: "Scythe", publisher: "Stonemaier Games", bggRank: 15, weight: 3.4, dewey: "610.4", genre: "Area Control", description: "Alternate history 1920s with giant mechs", asmodee: false },
+    { id: 78, name: "Twilight Imperium 4th Edition", publisher: "Fantasy Flight Games", bggRank: 7, weight: 4.3, dewey: "620.5", genre: "4X", description: "Epic space opera, politics and conflict", asmodee: true },
+    { id: 79, name: "Eclipse", publisher: "Lautapelit.fi", bggRank: 31, weight: 3.7, dewey: "620.4", genre: "4X", description: "Explore, expand, exploit, exterminate in space", asmodee: true },
+    { id: 80, name: "Rising Sun", publisher: "CMON", bggRank: 60, weight: 3.3, dewey: "620.4", genre: "Area Control", description: "Mythological Japan with strategic alliances and betrayal", asmodee: false },
+    { id: 81, name: "War of the Ring", publisher: "Ares Games", bggRank: 14, weight: 4.2, dewey: "630.5", genre: "Asymmetric", description: "Epic Lord of the Rings war", asmodee: false },
+    { id: 82, name: "Star Wars: Rebellion", publisher: "Fantasy Flight Games", bggRank: 16, weight: 3.7, dewey: "630.4", genre: "Asymmetric", description: "Rebels versus Empire in galactic civil war", asmodee: true },
+    { id: 83, name: "Vast: The Crystal Caverns", publisher: "Leder Games", bggRank: 492, weight: 3.6, dewey: "630.4", genre: "Asymmetric", description: "Knight, dragon, goblins, cave all play differently", asmodee: false },
+    { id: 84, name: "Twilight Struggle", publisher: "GMT Games", bggRank: 6, weight: 3.6, dewey: "640.4", genre: "Card Driven", description: "Cold War conflict through card-driven gameplay", asmodee: false },
+    { id: 85, name: "Pax Pamir: Second Edition", publisher: "Wehrlegig Games", bggRank: 17, weight: 3.9, dewey: "640.4", genre: "Area Control", description: "Afghan tribes navigate Great Game between empires", asmodee: false },
+    { id: 86, name: "1960: The Making of the President", publisher: "GMT Games", bggRank: 422, weight: 3.3, dewey: "640.4", genre: "Card Driven", description: "Kennedy vs. Nixon presidential election campaign", asmodee: false },
+    
+    // 700 - CARDS & DECKS
+    { id: 87, name: "Dominion", publisher: "Rio Grande Games", bggRank: 102, weight: 2.4, dewey: "710.3", genre: "Deckbuilder", description: "Original deck-building game with medieval theme", asmodee: false },
+    { id: 88, name: "Lost Ruins of Arnak", publisher: "Czech Games Edition", bggRank: 34, weight: 2.8, dewey: "710.3", genre: "Deckbuilder", description: "Explore jungle ruins through deck building/worker placement", asmodee: false },
+    { id: 89, name: "Clank!", publisher: "Renegade Game Studios", bggRank: 95, weight: 2.2, dewey: "710.3", genre: "Deckbuilder", description: "Deck-building dungeon delve with push-your-luck noise", asmodee: false },
+    { id: 90, name: "7 Wonders", publisher: "Repos Production", bggRank: 59, weight: 2.3, dewey: "720.3", genre: "Card Drafting", description: "Draft cards to build ancient world wonder", asmodee: true },
+    { id: 91, name: "7 Wonders Duel", publisher: "Repos Production", bggRank: 20, weight: 2.2, dewey: "720.3", genre: "Card Drafting", description: "Two-player civilization building through card drafting", asmodee: true },
+    { id: 92, name: "It's a Wonderful World", publisher: "La Boite de Jeu", bggRank: 274, weight: 2.5, dewey: "720.3", genre: "Card Drafting", description: "Draft and construct empire in retrofuturistic world", asmodee: true },
+    { id: 93, name: "Arkham Horror: The Card Game", publisher: "Fantasy Flight Games", bggRank: 18, weight: 3.4, dewey: "730.4", genre: "LCG", description: "Narrative card game of Lovecraftian investigation", asmodee: true },
+    { id: 94, name: "Marvel Champions", publisher: "Fantasy Flight Games", bggRank: 39, weight: 2.8, dewey: "730.3", genre: "LCG", description: "Heroes team up against villains' schemes", asmodee: true },
+    { id: 95, name: "Android: Netrunner", publisher: "Fantasy Flight Games", bggRank: 28, weight: 3.4, dewey: "730.4", genre: "LCG", description: "Asymmetric cyberpunk hacking with bluffing elements", asmodee: true },
+    { id: 96, name: "Race for the Galaxy", publisher: "Rio Grande Games", bggRank: 46, weight: 3.0, dewey: "740.3", genre: "Tableau Building", description: "Simultaneous action selection builds space civilizations", asmodee: false },
+    { id: 97, name: "Innovation", publisher: "Asmadi Games", bggRank: 245, weight: 2.7, dewey: "740.3", genre: "Tableau Building", description: "Civilization advancement through powerful card abilities", asmodee: false },
+    { id: 98, name: "Everdell", publisher: "Starling Games", bggRank: 24, weight: 2.8, dewey: "740.3", genre: "Worker Placement", description: "Animal city-building with worker placement mechanics", asmodee: false },
+    
+    // 800 - STORY & LEGACY
+    { id: 99, name: "Sleeping Gods", publisher: "Red Raven Games", bggRank: 32, weight: 3.0, dewey: "810.4", genre: "Story", description: "Navigate storybook world as stranded steamship crew", asmodee: false },
+    { id: 100, name: "Tales of the Arabian Nights", publisher: "Z-Man Games", bggRank: 411, weight: 2.6, dewey: "810.3", genre: "Story", description: "Tell your own Arabian Nights tale", asmodee: true }
+  ];
+  
+  const requestSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getFilteredGames = () => {
+    return [...games]
+      .filter(game => filter.weight === 'all' || 
+        (filter.weight === '1' && game.weight < 2) ||
+        (filter.weight === '2' && game.weight >= 2 && game.weight < 3) ||
+        (filter.weight === '3' && game.weight >= 3 && game.weight < 4) ||
+        (filter.weight === '4' && game.weight >= 4))
+      .filter(game => filter.genre === 'all' || game.genre === filter.genre)
+      .filter(game => filter.dewey === 'all' || game.dewey.startsWith(filter.dewey.charAt(0)))
+      .filter(game => filter.asmodee === 'all' || (filter.asmodee === 'yes' && game.asmodee) || (filter.asmodee === 'no' && !game.asmodee))
+      .sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+  };
+  
+  // Get unique genres for filter dropdown
+  const genres = [...new Set(games.map(game => game.genre))].sort();
+  
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-6">Tabletop Library Game Selection</h1>
+      
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+          <select 
+            className="border rounded px-3 py-2"
+            value={filter.weight}
+            onChange={(e) => setFilter({...filter, weight: e.target.value})}
+          >
+            <option value="all">All Weights</option>
+            <option value="1">Light (1-1.9)</option>
+            <option value="2">Medium (2-2.9)</option>
+            <option value="3">Medium-Heavy (3-3.9)</option>
+            <option value="4">Heavy (4+)</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Genre</label>
+          <select 
+            className="border rounded px-3 py-2"
+            value={filter.genre}
+            onChange={(e) => setFilter({...filter, genre: e.target.value})}
+          >
+            <option value="all">All Genres</option>
+            {genres.map(genre => (
+              <option key={genre} value={genre}>{genre}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Dewey Category</label>
+          <select 
+            className="border rounded px-3 py-2"
+            value={filter.dewey}
+            onChange={(e) => setFilter({...filter, dewey: e.target.value})}
+          >
+            <option value="all">All Categories</option>
+            <option value="1">100s - Pure Strategy</option>
+            <option value="2">200s - Family Favorites</option>
+            <option value="3">300s - Party Time</option>
+            <option value="4">400s - Cooperative</option>
+            <option value="5">500s - Euro Strategy</option>
+            <option value="6">600s - Conflict & Politics</option>
+            <option value="7">700s - Cards & Decks</option>
+            <option value="8">800s - Story & Legacy</option>
+            <option value="9">900s - Special Collection</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Asmodee Distribution</label>
+          <select 
+            className="border rounded px-3 py-2"
+            value={filter.asmodee}
+            onChange={(e) => setFilter({...filter, asmodee: e.target.value})}
+          >
+            <option value="all">All Games</option>
+            <option value="yes">Asmodee Only</option>
+            <option value="no">Non-Asmodee Only</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="px-4 py-2 border cursor-pointer" onClick={() => requestSort('name')}>
+                Game Name {sortConfig.key === 'name' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+              </th>
+              <th className="px-4 py-2 border cursor-pointer" onClick={() => requestSort('publisher')}>
+                Publisher {sortConfig.key === 'publisher' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+              </th>
+              <th className="px-4 py-2 border cursor-pointer" onClick={() => requestSort('bggRank')}>
+                BGG Rank {sortConfig.key === 'bggRank' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+              </th>
+              <th className="px-4 py-2 border cursor-pointer" onClick={() => requestSort('weight')}>
+                Weight {sortConfig.key === 'weight' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+              </th>
+              <th className="px-4 py-2 border cursor-pointer" onClick={() => requestSort('dewey')}>
+                TLCS Code {sortConfig.key === 'dewey' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+              </th>
+              <th className="px-4 py-2 border cursor-pointer" onClick={() => requestSort('genre')}>
+                Genre {sortConfig.key === 'genre' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+              </th>
+              <th className="px-4 py-2 border cursor-pointer" onClick={() => requestSort('asmodee')}>
+                Asmodee {sortConfig.key === 'asmodee' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+              </th>
+              <th className="px-4 py-2 border">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {getFilteredGames().map((game) => (
+              <tr key={game.id} className={`hover:bg-gray-50 ${game.asmodee ? 'bg-blue-50' : ''}`}>
+                <td className="px-4 py-2 border font-medium">{game.name}</td>
+                <td className="px-4 py-2 border">{game.publisher}</td>
+                <td className="px-4 py-2 border text-center">{game.bggRank}</td>
+                <td className="px-4 py-2 border text-center">{game.weight}</td>
+                <td className="px-4 py-2 border text-center">{game.dewey}</td>
+                <td className="px-4 py-2 border">{game.genre}</td>
+                <td className="px-4 py-2 border text-center">{game.asmodee ? "Yes" : "No"}</td>
+                <td className="px-4 py-2 border">{game.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      <div className="mt-4 text-sm text-gray-500">
+        Showing {getFilteredGames().length} of {games.length} games | Asmodee Distribution: {games.filter(g => g.asmodee).length} games ({Math.round(games.filter(g => g.asmodee).length/games.length*100)}%)
+      </div>
+      
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h2 className="text-lg font-semibold mb-2">Tabletop Library Classification System (TLCS)</h2>
+          <ul className="grid grid-cols-1 gap-2">
+            <li><span className="font-medium">100 - PURE STRATEGY:</span> Clean design, deep thinking</li>
+            <li className="ml-4 text-sm">110: Chess & Go | 120: Modern Abstract | 130: Tile & Pattern | 140: Engine Abstract</li>
+            <li><span className="font-medium">200 - FAMILY FAVORITES:</span> Easy to learn, fun to master</li>
+            <li className="ml-4 text-sm">210: Gateway Hits | 220: Family Strategy | 230: Quick Family | 240: Group Fun</li>
+            <li><span className="font-medium">300 - PARTY TIME:</span> More players, more chaos</li>
+            <li className="ml-4 text-sm">310: Quick Social | 320: Social Deduction | 330: Team vs Team | 340: Creative Party</li>
+            <li><span className="font-medium">400 - COOPERATIVE:</span> Work together or lose together</li>
+            <li className="ml-4 text-sm">410: Gateway Co-op | 420: Adventure Co-op | 430: Strategy Co-op | 440: Campaign Co-op</li>
+            <li><span className="font-medium">500 - EURO STRATEGY:</span> Build engines, optimize points</li>
+            <li className="ml-4 text-sm">510: Resource Management | 520: Worker Placement | 530: Engine Building | 540: Network & Area Control | 550: Civilization | 560: Mixed Euro</li>
+            <li><span className="font-medium">600 - CONFLICT & POLITICS:</span> Direct competition, tough choices</li>
+            <li className="ml-4 text-sm">610: Area Control | 620: War & Politics | 630: Asymmetric War | 640: Political</li>
+            <li><span className="font-medium">700 - CARDS & DECKS:</span> Shuffle up and deal</li>
+            <li className="ml-4 text-sm">710: Deck Building | 720: Card Drafting | 730: Living Card Games | 740: Tableau Building</li>
+            <li><span className="font-medium">800 - STORY & LEGACY:</span> Epic campaigns and narratives</li>
+            <li className="ml-4 text-sm">810: Story Games | 820: Legacy Games | 830: RPG Board Games | 840: RPG Systems & Modules</li>
+            <li><span className="font-medium">900 - SPECIAL COLLECTION:</span> Local gems and rare finds</li>
+            <li className="ml-4 text-sm">910: Local Designers | 920: Tournament Editions | 930: Staff Picks | 940: Learning Collection</li>
+          </ul>
+        </div>
+        
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h2 className="text-lg font-semibold mb-2">Weight/Complexity Scale</h2>
+          <ul className="grid grid-cols-1 gap-2">
+            <li><span className="font-medium">.1 = Light/Gateway:</span> Simple rules, accessible to beginners</li>
+            <li><span className="font-medium">.2 = Medium-Light:</span> Some strategic depth, still approachable</li>
+            <li><span className="font-medium">.3 = Medium:</span> Moderate complexity, some experience helpful</li>
+            <li><span className="font-medium">.4 = Medium-Heavy:</span> Complex interactions, experienced gamers</li>
+            <li><span className="font-medium">.5 = Heavy:</span> Deep strategy, significant rules overhead</li>
+          </ul>
+          
+          <h2 className="text-lg font-semibold mt-6 mb-2">Asmodee Distribution</h2>
+          <p className="text-sm">
+            Games highlighted in blue are distributed by Asmodee. This includes games published by Asmodee-owned studios like Days of Wonder, Fantasy Flight Games, Z-Man Games, IELLO, Repos Production, Space Cowboys, Libellud, and other partner publishers.
+          </p>
+          
+          <h2 className="text-lg font-semibold mt-6 mb-2">Game Selection Stats</h2>
+          <ul className="grid grid-cols-1 gap-1 text-sm">
+            <li><span className="font-medium">Total Games:</span> 100</li>
+            <li><span className="font-medium">Asmodee Distribution:</span> {games.filter(g => g.asmodee).length} games ({Math.round(games.filter(g => g.asmodee).length/games.length*100)}%)</li>
+            <li><span className="font-medium">Games in BGG Top 100:</span> {games.filter(g => g.bggRank <= 100).length}</li>
+            <li><span className="font-medium">Average Weight:</span> {(games.reduce((sum, game) => sum + game.weight, 0) / games.length).toFixed(1)}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BoardGameList;
