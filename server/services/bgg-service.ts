@@ -4,22 +4,67 @@ import { BGGGame } from '@shared/schema';
 
 class BoardGameGeekService {
   private API_BASE = 'https://boardgamegeek.com/xmlapi2/';
-  private RETRY_DELAY = 1000; // 1 second
-  private MAX_RETRIES = 3;
+  private RETRY_DELAY = 2000; // 2 seconds
+  private MAX_RETRIES = 5; // Increase retry attempts
+  private lastRequestTime = 0; // Track last request time for rate limiting
   
+  // Apply rate limiting to requests
+  private async rateLimit(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    
+    // Ensure at least 1 second between requests
+    if (this.lastRequestTime > 0 && timeSinceLastRequest < 1000) {
+      await new Promise(resolve => setTimeout(resolve, 1000 - timeSinceLastRequest));
+    }
+    
+    this.lastRequestTime = Date.now();
+  }
+  
+  // Handle rate limit errors
+  private async handleRateLimitError(error: any, retryFn: () => Promise<any>, retries = 0): Promise<any> {
+    // Check if this is a rate limit error
+    if (error?.response?.status === 429 && retries < this.MAX_RETRIES) {
+      console.log(`BGG rate limit hit, waiting to retry (attempt ${retries + 1}/${this.MAX_RETRIES})`);
+      
+      // Wait longer for each retry
+      const delay = this.RETRY_DELAY * (retries + 1);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Try again
+      return retryFn();
+    }
+    
+    // If not a rate limit error or max retries exceeded, rethrow
+    throw error;
+  }
+
   // Get hot games from BGG
   async getHotGames(): Promise<BGGGame[]> {
+    const fetchHotGames = async (retries = 0): Promise<BGGGame[]> => {
+      try {
+        await this.rateLimit();
+        const response = await axios.get(`${this.API_BASE}hot?type=boardgame`);
+        const result = await parseStringPromise(response.data, { explicitArray: false });
+        
+        // Extract game IDs from the hot list
+        const gameIds = result.items.item.map((item: any) => parseInt(item.$.id)).slice(0, 20); // Reduce to 20 games
+        
+        // Fetch details for each game
+        const gamesWithDetails = await this.getGamesDetails(gameIds);
+        
+        return gamesWithDetails;
+      } catch (error) {
+        return this.handleRateLimitError(
+          error, 
+          () => fetchHotGames(retries + 1),
+          retries
+        );
+      }
+    };
+    
     try {
-      const response = await axios.get(`${this.API_BASE}hot?type=boardgame`);
-      const result = await parseStringPromise(response.data, { explicitArray: false });
-      
-      // Extract game IDs from the hot list
-      const gameIds = result.items.item.map((item: any) => parseInt(item.$.id)).slice(0, 30);
-      
-      // Fetch details for each game
-      const gamesWithDetails = await this.getGamesDetails(gameIds);
-      
-      return gamesWithDetails;
+      return await fetchHotGames();
     } catch (error) {
       console.error('Error fetching hot games from BGG:', error);
       throw new Error('Failed to fetch hot games from BoardGameGeek');
@@ -28,25 +73,38 @@ class BoardGameGeekService {
   
   // Search games by name
   async searchGames(query: string): Promise<BGGGame[]> {
-    try {
-      const response = await axios.get(`${this.API_BASE}search?query=${encodeURIComponent(query)}&type=boardgame`);
-      const result = await parseStringPromise(response.data, { explicitArray: false });
-      
-      // Check if there are results
-      if (!result.items.item) {
-        return [];
+    const searchGamesImpl = async (retries = 0): Promise<BGGGame[]> => {
+      try {
+        await this.rateLimit();
+        const response = await axios.get(`${this.API_BASE}search?query=${encodeURIComponent(query)}&type=boardgame`);
+        const result = await parseStringPromise(response.data, { explicitArray: false });
+        
+        // Check if there are results
+        if (!result.items.item) {
+          return [];
+        }
+        
+        // Ensure items.item is an array
+        const items = Array.isArray(result.items.item) ? result.items.item : [result.items.item];
+        
+        // Extract game IDs from search results, limit to 10 for better performance
+        const gameIds = items.map((item: any) => parseInt(item.$.id)).slice(0, 10);
+        
+        // Fetch details for each game
+        const gamesWithDetails = await this.getGamesDetails(gameIds);
+        
+        return gamesWithDetails;
+      } catch (error) {
+        return this.handleRateLimitError(
+          error, 
+          () => searchGamesImpl(retries + 1),
+          retries
+        );
       }
-      
-      // Ensure items.item is an array
-      const items = Array.isArray(result.items.item) ? result.items.item : [result.items.item];
-      
-      // Extract game IDs from search results
-      const gameIds = items.map((item: any) => parseInt(item.$.id)).slice(0, 20);
-      
-      // Fetch details for each game
-      const gamesWithDetails = await this.getGamesDetails(gameIds);
-      
-      return gamesWithDetails;
+    };
+    
+    try {
+      return await searchGamesImpl();
     } catch (error) {
       console.error('Error searching games on BGG:', error);
       throw new Error('Failed to search games on BoardGameGeek');
@@ -56,11 +114,13 @@ class BoardGameGeekService {
   // Get details for a single game
   async getGameDetails(gameId: number, retries = 0): Promise<BGGGame> {
     try {
+      await this.rateLimit();
       const response = await axios.get(`${this.API_BASE}thing?id=${gameId}&stats=1`);
       
       // Check for "please wait" response
       if (response.data.includes('Please wait a bit')) {
         if (retries < this.MAX_RETRIES) {
+          console.log(`BGG returned "please wait" for game ${gameId}, retrying...`);
           await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
           return this.getGameDetails(gameId, retries + 1);
         } else {
@@ -107,7 +167,7 @@ class BoardGameGeekService {
       }
       
       // Build the game object
-      const game: BGGGame = {
+      return {
         gameId: parseInt(gameData.$.id),
         name: primaryName,
         description: gameData.description || '',
@@ -128,9 +188,15 @@ class BoardGameGeekService {
         designers,
         publishers
       };
+    } catch (error: any) {
+      // Handle rate limit errors
+      if (error?.response?.status === 429 && retries < this.MAX_RETRIES) {
+        console.log(`BGG rate limit hit for game ${gameId}, waiting to retry (attempt ${retries + 1}/${this.MAX_RETRIES})`);
+        const delay = this.RETRY_DELAY * (retries + 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.getGameDetails(gameId, retries + 1);
+      }
       
-      return game;
-    } catch (error) {
       console.error(`Error fetching game details for ID ${gameId}:`, error);
       throw new Error(`Failed to fetch game details from BoardGameGeek for game ID ${gameId}`);
     }

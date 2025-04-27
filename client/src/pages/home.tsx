@@ -79,26 +79,41 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
       return;
     }
     
+    // Prevent multiple concurrent searches
+    if (isSearching) {
+      return;
+    }
+    
     try {
       setIsSearching(true);
       setSearchMode(true);
+      
       const searchResults = await searchGames(query);
       setFilteredGames(searchResults);
       
       if (searchResults.length === 0) {
         toast({
           title: "No results found",
-          description: `We couldn't find any games matching "${query}".`,
+          description: `We couldn't find any games matching "${query}". BGG API may be rate-limited, please try again in a moment.`,
           variant: "default"
         });
       }
     } catch (error) {
       console.error('Search error:', error);
+      // Set filtered games to empty so we show the no results message
+      setFilteredGames([]);
+      
       toast({
         title: "Search failed",
-        description: "We couldn't complete your search. Please try again.",
+        description: "We couldn't complete your search. BGG API may be rate-limited, please try again in a moment.",
         variant: "destructive"
       });
+      
+      // If search fails, don't keep search mode active
+      if (games.length > 0) {
+        setSearchMode(false);
+        applyFilters(games, weightFilter, genreFilter);
+      }
     } finally {
       setIsSearching(false);
     }

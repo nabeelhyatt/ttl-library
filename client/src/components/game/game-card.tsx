@@ -105,54 +105,60 @@ export const GameCard: React.FC<GameCardProps> = ({
   return (
     <>
       <div className="game-card bg-secondary rounded-lg overflow-hidden border border-gray-800 flex flex-col h-full">
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <img 
-            src={game.thumbnail || game.image} 
-            alt={`${game.name} board game`} 
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              // Fallback image if the thumbnail fails to load
-              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
-            }}
-          />
-          {game.bggRank && (
-            <div className="absolute top-2 right-2 bg-background text-xs text-muted-foreground px-2 py-1 rounded-full">
-              #{game.bggRank} on BGG
+        <div className="p-5">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Game image with fixed width of 200px */}
+            <div className="relative w-full md:w-[200px] md:flex-shrink-0 overflow-hidden rounded-md">
+              <img 
+                src={game.thumbnail || game.image} 
+                alt={`${game.name} board game`} 
+                className="w-full h-auto object-cover aspect-[4/3]"
+                onError={(e) => {
+                  // Fallback image if the thumbnail fails to load
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+                }}
+              />
+              {game.bggRank && (
+                <div className="absolute top-2 right-2 bg-background text-xs text-muted-foreground px-2 py-1 rounded-full">
+                  #{game.bggRank} on BGG
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        
-        <div className="p-5 flex-grow">
-          <div className="flex justify-between items-start mb-3">
-            <h3 className="font-tufte text-lg font-medium text-foreground">{game.name}</h3>
-            <span className={`${genreColorClass} text-xs px-2 py-1 rounded`}>
-              {primaryGenre}
-            </span>
-          </div>
-          
-          <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-            {game.description ? (
-              <span dangerouslySetInnerHTML={{ __html: game.description.substring(0, 120) + (game.description.length > 120 ? '...' : '') }} />
-            ) : (
-              "No description available."
-            )}
-          </p>
-          
-          <div className="flex justify-between items-center">
-            <a 
-              href={`https://boardgamegeek.com/boardgame/${game.gameId}`} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-accent text-sm hover:underline flex items-center"
-            >
-              More information <FontAwesomeIcon icon="external-link-alt" className="ml-1 text-xs" />
-            </a>
             
-            {game.weightRating && (
-              <span className="text-muted-foreground text-sm flex items-center">
-                <FontAwesomeIcon icon="weight-hanging" className="mr-1 text-xs" /> {game.weightRating}
-              </span>
-            )}
+            {/* Game information */}
+            <div className="flex-grow">
+              <div className="flex justify-between items-start mb-3">
+                <h3 className="font-tufte text-lg font-medium text-foreground">{game.name}</h3>
+                <span className={`${genreColorClass} text-xs px-2 py-1 rounded whitespace-nowrap ml-2`}>
+                  {primaryGenre}
+                </span>
+              </div>
+              
+              <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
+                {game.description ? (
+                  <span dangerouslySetInnerHTML={{ __html: game.description.substring(0, 150) + (game.description.length > 150 ? '...' : '') }} />
+                ) : (
+                  "No description available."
+                )}
+              </p>
+              
+              <div className="flex justify-between items-center">
+                <a 
+                  href={`https://boardgamegeek.com/boardgame/${game.gameId}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-accent text-sm hover:underline flex items-center"
+                >
+                  More information <FontAwesomeIcon icon="external-link-alt" className="ml-1 text-xs" />
+                </a>
+                
+                {game.weightRating && (
+                  <span className="text-muted-foreground text-sm flex items-center">
+                    <FontAwesomeIcon icon="weight-hanging" className="mr-1 text-xs" /> {game.weightRating}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         
