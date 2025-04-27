@@ -1,0 +1,211 @@
+import Airtable from 'airtable';
+import { Vote, User, Game } from '@shared/schema';
+import { storage } from '../storage';
+
+class AirtableService {
+  private base: Airtable.Base;
+  private usersTable: Airtable.Table<any>;
+  private gamesTable: Airtable.Table<any>;
+  private votesTable: Airtable.Table<any>;
+  
+  constructor() {
+    // Initialize Airtable with API key
+    Airtable.configure({
+      apiKey: process.env.AIRTABLE_API_KEY || '',
+    });
+    
+    const baseId = process.env.AIRTABLE_BASE_ID || '';
+    this.base = Airtable.base(baseId);
+    
+    // Define tables
+    this.usersTable = this.base('Users');
+    this.gamesTable = this.base('Games');
+    this.votesTable = this.base('Votes');
+  }
+  
+  // User methods
+  async createUser(user: User): Promise<string> {
+    try {
+      const record = await this.usersTable.create({
+        'Email': user.email,
+        'Last Login': user.lastLogin ? user.lastLogin.toISOString() : null,
+      });
+      
+      return record.getId();
+    } catch (error) {
+      console.error('Error creating user in Airtable:', error);
+      // Continue without Airtable if it fails
+      return '';
+    }
+  }
+  
+  async updateUser(user: User): Promise<void> {
+    try {
+      // Find user record in Airtable by email
+      const records = await this.usersTable.select({
+        filterByFormula: `{Email} = "${user.email}"`,
+      }).firstPage();
+      
+      if (records.length > 0) {
+        await this.usersTable.update(records[0].id, {
+          'Last Login': user.lastLogin ? user.lastLogin.toISOString() : null,
+        });
+      } else {
+        // Create if not exists
+        await this.createUser(user);
+      }
+    } catch (error) {
+      console.error('Error updating user in Airtable:', error);
+      // Continue without Airtable if it fails
+    }
+  }
+  
+  // Game methods
+  async createGame(game: Game): Promise<string> {
+    try {
+      const record = await this.gamesTable.create({
+        'BGG ID': game.bggId,
+        'Name': game.name,
+        'Description': game.description || '',
+        'Image URL': game.image || '',
+        'Thumbnail URL': game.thumbnail || '',
+        'Year Published': game.yearPublished || null,
+        'Min Players': game.minPlayers || null,
+        'Max Players': game.maxPlayers || null,
+        'Playing Time': game.playingTime || null,
+        'BGG Rating': game.bggRating || null,
+        'BGG Rank': game.bggRank || null,
+        'Weight Rating': game.weightRating || null,
+        'Categories': (game.categories || []).join(', '),
+        'Mechanics': (game.mechanics || []).join(', '),
+        'Designers': (game.designers || []).join(', '),
+        'Publishers': (game.publishers || []).join(', '),
+      });
+      
+      return record.getId();
+    } catch (error) {
+      console.error('Error creating game in Airtable:', error);
+      // Continue without Airtable if it fails
+      return '';
+    }
+  }
+  
+  // Vote methods
+  async createVote(vote: Vote): Promise<string> {
+    try {
+      // Get user and game details
+      const user = await storage.getUser(vote.userId);
+      const game = await storage.getGame(vote.gameId);
+      
+      if (!user || !game) {
+        throw new Error('User or game not found');
+      }
+      
+      // Create or update user in Airtable
+      await this.updateUser(user);
+      
+      // Create or update game in Airtable
+      let gameAirtableId = '';
+      const gameRecords = await this.gamesTable.select({
+        filterByFormula: `{BGG ID} = ${game.bggId}`,
+      }).firstPage();
+      
+      if (gameRecords.length > 0) {
+        gameAirtableId = gameRecords[0].id;
+      } else {
+        gameAirtableId = await this.createGame(game);
+      }
+      
+      // Find user record in Airtable
+      const userRecords = await this.usersTable.select({
+        filterByFormula: `{Email} = "${user.email}"`,
+      }).firstPage();
+      
+      if (userRecords.length === 0 || !gameAirtableId) {
+        throw new Error('User or game not found in Airtable');
+      }
+      
+      // Create vote record
+      const voteRecord = await this.votesTable.create({
+        'User': [userRecords[0].id],
+        'Game': [gameAirtableId],
+        'Vote Type': vote.voteType,
+        'Created At': vote.createdAt ? vote.createdAt.toISOString() : new Date().toISOString(),
+      });
+      
+      return voteRecord.getId();
+    } catch (error) {
+      console.error('Error creating vote in Airtable:', error);
+      // Continue without Airtable if it fails
+      return '';
+    }
+  }
+  
+  async updateVote(vote: Vote): Promise<void> {
+    try {
+      // Get all votes for this user-game combination
+      const voteRecords = await this.votesTable.select({
+        filterByFormula: `AND({User Record ID} = "${vote.userId}", {Game Record ID} = "${vote.gameId}")`,
+      }).firstPage();
+      
+      if (voteRecords.length > 0) {
+        // Update existing vote
+        await this.votesTable.update(voteRecords[0].id, {
+          'Vote Type': vote.voteType,
+        });
+      } else {
+        // Create new vote if not found
+        await this.createVote(vote);
+      }
+    } catch (error) {
+      console.error('Error updating vote in Airtable:', error);
+      // Continue without Airtable if it fails
+    }
+  }
+  
+  async deleteVote(voteId: number): Promise<void> {
+    try {
+      // Find the vote in our storage first
+      const vote = await storage.getVote(voteId);
+      if (!vote) {
+        throw new Error('Vote not found');
+      }
+      
+      // Get user and game details
+      const user = await storage.getUser(vote.userId);
+      const game = await storage.getGame(vote.gameId);
+      
+      if (!user || !game) {
+        throw new Error('User or game not found');
+      }
+      
+      // Find the vote in Airtable
+      const userRecords = await this.usersTable.select({
+        filterByFormula: `{Email} = "${user.email}"`,
+      }).firstPage();
+      
+      const gameRecords = await this.gamesTable.select({
+        filterByFormula: `{BGG ID} = ${game.bggId}`,
+      }).firstPage();
+      
+      if (userRecords.length === 0 || gameRecords.length === 0) {
+        // Skip if we can't find the records
+        return;
+      }
+      
+      const voteRecords = await this.votesTable.select({
+        filterByFormula: `AND({User} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
+      }).firstPage();
+      
+      if (voteRecords.length > 0) {
+        // Delete the vote
+        await this.votesTable.destroy(voteRecords[0].id);
+      }
+    } catch (error) {
+      console.error('Error deleting vote in Airtable:', error);
+      // Continue without Airtable if it fails
+    }
+  }
+}
+
+export const airtableService = new AirtableService();

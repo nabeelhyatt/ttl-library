@@ -1,0 +1,261 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { boardGameGeekService } from "./services/bgg-service";
+import { airtableService } from "./services/airtable-service";
+import * as z from "zod";
+import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
+import session from "express-session";
+import MemoryStore from "memorystore";
+
+const MemoryStoreSession = MemoryStore(session);
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup session middleware
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || "tabletop-library-secret",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        secure: process.env.NODE_ENV === "production",
+      },
+      store: new MemoryStoreSession({
+        checkPeriod: 86400000, // prune expired entries every 24h
+      }),
+    })
+  );
+
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      // Validate the email
+      const result = insertUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      const { email } = result.data;
+      
+      // Check if user exists
+      let user = await storage.getUserByEmail(email);
+      
+      // If not, create a new user
+      if (!user) {
+        user = await storage.createUser({ email });
+      } else {
+        // Update last login
+        user = await storage.updateUserLastLogin(user.id);
+      }
+      
+      // Set user in session
+      req.session.userId = user.id;
+      
+      return res.status(200).json(user);
+    } catch (error) {
+      console.error("Login error:", error);
+      return res.status(500).json({ message: "Failed to log in" });
+    }
+  });
+  
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to log out" });
+      }
+      
+      res.clearCookie("connect.sid");
+      return res.status(200).json({ message: "Logged out successfully" });
+    });
+  });
+  
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      return res.status(200).json(user);
+    } catch (error) {
+      console.error("Auth check error:", error);
+      return res.status(500).json({ message: "Failed to check authentication status" });
+    }
+  });
+  
+  // BoardGameGeek API routes
+  app.get("/api/bgg/hot", async (req, res) => {
+    try {
+      const hotGames = await boardGameGeekService.getHotGames();
+      return res.status(200).json(hotGames);
+    } catch (error) {
+      console.error("Error fetching hot games:", error);
+      return res.status(500).json({ message: "Failed to fetch hot games" });
+    }
+  });
+  
+  app.get("/api/bgg/search", async (req, res) => {
+    try {
+      const query = req.query.query as string;
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const results = await boardGameGeekService.searchGames(query);
+      return res.status(200).json(results);
+    } catch (error) {
+      console.error("Error searching games:", error);
+      return res.status(500).json({ message: "Failed to search games" });
+    }
+  });
+  
+  app.get("/api/bgg/game/:id", async (req, res) => {
+    try {
+      const gameId = parseInt(req.params.id);
+      if (isNaN(gameId)) {
+        return res.status(400).json({ message: "Invalid game ID" });
+      }
+      
+      const game = await boardGameGeekService.getGameDetails(gameId);
+      return res.status(200).json(game);
+    } catch (error) {
+      console.error(`Error fetching game details:`, error);
+      return res.status(500).json({ message: "Failed to fetch game details" });
+    }
+  });
+  
+  // Votes routes
+  app.post("/api/votes", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "You must be logged in to vote" });
+      }
+      
+      // Validate vote data
+      const voteSchema = z.object({
+        gameId: z.number(),
+        voteType: z.nativeEnum(VoteType)
+      });
+      
+      const result = voteSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid vote data", errors: result.error.errors });
+      }
+      
+      const { gameId, voteType } = result.data;
+      
+      // Check if game exists in our database, if not, fetch it from BGG and save it
+      let game = await storage.getGameByBGGId(gameId);
+      if (!game) {
+        const gameDetails = await boardGameGeekService.getGameDetails(gameId);
+        game = await storage.createGame({
+          bggId: gameDetails.gameId,
+          name: gameDetails.name,
+          description: gameDetails.description,
+          image: gameDetails.image,
+          thumbnail: gameDetails.thumbnail,
+          yearPublished: gameDetails.yearPublished,
+          minPlayers: gameDetails.minPlayers,
+          maxPlayers: gameDetails.maxPlayers,
+          playingTime: gameDetails.playingTime,
+          minPlayTime: gameDetails.minPlayTime,
+          maxPlayTime: gameDetails.maxPlayTime,
+          minAge: gameDetails.minAge,
+          bggRating: gameDetails.bggRating,
+          bggRank: gameDetails.bggRank,
+          weightRating: gameDetails.weightRating,
+          categories: gameDetails.categories,
+          mechanics: gameDetails.mechanics,
+          designers: gameDetails.designers,
+          publishers: gameDetails.publishers
+        });
+      }
+      
+      // Check if user already voted for this game
+      const existingVote = await storage.getUserVoteForGame(req.session.userId, game.id);
+      if (existingVote) {
+        // Update the existing vote
+        const updatedVote = await storage.updateVote(existingVote.id, { voteType });
+        
+        // Update in Airtable
+        await airtableService.updateVote(updatedVote);
+        
+        return res.status(200).json(updatedVote);
+      }
+      
+      // Create new vote
+      const vote = await storage.createVote({
+        userId: req.session.userId,
+        gameId: game.id,
+        voteType
+      });
+      
+      // Save to Airtable
+      await airtableService.createVote(vote);
+      
+      return res.status(201).json(vote);
+    } catch (error) {
+      console.error("Vote submission error:", error);
+      return res.status(500).json({ message: "Failed to submit vote" });
+    }
+  });
+  
+  app.get("/api/votes/my-votes", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "You must be logged in to view your votes" });
+      }
+      
+      const votes = await storage.getUserVotes(req.session.userId);
+      return res.status(200).json(votes);
+    } catch (error) {
+      console.error("Error fetching user votes:", error);
+      return res.status(500).json({ message: "Failed to fetch your votes" });
+    }
+  });
+  
+  app.delete("/api/votes/:id", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "You must be logged in to delete votes" });
+      }
+      
+      const voteId = parseInt(req.params.id);
+      if (isNaN(voteId)) {
+        return res.status(400).json({ message: "Invalid vote ID" });
+      }
+      
+      // Check if vote exists and belongs to the user
+      const vote = await storage.getVote(voteId);
+      if (!vote) {
+        return res.status(404).json({ message: "Vote not found" });
+      }
+      
+      if (vote.userId !== req.session.userId) {
+        return res.status(403).json({ message: "You can only delete your own votes" });
+      }
+      
+      // Delete from storage
+      await storage.deleteVote(voteId);
+      
+      // Delete from Airtable
+      await airtableService.deleteVote(voteId);
+      
+      return res.status(200).json({ message: "Vote deleted successfully" });
+    } catch (error) {
+      console.error("Vote deletion error:", error);
+      return res.status(500).json({ message: "Failed to delete vote" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}

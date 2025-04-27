@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 240 10% 3.9%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 36 30% 73.5%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
+
+  /* Vote colors */
+  --vote-try: 214 76% 60%;
+  --vote-played: 135 50% 50%;
+  --vote-club: 260 59.4% 65.1%;
+  --vote-tournament: 16 100% 65.3%;
+  --vote-teach: 51 100% 50%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply antialiased bg-background text-foreground;
+    font-family: 'EB Garamond', serif;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-tufte;
+  }
+}
+
+@layer components {
+  .tufte-container {
+    @apply max-w-5xl mx-auto px-4 md:px-8 lg:px-12;
+  }
+
+  .game-card {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .game-card:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+  
+  .vote-button {
+    @apply transition-all duration-200 ease-in;
+  }
+  
+  .vote-button:hover {
+    @apply scale-105;
+  }
+
+  .section-title {
+    @apply relative inline-block;
+  }
+  
+  .section-title:after {
+    content: '';
+    @apply absolute w-full h-px -bottom-1 left-0 bg-accent;
+  }
+}
+
+@layer utilities {
+  .bg-vote-try {
+    background-color: hsl(var(--vote-try));
+  }
+  .bg-vote-try\/20 {
+    background-color: hsl(var(--vote-try) / 0.2);
+  }
+  .bg-vote-try\/30 {
+    background-color: hsl(var(--vote-try) / 0.3);
+  }
+  .text-vote-try {
+    color: hsl(var(--vote-try));
+  }
+
+  .bg-vote-played {
+    background-color: hsl(var(--vote-played));
+  }
+  .bg-vote-played\/20 {
+    background-color: hsl(var(--vote-played) / 0.2);
+  }
+  .bg-vote-played\/30 {
+    background-color: hsl(var(--vote-played) / 0.3);
+  }
+  .text-vote-played {
+    color: hsl(var(--vote-played));
+  }
+
+  .bg-vote-club {
+    background-color: hsl(var(--vote-club));
+  }
+  .bg-vote-club\/20 {
+    background-color: hsl(var(--vote-club) / 0.2);
+  }
+  .bg-vote-club\/30 {
+    background-color: hsl(var(--vote-club) / 0.3);
+  }
+  .text-vote-club {
+    color: hsl(var(--vote-club));
+  }
+
+  .bg-vote-tournament {
+    background-color: hsl(var(--vote-tournament));
+  }
+  .bg-vote-tournament\/20 {
+    background-color: hsl(var(--vote-tournament) / 0.2);
+  }
+  .bg-vote-tournament\/30 {
+    background-color: hsl(var(--vote-tournament) / 0.3);
+  }
+  .text-vote-tournament {
+    color: hsl(var(--vote-tournament));
+  }
+
+  .bg-vote-teach {
+    background-color: hsl(var(--vote-teach));
+  }
+  .bg-vote-teach\/20 {
+    background-color: hsl(var(--vote-teach) / 0.2);
+  }
+  .bg-vote-teach\/30 {
+    background-color: hsl(var(--vote-teach) / 0.3);
+  }
+  .text-vote-teach {
+    color: hsl(var(--vote-teach));
+  }
+}
+
+/* Custom tufte-inspired styles */
+.font-tufte {
+  font-family: 'EB Garamond', serif;
+}
+
+.tufte-title {
+  @apply text-4xl md:text-5xl;
+}
+
+.tufte-subtitle {
+  @apply text-2xl md:text-3xl;
+}
+
+.tufte-body {
+  @apply text-lg;
+}
+
+.tufte-small {
+  @apply text-sm;
+}
+
+input::placeholder, textarea::placeholder {
+  @apply text-neutral-500 opacity-100;
+}
