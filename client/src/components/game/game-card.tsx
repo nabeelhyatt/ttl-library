@@ -163,8 +163,28 @@ export const GameCard: React.FC<GameCardProps> = ({
                   )}
                 </div>
 
-                {/* Game info (links, genre, weight, BGG rank) at the bottom of this section */}
+                {/* Game info (category, BGG rank, weight, more info) at the bottom of this section */}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
+                  {/* Category first */}
+                  <span className={`${genreColorClass} text-xs px-3 py-1 rounded whitespace-nowrap`}>
+                    {primaryGenre}
+                  </span>
+                  
+                  {/* BGG Rank second */}
+                  {game.bggRank && (
+                    <span className="text-zinc-300 text-xs flex items-center bg-zinc-800 px-3 py-1 rounded">
+                      #{game.bggRank} on BGG
+                    </span>
+                  )}
+                  
+                  {/* Weight third */}
+                  {game.weightRating && (
+                    <span className="text-zinc-300 text-xs flex items-center bg-zinc-800 px-3 py-1 rounded">
+                      <FontAwesomeIcon icon={"weight-hanging" as any} className="mr-1" /> {game.weightRating}
+                    </span>
+                  )}
+                  
+                  {/* More info link last */}
                   <a 
                     href={`https://boardgamegeek.com/boardgame/${game.gameId}`} 
                     target="_blank" 
@@ -173,22 +193,6 @@ export const GameCard: React.FC<GameCardProps> = ({
                   >
                     <FontAwesomeIcon icon={"external-link-alt" as any} className="mr-1" /> More information
                   </a>
-                  
-                  <span className={`${genreColorClass} text-xs px-3 py-1 rounded whitespace-nowrap`}>
-                    {primaryGenre}
-                  </span>
-                  
-                  {game.bggRank && (
-                    <span className="text-zinc-300 text-xs flex items-center bg-zinc-800 px-3 py-1 rounded">
-                      #{game.bggRank} on BGG
-                    </span>
-                  )}
-                  
-                  {game.weightRating && (
-                    <span className="text-zinc-300 text-xs flex items-center bg-zinc-800 px-3 py-1 rounded">
-                      <FontAwesomeIcon icon={"weight-hanging" as any} className="mr-1" /> {game.weightRating}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
