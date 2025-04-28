@@ -102,7 +102,16 @@ class AirtableService {
       
       const records = await this.gamesTable.select({
         filterByFormula: `{BGG ID} = ${bggId}`,
-        fields: ['BGG ID', 'Full TLCS Code', 'Categories', 'to Order', '# for Rent', '# for Sale', 'Title']
+        fields: [
+          'BGG ID', 
+          'Full TLCS Code', 
+          'to Order', 
+          '# for Rent', 
+          '# for Sale', 
+          'Title',
+          'Primary Category',
+          'Secondary Category'
+        ]
       }).firstPage();
       
       if (records.length === 0) {
@@ -135,12 +144,20 @@ class AirtableService {
       result.forRent = Boolean(fields['# for Rent']) || false;
       result.forSale = Boolean(fields['# for Sale']) || false;
       
-      // Handle categories - be careful with different data types
-      if (fields['Categories']) {
-        if (typeof fields['Categories'] === 'string') {
-          result.categories = (fields['Categories'] as string).split(', ').filter(Boolean);
-        } else if (Array.isArray(fields['Categories'])) {
-          result.categories = fields['Categories'] as string[];
+      // The Categories field contains record IDs - let's not use them directly
+      // Instead, let's use the Secondary Category field which should have string values
+      if (fields['Secondary Category']) {
+        if (typeof fields['Secondary Category'] === 'string') {
+          result.categories = [(fields['Secondary Category'] as string)];
+        } else if (Array.isArray(fields['Secondary Category'])) {
+          result.categories = fields['Secondary Category'] as string[];
+        } else {
+          result.categories = [];
+        }
+      } else if (fields['Primary Category']) {
+        // Fallback to primary category
+        if (typeof fields['Primary Category'] === 'string') {
+          result.categories = [(fields['Primary Category'] as string)];
         } else {
           result.categories = [];
         }

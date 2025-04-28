@@ -126,6 +126,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if game exists in Airtable and get additional information
       const airtableGameInfo = await airtableService.getGameByBGGId(gameId);
       
+      // Determine if Airtable categories are record IDs (they start with "rec")
+      let useAirtableCategories = false;
+      if (airtableGameInfo?.categories?.length) {
+        // Check if any categories don't start with "rec" (indicating they're not record IDs)
+        useAirtableCategories = airtableGameInfo.categories.some(cat => typeof cat === 'string' && !cat.startsWith('rec'));
+      }
+      
       // Merge Airtable data with BGG data
       const enrichedGame = {
         ...game,
@@ -133,8 +140,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         forRent: airtableGameInfo?.forRent || false,
         forSale: airtableGameInfo?.forSale || false,
         toOrder: airtableGameInfo?.toOrder || false,
-        // If game has categories in Airtable, prefer those over BGG categories
-        categories: airtableGameInfo?.categories?.length ? airtableGameInfo.categories : game.categories
+        // Use Airtable categories only if they're not record IDs
+        categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
       };
       
       return res.status(200).json(enrichedGame);
