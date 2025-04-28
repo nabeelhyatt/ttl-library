@@ -109,7 +109,7 @@ class AirtableService {
           '# for Rent', 
           '# for Sale', 
           'Title',
-          'Primary Category',
+          'Category',
           'Secondary Category'
         ]
       }).firstPage();
@@ -140,9 +140,36 @@ class AirtableService {
       }
       
       // Add availability information with correct Airtable field names
-      result.toOrder = Boolean(fields['to Order']) || false;
-      result.forRent = Boolean(fields['# for Rent']) || false;
-      result.forSale = Boolean(fields['# for Sale']) || false;
+      // Check if numeric fields are > 0, treat as boolean fields otherwise
+      const toOrderValue = fields['to Order'];
+      const forRentValue = fields['# for Rent'];
+      const forSaleValue = fields['# for Sale'];
+      
+      // Log the values to help with debugging
+      console.log('Availability data:', {
+        toOrder: toOrderValue,
+        forRent: forRentValue,
+        forSale: forSaleValue
+      });
+      
+      // Convert to numbers if possible, otherwise use Boolean conversion
+      if (typeof toOrderValue === 'number') {
+        result.toOrder = toOrderValue > 0;
+      } else {
+        result.toOrder = Boolean(toOrderValue);
+      }
+      
+      if (typeof forRentValue === 'number') {
+        result.forRent = forRentValue > 0;
+      } else {
+        result.forRent = Boolean(forRentValue);
+      }
+      
+      if (typeof forSaleValue === 'number') {
+        result.forSale = forSaleValue > 0;
+      } else {
+        result.forSale = Boolean(forSaleValue);
+      }
       
       // The Categories field contains record IDs - let's not use them directly
       // Instead, let's use the Secondary Category field which should have string values
@@ -154,10 +181,10 @@ class AirtableService {
         } else {
           result.categories = [];
         }
-      } else if (fields['Primary Category']) {
+      } else if (fields['Category']) {
         // Fallback to primary category
-        if (typeof fields['Primary Category'] === 'string') {
-          result.categories = [(fields['Primary Category'] as string)];
+        if (typeof fields['Category'] === 'string') {
+          result.categories = [(fields['Category'] as string)];
         } else {
           result.categories = [];
         }
