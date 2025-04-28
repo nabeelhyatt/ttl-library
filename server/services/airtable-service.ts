@@ -102,7 +102,7 @@ class AirtableService {
       
       const records = await this.gamesTable.select({
         filterByFormula: `{BGG ID} = ${bggId}`,
-        fields: ['BGG ID', 'Full TLCS Code', 'Categories', 'to Order', 'Title', 'For Rent', 'For Sale']
+        fields: ['BGG ID', 'Full TLCS Code', 'Categories', 'to Order', 'Title']
       }).firstPage();
       
       if (records.length === 0) {
@@ -116,17 +116,39 @@ class AirtableService {
       console.log(`Found game "${fields['Title'] || 'Unknown'}" in Airtable`);
       console.log('Available fields:', Object.keys(fields));
       
-      const result = {
-        tlcsCode: fields['Full TLCS Code'] as string || undefined,
-        // These fields may not exist in all records
-        forRent: Boolean(fields['For Rent']) || false,
-        forSale: Boolean(fields['For Sale']) || false,
-        toOrder: Boolean(fields['to Order']) || false,
-        // Handle categories that might be stored as string or array
-        categories: typeof fields['Categories'] === 'string' 
-          ? (fields['Categories'] as string).split(', ').filter(Boolean)
-          : fields['Categories'] as string[] || []
-      };
+      // Create result object
+      const result: {
+        tlcsCode?: string;
+        forRent?: boolean;
+        forSale?: boolean;
+        toOrder?: boolean;
+        categories?: string[];
+      } = {};
+      
+      // Add TLCS code if available
+      if (fields['Full TLCS Code']) {
+        result.tlcsCode = fields['Full TLCS Code'] as string;
+      }
+      
+      // Add to Order status if available (default to false)
+      result.toOrder = Boolean(fields['to Order']) || false;
+      
+      // Initialize the other availability flags to false
+      result.forRent = false;
+      result.forSale = false;
+      
+      // Handle categories - be careful with different data types
+      if (fields['Categories']) {
+        if (typeof fields['Categories'] === 'string') {
+          result.categories = (fields['Categories'] as string).split(', ').filter(Boolean);
+        } else if (Array.isArray(fields['Categories'])) {
+          result.categories = fields['Categories'] as string[];
+        } else {
+          result.categories = [];
+        }
+      } else {
+        result.categories = [];
+      }
       
       console.log('Game data from Airtable:', JSON.stringify(result));
       
