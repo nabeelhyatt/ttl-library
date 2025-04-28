@@ -180,7 +180,7 @@ export const GameCard: React.FC<GameCardProps> = ({
                   {/* Weight third */}
                   {game.weightRating && (
                     <span className="text-zinc-300 text-xs flex items-center bg-zinc-800 px-3 py-1 rounded">
-                      <FontAwesomeIcon icon={"weight-hanging" as any} className="mr-1" /> {game.weightRating}
+                      <FontAwesomeIcon icon={"weight-hanging" as any} className="mr-1" /> {parseFloat(game.weightRating).toFixed(1)}
                     </span>
                   )}
                   
