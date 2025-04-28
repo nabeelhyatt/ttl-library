@@ -64,8 +64,26 @@ export const GameCard: React.FC<GameCardProps> = ({
     try {
       const loggedInUser = await onLogin(email);
       setIsLoginOpen(false);
+      
+      // Add a small delay to ensure the session is properly set up on the server
       if (votingType && loggedInUser) {
-        processVote(votingType);
+        setTimeout(() => {
+          submitVote(game.gameId, votingType)
+            .then(() => {
+              setIsVoteSuccessOpen(true);
+              if (onVoteSuccess) {
+                onVoteSuccess();
+              }
+            })
+            .catch((err) => {
+              console.error("Vote error after login:", err);
+              toast({
+                title: "Vote Failed",
+                description: "We couldn't record your vote. Please try again.",
+                variant: "destructive"
+              });
+            });
+        }, 500);
       }
     } catch (error) {
       toast({
