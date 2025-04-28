@@ -91,8 +91,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BoardGameGeek API routes
   app.get("/api/bgg/hot", async (req, res) => {
     try {
+      // Get basic hot games list
       const hotGames = await boardGameGeekService.getHotGames();
-      return res.status(200).json(hotGames);
+      
+      // Enrich with Airtable data (in parallel)
+      const enrichedGames = await Promise.all(
+        hotGames.map(async (game) => {
+          try {
+            // Check if game exists in Airtable
+            const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
+            
+            if (airtableGameInfo) {
+              // Determine if Airtable categories are record IDs
+              let useAirtableCategories = false;
+              if (airtableGameInfo.categories?.length) {
+                useAirtableCategories = airtableGameInfo.categories.some(
+                  cat => typeof cat === 'string' && !cat.startsWith('rec')
+                );
+              }
+              
+              // Return enriched game with Airtable data
+              return {
+                ...game,
+                tlcsCode: airtableGameInfo.tlcsCode || null,
+                forRent: airtableGameInfo.forRent || false,
+                forSale: airtableGameInfo.forSale || false,
+                toOrder: airtableGameInfo.toOrder || false,
+                categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
+              };
+            }
+            
+            return game;
+          } catch (error) {
+            console.error(`Error enriching game ${game.gameId} with Airtable data:`, error);
+            return game;
+          }
+        })
+      );
+      
+      return res.status(200).json(enrichedGames);
     } catch (error) {
       console.error("Error fetching hot games:", error);
       return res.status(500).json({ message: "Failed to fetch hot games" });
@@ -106,8 +143,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Search query is required" });
       }
       
+      // Get basic search results
       const results = await boardGameGeekService.searchGames(query);
-      return res.status(200).json(results);
+      
+      // Enrich with Airtable data (in parallel)
+      const enrichedResults = await Promise.all(
+        results.map(async (game) => {
+          try {
+            // Check if game exists in Airtable
+            const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
+            
+            if (airtableGameInfo) {
+              // Determine if Airtable categories are record IDs
+              let useAirtableCategories = false;
+              if (airtableGameInfo.categories?.length) {
+                useAirtableCategories = airtableGameInfo.categories.some(
+                  cat => typeof cat === 'string' && !cat.startsWith('rec')
+                );
+              }
+              
+              // Return enriched game with Airtable data
+              return {
+                ...game,
+                tlcsCode: airtableGameInfo.tlcsCode || null,
+                forRent: airtableGameInfo.forRent || false,
+                forSale: airtableGameInfo.forSale || false,
+                toOrder: airtableGameInfo.toOrder || false,
+                categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
+              };
+            }
+            
+            return game;
+          } catch (error) {
+            console.error(`Error enriching game ${game.gameId} with Airtable data:`, error);
+            return game;
+          }
+        })
+      );
+      
+      return res.status(200).json(enrichedResults);
     } catch (error) {
       console.error("Error searching games:", error);
       return res.status(500).json({ message: "Failed to search games" });
