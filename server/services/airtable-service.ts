@@ -109,7 +109,6 @@ class AirtableService {
           '# for Rent', 
           '# for Sale', 
           'Title',
-          'Category',
           'Secondary Category'
         ]
       }).firstPage();
@@ -178,13 +177,6 @@ class AirtableService {
           result.categories = [(fields['Secondary Category'] as string)];
         } else if (Array.isArray(fields['Secondary Category'])) {
           result.categories = fields['Secondary Category'] as string[];
-        } else {
-          result.categories = [];
-        }
-      } else if (fields['Category']) {
-        // Fallback to primary category
-        if (typeof fields['Category'] === 'string') {
-          result.categories = [(fields['Category'] as string)];
         } else {
           result.categories = [];
         }
