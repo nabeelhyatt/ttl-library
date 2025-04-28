@@ -98,28 +98,39 @@ class AirtableService {
     categories?: string[];
   } | null> {
     try {
+      console.log(`Looking for game with BGG ID ${bggId} in Airtable`);
+      
       const records = await this.gamesTable.select({
         filterByFormula: `{BGG ID} = ${bggId}`,
-        fields: ['BGG ID', 'FULL TLCS Code', 'For Rent', 'For Sale', 'To Order', 'Categories']
+        fields: ['BGG ID', 'Full TLCS Code', 'Categories', 'to Order', 'Title', 'For Rent', 'For Sale']
       }).firstPage();
       
       if (records.length === 0) {
+        console.log(`No game found with BGG ID ${bggId} in Airtable`);
         return null;
       }
       
       const record = records[0];
       const fields = record.fields;
       
-      return {
-        tlcsCode: fields['FULL TLCS Code'] as string || undefined,
-        forRent: fields['For Rent'] as boolean || false,
-        forSale: fields['For Sale'] as boolean || false,
-        toOrder: fields['To Order'] as boolean || false,
+      console.log(`Found game "${fields['Title'] || 'Unknown'}" in Airtable`);
+      console.log('Available fields:', Object.keys(fields));
+      
+      const result = {
+        tlcsCode: fields['Full TLCS Code'] as string || undefined,
+        // These fields may not exist in all records
+        forRent: Boolean(fields['For Rent']) || false,
+        forSale: Boolean(fields['For Sale']) || false,
+        toOrder: Boolean(fields['to Order']) || false,
         // Handle categories that might be stored as string or array
         categories: typeof fields['Categories'] === 'string' 
           ? (fields['Categories'] as string).split(', ').filter(Boolean)
           : fields['Categories'] as string[] || []
       };
+      
+      console.log('Game data from Airtable:', JSON.stringify(result));
+      
+      return result;
     } catch (error) {
       console.error('Error retrieving game from Airtable:', error);
       return null;
