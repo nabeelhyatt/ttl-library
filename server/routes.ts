@@ -256,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate vote data
       const voteSchema = z.object({
-        gameId: z.number(),
+        bggId: z.number(),
         voteType: z.nativeEnum(VoteType)
       });
       
@@ -265,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid vote data", errors: result.error.errors });
       }
       
-      const { gameId, voteType } = result.data;
+      const { bggId, voteType } = result.data;
       
       // Check if game exists in our database, if not, fetch it from BGG and save it
       let game = await storage.getGameByBGGId(gameId);

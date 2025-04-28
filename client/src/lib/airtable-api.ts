@@ -2,7 +2,7 @@ import { Vote, VoteType } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
 export async function submitVote(gameId: number, voteType: VoteType): Promise<Vote> {
-  const response = await apiRequest("POST", "/api/votes", { gameId, voteType });
+  const response = await apiRequest("POST", "/api/votes", { bggId: gameId, voteType });
   return response.json();
 }
 
