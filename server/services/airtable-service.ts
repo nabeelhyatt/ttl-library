@@ -102,7 +102,7 @@ class AirtableService {
       
       const records = await this.gamesTable.select({
         filterByFormula: `{BGG ID} = ${bggId}`,
-        fields: ['BGG ID', 'Full TLCS Code', 'Categories', 'to Order', 'Title']
+        fields: ['BGG ID', 'Full TLCS Code', 'Categories', 'to Order', '# for Rent', '# for Sale', 'Title']
       }).firstPage();
       
       if (records.length === 0) {
@@ -130,12 +130,10 @@ class AirtableService {
         result.tlcsCode = fields['Full TLCS Code'] as string;
       }
       
-      // Add to Order status if available (default to false)
+      // Add availability information with correct Airtable field names
       result.toOrder = Boolean(fields['to Order']) || false;
-      
-      // Initialize the other availability flags to false
-      result.forRent = false;
-      result.forSale = false;
+      result.forRent = Boolean(fields['# for Rent']) || false;
+      result.forSale = Boolean(fields['# for Sale']) || false;
       
       // Handle categories - be careful with different data types
       if (fields['Categories']) {
