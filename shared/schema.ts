@@ -124,28 +124,28 @@ export enum VoteType {
 // Vote label and colors
 export const voteTypeInfo = {
   [VoteType.WantToTry]: { 
-    label: "Want to try", 
+    label: "Want to play", 
     icon: "dice-one",
     bgColor: "bg-vote-try/20", 
     hoverBgColor: "hover:bg-vote-try/30", 
     textColor: "text-vote-try" 
   },
   [VoteType.PlayedWillPlayAgain]: { 
-    label: "Played, again!", 
+    label: "Like to play", 
     icon: "dice-two",
     bgColor: "bg-vote-played/20", 
     hoverBgColor: "hover:bg-vote-played/30", 
     textColor: "text-vote-played" 
   },
   [VoteType.WouldJoinClub]: { 
-    label: "Join club", 
+    label: "Would join club", 
     icon: "dice-three",
     bgColor: "bg-vote-club/20", 
     hoverBgColor: "hover:bg-vote-club/30", 
     textColor: "text-vote-club" 
   },
   [VoteType.WouldJoinTournament]: { 
-    label: "Tournament", 
+    label: "Want tournament", 
     icon: "dice-four",
     bgColor: "bg-vote-tournament/20", 
     hoverBgColor: "hover:bg-vote-tournament/30", 

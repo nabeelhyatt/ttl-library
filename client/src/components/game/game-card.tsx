@@ -201,7 +201,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         
         {/* Vote buttons section */}
         <div className="mt-auto border-t border-zinc-800 p-4 bg-zinc-950">
-          <p className="text-xs text-zinc-400 mb-3">Vote for this game:</p>
+          <p className="text-sm font-tufte text-zinc-300 mb-3 text-center">Vote for this game:</p>
           <div className="flex flex-wrap gap-2 justify-center">
             {Object.values(VoteType)
               .filter(v => !isNaN(Number(v)))
