@@ -137,16 +137,16 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
   };
   
   return (
-    <main className="tufte-container py-8">
+    <main className="container mx-auto py-8 px-4 bg-black min-h-screen text-white">
       {/* Page Title */}
-      <div className="mb-12 md:mb-18 mt-8">
+      <div className="mb-12 md:mb-16 mt-4">
         <div className="flex flex-col items-center text-center mb-8">
           <div className="h-16 w-16 flex items-center justify-center mb-6 text-accent">
             <HexagonIcon />
           </div>
-          <h1 className="tufte-title font-tufte text-foreground mb-2">The Tabletop Library</h1>
-          <h2 className="tufte-subtitle font-tufte text-accent">Game Voting Platform</h2>
-          <p className="mt-4 tufte-body max-w-2xl text-muted-foreground">
+          <h1 className="font-tufte text-3xl font-bold text-white mb-2">The Tabletop Library</h1>
+          <h2 className="font-tufte text-xl text-accent mb-2">Game Voting Platform</h2>
+          <p className="mt-4 max-w-2xl text-zinc-400">
             Help us choose which games to add to our collection. Search for games, vote on your favorites, 
             and see what others are excited about.
           </p>
@@ -155,7 +155,7 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
       
       {/* Search and Filters */}
       <div className="mb-12">
-        <div className="bg-secondary p-6 rounded-lg mb-8">
+        <div className="bg-zinc-900 p-6 rounded border border-zinc-800 mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-grow">
               <GameSearch onSearch={handleSearch} isSearching={isSearching} />
@@ -172,10 +172,10 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
         
         {/* Games List Title */}
         <div className="mb-6">
-          <h2 className="section-title tufte-subtitle font-tufte text-accent">
+          <h2 className="font-tufte text-2xl text-accent mb-2">
             {searchMode ? "Search Results" : "Hottest Games"}
           </h2>
-          <p className="tufte-body text-muted-foreground mt-3">
+          <p className="text-zinc-400 mt-2">
             {searchMode 
               ? "Games matching your search criteria. Vote on the ones you'd like to see at The Tabletop Library."
               : "These games are currently trending on BoardGameGeek. Vote on the ones you'd like to see at The Tabletop Library."
@@ -190,9 +190,9 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
           <div className="animate-pulse text-lg text-muted-foreground">Loading games...</div>
         </div>
       ) : filteredGames.length === 0 ? (
-        <div className="bg-secondary rounded-lg p-8 text-center">
-          <h3 className="text-xl font-tufte text-foreground mb-3">No games found</h3>
-          <p className="text-muted-foreground">
+        <div className="bg-zinc-900 rounded p-8 text-center">
+          <h3 className="text-xl font-tufte text-white mb-3">No games found</h3>
+          <p className="text-zinc-400">
             {searchMode 
               ? "We couldn't find any games matching your search criteria. Try a different search term or filters."
               : "We couldn't load any games at this time. Please try again later."
@@ -200,7 +200,7 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredGames.map(game => (
             <GameCard 
               key={game.gameId} 

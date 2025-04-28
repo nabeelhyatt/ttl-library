@@ -40,7 +40,7 @@ export const GameSearch: React.FC<GameSearchProps> = ({ onSearch, isSearching })
           value={query}
           onChange={handleInputChange}
           placeholder="Search for board games..."
-          className="w-full px-4 py-6 bg-background border border-gray-700 rounded-l-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200 text-lg"
+          className="w-full px-4 py-6 bg-zinc-800 border border-zinc-700 rounded-l-lg text-white focus:outline-none focus:border-accent transition duration-200 text-lg placeholder:text-zinc-500"
           disabled={isSearching}
         />
         <Button 
@@ -54,7 +54,7 @@ export const GameSearch: React.FC<GameSearchProps> = ({ onSearch, isSearching })
         </Button>
       </div>
       {isSearching && (
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-xs text-zinc-400 mt-2">
           Searching BoardGameGeek... This may take a moment due to API rate limits.
         </p>
       )}

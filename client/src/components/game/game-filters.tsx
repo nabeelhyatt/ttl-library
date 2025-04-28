@@ -24,10 +24,10 @@ export const GameFilters: React.FC<GameFiltersProps> = ({
           onValueChange={onWeightFilterChange}
           disabled={disabled}
         >
-          <SelectTrigger className="px-4 py-3 bg-background border border-gray-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200 min-w-[140px]">
+          <SelectTrigger className="px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-accent transition duration-200 min-w-[140px]">
             <SelectValue placeholder="All Weights" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
             <SelectItem value="all">All Weights</SelectItem>
             <SelectItem value=".1">Light/Gateway</SelectItem>
             <SelectItem value=".2">Medium-Light</SelectItem>
@@ -45,10 +45,10 @@ export const GameFilters: React.FC<GameFiltersProps> = ({
           onValueChange={onGenreFilterChange}
           disabled={disabled}
         >
-          <SelectTrigger className="px-4 py-3 bg-background border border-gray-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200 min-w-[140px]">
+          <SelectTrigger className="px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-accent transition duration-200 min-w-[140px]">
             <SelectValue placeholder="All Genres" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
             <SelectItem value="all">All Genres</SelectItem>
             <SelectItem value="Abstract">Abstract</SelectItem>
             <SelectItem value="Party">Party</SelectItem>
