@@ -106,70 +106,80 @@ export const GameCard: React.FC<GameCardProps> = ({
     <>
       <div className="game-card bg-secondary rounded-lg overflow-hidden border border-gray-800 flex flex-col h-full">
         <div className="p-5">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Game image with fixed width of 200px */}
-            <div className="relative w-full md:w-[200px] md:flex-shrink-0 overflow-hidden rounded-md">
-              <img 
-                src={game.thumbnail || game.image} 
-                alt={`${game.name} board game`} 
-                className="w-full h-auto object-cover aspect-[4/3]"
-                onError={(e) => {
-                  // Fallback image if the thumbnail fails to load
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
-                }}
-              />
-              {game.bggRank && (
-                <div className="absolute top-2 right-2 bg-background text-xs text-muted-foreground px-2 py-1 rounded-full">
-                  #{game.bggRank} on BGG
-                </div>
-              )}
+          {/* Main content area */}
+          <div className="relative">
+            {/* TLCS code placeholder - will be replaced with actual data later */}
+            <div className="absolute top-0 right-0 bg-zinc-700 text-white px-3 py-1 rounded">
+              {weightClass ? `${weightClass}0.2` : '—.—'}
             </div>
             
-            {/* Game information */}
-            <div className="flex-grow">
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="font-tufte text-lg font-medium text-foreground">{game.name}</h3>
-                <span className={`${genreColorClass} text-xs px-2 py-1 rounded whitespace-nowrap ml-2`}>
-                  {primaryGenre}
-                </span>
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Game image with fixed width of 200px */}
+              <div className="relative w-full md:w-[180px] md:flex-shrink-0 overflow-hidden rounded-md">
+                <img 
+                  src={game.thumbnail || game.image} 
+                  alt={`${game.name} board game`} 
+                  className="w-full h-auto object-cover aspect-[1/1]"
+                  onError={(e) => {
+                    // Fallback image if the thumbnail fails to load
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+                  }}
+                />
               </div>
               
-              <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-                {game.description ? (
-                  <span dangerouslySetInnerHTML={{ __html: game.description.substring(0, 150) + (game.description.length > 150 ? '...' : '') }} />
-                ) : (
-                  "No description available."
-                )}
-              </p>
-              
-              <div className="flex justify-between items-center">
-                <a 
-                  href={`https://boardgamegeek.com/boardgame/${game.gameId}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-accent text-sm hover:underline flex items-center"
-                >
-                  More information <FontAwesomeIcon icon="external-link-alt" className="ml-1 text-xs" />
-                </a>
+              {/* Game information */}
+              <div className="flex-grow">
+                <h3 className="font-tufte text-xl font-medium text-foreground mb-2">{game.name}</h3>
                 
-                {game.weightRating && (
-                  <span className="text-muted-foreground text-sm flex items-center">
-                    <FontAwesomeIcon icon="weight-hanging" className="mr-1 text-xs" /> {game.weightRating}
+                <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
+                  {game.description ? (
+                    <span dangerouslySetInnerHTML={{ __html: game.description.substring(0, 180) + (game.description.length > 180 ? '...' : '') }} />
+                  ) : (
+                    "No description available."
+                  )}
+                </p>
+                
+                {/* Bottom info area aligned with the bottom of the image */}
+                <div className="mt-auto pt-2 flex flex-wrap items-center gap-2">
+                  <a 
+                    href={`https://boardgamegeek.com/boardgame/${game.gameId}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-accent text-xs hover:underline flex items-center"
+                  >
+                    <FontAwesomeIcon icon="external-link-alt" className="mr-1" /> More information
+                  </a>
+                  
+                  <span className={`${genreColorClass} text-xs px-2 py-1 rounded whitespace-nowrap`}>
+                    {primaryGenre}
                   </span>
-                )}
+                  
+                  {game.weightRating && (
+                    <span className="text-muted-foreground text-xs flex items-center bg-gray-800/30 px-2 py-1 rounded">
+                      <FontAwesomeIcon icon="weight-hanging" className="mr-1" /> {game.weightRating}
+                    </span>
+                  )}
+                  
+                  {game.bggRank && (
+                    <span className="text-muted-foreground text-xs flex items-center bg-gray-800/30 px-2 py-1 rounded">
+                      #{game.bggRank} on BGG
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
         
-        <div className="p-5 pt-0">
+        {/* Vote buttons section */}
+        <div className="mt-auto p-5 pt-2 border-t border-gray-800">
           <p className="text-xs text-muted-foreground mb-2">Vote for this game:</p>
           <div className="flex flex-wrap gap-2">
             {Object.values(VoteType)
               .filter(v => !isNaN(Number(v)))
               .map(voteType => {
                 const voteTypeNumber = Number(voteType);
-                const info = voteTypeInfo[voteTypeNumber];
+                const info = voteTypeInfo[voteTypeNumber as keyof typeof voteTypeInfo];
                 return (
                   <button 
                     key={voteTypeNumber}
