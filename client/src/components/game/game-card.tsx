@@ -142,6 +142,27 @@ export const GameCard: React.FC<GameCardProps> = ({
                   </p>
                 </div>
                 
+                {/* Availability Status */}
+                {(game.forRent || game.forSale || game.toOrder) && (
+                  <div className="flex flex-wrap gap-2 mt-3 mb-2">
+                    {game.forRent && (
+                      <span className="text-white text-xs bg-green-700/80 px-3 py-1 rounded-md flex items-center">
+                        <FontAwesomeIcon icon={"check-circle" as any} className="mr-1" /> Available for Rent
+                      </span>
+                    )}
+                    {game.forSale && (
+                      <span className="text-white text-xs bg-blue-700/80 px-3 py-1 rounded-md flex items-center">
+                        <FontAwesomeIcon icon={"tag" as any} className="mr-1" /> For Sale
+                      </span>
+                    )}
+                    {game.toOrder && (
+                      <span className="text-white text-xs bg-amber-600/80 px-3 py-1 rounded-md flex items-center">
+                        <FontAwesomeIcon icon={"shopping-cart" as any} className="mr-1" /> Coming Soon
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Game info (links, genre, weight, BGG rank) at the bottom of this section */}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   <a 
