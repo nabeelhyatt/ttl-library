@@ -90,6 +90,42 @@ class AirtableService {
     }
   }
   
+  async getGameByBGGId(bggId: number): Promise<{
+    tlcsCode?: string;
+    forRent?: boolean;
+    forSale?: boolean;
+    toOrder?: boolean;
+    categories?: string[];
+  } | null> {
+    try {
+      const records = await this.gamesTable.select({
+        filterByFormula: `{BGG ID} = ${bggId}`,
+        fields: ['BGG ID', 'FULL TLCS Code', 'For Rent', 'For Sale', 'To Order', 'Categories']
+      }).firstPage();
+      
+      if (records.length === 0) {
+        return null;
+      }
+      
+      const record = records[0];
+      const fields = record.fields;
+      
+      return {
+        tlcsCode: fields['FULL TLCS Code'] as string || undefined,
+        forRent: fields['For Rent'] as boolean || false,
+        forSale: fields['For Sale'] as boolean || false,
+        toOrder: fields['To Order'] as boolean || false,
+        // Handle categories that might be stored as string or array
+        categories: typeof fields['Categories'] === 'string' 
+          ? (fields['Categories'] as string).split(', ').filter(Boolean)
+          : fields['Categories'] as string[] || []
+      };
+    } catch (error) {
+      console.error('Error retrieving game from Airtable:', error);
+      return null;
+    }
+  }
+  
   // Vote methods
   async createVote(vote: Vote): Promise<string> {
     try {

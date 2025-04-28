@@ -122,10 +122,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const game = await boardGameGeekService.getGameDetails(gameId);
-      return res.status(200).json(game);
+      
+      // Check if game exists in Airtable and get additional information
+      const airtableGameInfo = await airtableService.getGameByBGGId(gameId);
+      
+      // Merge Airtable data with BGG data
+      const enrichedGame = {
+        ...game,
+        tlcsCode: airtableGameInfo?.tlcsCode || null,
+        forRent: airtableGameInfo?.forRent || false,
+        forSale: airtableGameInfo?.forSale || false,
+        toOrder: airtableGameInfo?.toOrder || false,
+        // If game has categories in Airtable, prefer those over BGG categories
+        categories: airtableGameInfo?.categories?.length ? airtableGameInfo.categories : game.categories
+      };
+      
+      return res.status(200).json(enrichedGame);
     } catch (error) {
       console.error(`Error fetching game details:`, error);
       return res.status(500).json({ message: "Failed to fetch game details" });
+    }
+  });
+  
+  // New endpoint to check if a game exists in Airtable by BGG ID
+  app.get("/api/airtable/game/:bggId", async (req, res) => {
+    try {
+      const bggId = parseInt(req.params.bggId);
+      if (isNaN(bggId)) {
+        return res.status(400).json({ message: "Invalid BGG ID" });
+      }
+      
+      const airtableGameInfo = await airtableService.getGameByBGGId(bggId);
+      
+      if (!airtableGameInfo) {
+        return res.status(404).json({ message: "Game not found in Airtable" });
+      }
+      
+      return res.status(200).json(airtableGameInfo);
+    } catch (error) {
+      console.error(`Error fetching game from Airtable:`, error);
+      return res.status(500).json({ message: "Failed to fetch game from Airtable" });
     }
   });
   

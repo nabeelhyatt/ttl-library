@@ -105,6 +105,11 @@ export interface BGGGame {
   mechanics: string[];
   designers: string[];
   publishers: string[];
+  // Airtable-specific fields
+  tlcsCode?: string | null;
+  forRent?: boolean;
+  forSale?: boolean;
+  toOrder?: boolean;
 }
 
 // Vote Type Enumeration
