@@ -108,8 +108,7 @@ class AirtableService {
           'to Order', 
           '# for Rent', 
           '# for Sale', 
-          'Title',
-          'Secondary Category'
+          'Title'
         ]
       }).firstPage();
       
@@ -170,19 +169,8 @@ class AirtableService {
         result.forSale = Boolean(forSaleValue);
       }
       
-      // The Categories field contains record IDs - let's not use them directly
-      // Instead, let's use the Secondary Category field which should have string values
-      if (fields['Secondary Category']) {
-        if (typeof fields['Secondary Category'] === 'string') {
-          result.categories = [(fields['Secondary Category'] as string)];
-        } else if (Array.isArray(fields['Secondary Category'])) {
-          result.categories = fields['Secondary Category'] as string[];
-        } else {
-          result.categories = [];
-        }
-      } else {
-        result.categories = [];
-      }
+      // Just use an empty array for categories since we don't have them in Airtable
+      result.categories = [];
       
       console.log('Game data from Airtable:', JSON.stringify(result));
       
