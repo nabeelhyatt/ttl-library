@@ -104,7 +104,7 @@ class AirtableService {
         filterByFormula: `{BGG ID} = ${bggId}`,
         fields: [
           'BGG ID', 
-          'Full TLCS Code', 
+          'TLCS Code', 
           'to Order', 
           '# for Rent', 
           '# for Sale', 
@@ -135,8 +135,8 @@ class AirtableService {
       } = {};
       
       // Add TLCS code if available
-      if (fields['Full TLCS Code']) {
-        result.tlcsCode = fields['Full TLCS Code'] as string;
+      if (fields['TLCS Code']) {
+        result.tlcsCode = fields['TLCS Code'] as string;
       }
       
       // Add availability information with correct Airtable field names
