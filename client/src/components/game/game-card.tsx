@@ -109,9 +109,11 @@ export const GameCard: React.FC<GameCardProps> = ({
         <div className="p-4 pb-6">
           <div className="relative">
             {/* TLCS code in the upper right corner */}
-            <div className="absolute top-0 right-0 bg-zinc-800 text-white px-4 py-1 rounded font-mono">
-              {game.tlcsCode || (weightClass ? `${weightClass}0.2` : '—.—')}
-            </div>
+            {game.tlcsCode && (
+              <div className="absolute top-0 right-0 bg-zinc-800 text-white px-4 py-1 rounded font-mono">
+                {game.tlcsCode}
+              </div>
+            )}
             
             <div className="flex flex-col md:flex-row gap-5 pt-2">
               {/* Game image in the top left */}
