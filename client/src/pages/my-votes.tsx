@@ -40,8 +40,13 @@ const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
         const votesWithGameDetails: VoteWithGame[] = [];
         for (const vote of votes) {
           try {
-            const game = await getGameDetails(vote.gameId);
-            votesWithGameDetails.push({ vote, game });
+            // First, get the game from storage to find its BGG ID
+            const game = await fetch(`/api/games/${vote.gameId}`).then(res => res.json());
+            if (game && game.bggId) {
+              // Now use the BGG ID to get complete game details
+              const gameDetails = await getGameDetails(game.bggId);
+              votesWithGameDetails.push({ vote, game: gameDetails });
+            }
           } catch (error) {
             console.error(`Failed to fetch game details for game ID ${vote.gameId}:`, error);
           }
@@ -142,7 +147,7 @@ const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
             return (
               <div key={voteTypeStr} className="space-y-6">
                 <h2 className={`section-title tufte-subtitle font-tufte ${info.textColor}`}>
-                  <FontAwesomeIcon icon={info.icon} className="mr-2" />
+                  <FontAwesomeIcon icon={info.icon as any} className="mr-2" />
                   {info.label} ({votes.length})
                 </h2>
                 
@@ -156,7 +161,7 @@ const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
                         size="sm"
                         className="absolute top-2 left-2 opacity-80 hover:opacity-100"
                       >
-                        <FontAwesomeIcon icon="times" className="mr-1" /> Remove Vote
+                        <FontAwesomeIcon icon={"times" as any} className="mr-1" /> Remove Vote
                       </Button>
                     </div>
                   ))}

@@ -268,9 +268,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { bggId, voteType } = result.data;
       
       // Check if game exists in our database, if not, fetch it from BGG and save it
-      let game = await storage.getGameByBGGId(gameId);
+      let game = await storage.getGameByBGGId(bggId);
       if (!game) {
-        const gameDetails = await boardGameGeekService.getGameDetails(gameId);
+        const gameDetails = await boardGameGeekService.getGameDetails(bggId);
         game = await storage.createGame({
           bggId: gameDetails.gameId,
           name: gameDetails.name,
@@ -338,6 +338,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/games/:id", async (req, res) => {
+    try {
+      const gameId = parseInt(req.params.id);
+      if (isNaN(gameId)) {
+        return res.status(400).json({ message: "Invalid game ID" });
+      }
+      
+      // Get game from storage
+      const game = await storage.getGame(gameId);
+      if (!game) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+      
+      return res.status(200).json(game);
+    } catch (error) {
+      console.error("Error fetching game:", error);
+      return res.status(500).json({ message: "Failed to fetch game details" });
+    }
+  });
+
   app.delete("/api/votes/:id", async (req, res) => {
     try {
       // Check if user is authenticated
