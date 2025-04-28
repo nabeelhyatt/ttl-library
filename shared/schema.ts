@@ -152,7 +152,7 @@ export const voteTypeInfo = {
     textColor: "text-vote-tournament" 
   },
   [VoteType.WouldTeach]: { 
-    label: "Would teach", 
+    label: "Would host / teach", 
     icon: "dice-five",
     bgColor: "bg-vote-teach/20", 
     hoverBgColor: "hover:bg-vote-teach/30", 
