@@ -142,26 +142,21 @@ export const GameCard: React.FC<GameCardProps> = ({
                   </p>
                 </div>
                 
-                {/* Debug Info - Will remove later */}
-                <div className="text-xs text-white bg-red-700/80 px-2 py-1 mt-2 rounded">
-                  forRent: {String(!!game.forRent)}, forSale: {String(!!game.forSale)}, toOrder: {String(!!game.toOrder)}
-                </div>
-                
                 {/* Availability Status */}
                 <div className="flex flex-wrap gap-2 mt-3 mb-2">
                   {game.forRent === true && (
                     <span className="text-white text-xs bg-green-700/80 px-3 py-1 rounded-md flex items-center">
-                      <FontAwesomeIcon icon={"check-circle" as any} className="mr-1" /> Available for Rent
+                      <FontAwesomeIcon icon={"check-circle" as any} className="mr-1" /> TTL In House
                     </span>
                   )}
                   {game.forSale === true && (
                     <span className="text-white text-xs bg-blue-700/80 px-3 py-1 rounded-md flex items-center">
-                      <FontAwesomeIcon icon={"tag" as any} className="mr-1" /> For Sale
+                      <FontAwesomeIcon icon={"tag" as any} className="mr-1" /> TTL In Stock
                     </span>
                   )}
                   {game.toOrder === true && (
                     <span className="text-white text-xs bg-amber-600/80 px-3 py-1 rounded-md flex items-center">
-                      <FontAwesomeIcon icon={"shopping-cart" as any} className="mr-1" /> Coming Soon
+                      <FontAwesomeIcon icon={"shopping-cart" as any} className="mr-1" /> TTL Ordered
                     </span>
                   )}
                 </div>
