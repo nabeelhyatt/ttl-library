@@ -110,7 +110,7 @@ class AirtableService {
           '# for Sale', 
           'Title',
           'TLCS Subcategory',
-          'TLCS Subcategory.Name'
+          'Subcategory Name (from TLCS Subcategory)'
         ]
       }).firstPage();
       
@@ -140,9 +140,15 @@ class AirtableService {
         result.tlcsCode = fields['TLCS Code'] as string;
       }
       
-      // Add subcategory name if available (linked field)
-      if (fields['TLCS Subcategory.Name']) {
-        result.subcategoryName = fields['TLCS Subcategory.Name'] as string;
+      // Add subcategory name if available (using the correct field name)
+      if (fields['Subcategory Name (from TLCS Subcategory)']) {
+        // This field returns an array - either use the first value or join them with commas
+        const subcategoryNames = fields['Subcategory Name (from TLCS Subcategory)'] as string[];
+        if (Array.isArray(subcategoryNames) && subcategoryNames.length > 0) {
+          result.subcategoryName = subcategoryNames.join(', ');
+        } else if (typeof subcategoryNames === 'string') {
+          result.subcategoryName = subcategoryNames;
+        }
         console.log('Found subcategory name:', result.subcategoryName);
       }
       
