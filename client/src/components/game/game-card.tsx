@@ -97,9 +97,17 @@ export const GameCard: React.FC<GameCardProps> = ({
   const primaryGenre = getPrimaryGenre(game.categories || []);
   const weightClass = game.weightRating ? getBGGtoTLCSWeight(parseFloat(game.weightRating)) : null;
   
+  // Log the subcategory name to help with debugging
+  console.log(`Game ${game.name} - subcategoryName:`, game.subcategoryName);
+  
+  // Determine genre/category to display
+  const displayCategory = game.subcategoryName || primaryGenre;
+  
   // Determine genre color class
   let genreColorClass = "bg-vote-try/20 text-vote-try";
-  switch (primaryGenre.toLowerCase()) {
+  
+  // Use the displayCategory for color determination
+  switch ((displayCategory || '').toLowerCase()) {
     case "abstract":
       genreColorClass = "bg-vote-try/20 text-vote-try";
       break;
@@ -107,10 +115,13 @@ export const GameCard: React.FC<GameCardProps> = ({
       genreColorClass = "bg-vote-played/20 text-vote-played";
       break;
     case "cooperative":
+    case "adventure co-op":
+    case "strategy co-op":
       genreColorClass = "bg-vote-club/20 text-vote-club";
       break;
     case "worker placement":
     case "engine building":
+    case "deck building":
       genreColorClass = "bg-vote-tournament/20 text-vote-tournament";
       break;
     case "strategy":
@@ -193,9 +204,9 @@ export const GameCard: React.FC<GameCardProps> = ({
 
                 {/* Game info (category, BGG rank, weight, more info) at the bottom of this section */}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
-                  {/* Category first - prefer TLCS subcategory if available */}
+                  {/* Display TLCS subcategory or fallback to BGG genre */}
                   <span className={`${genreColorClass} text-xs px-3 py-1 rounded whitespace-nowrap`}>
-                    {game.subcategoryName || primaryGenre}
+                    {displayCategory}
                   </span>
                   
                   {/* BGG Rank second */}
