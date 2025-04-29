@@ -114,6 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return {
                 ...game,
                 tlcsCode: airtableGameInfo.tlcsCode || null,
+                subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
                 forSale: airtableGameInfo.forSale || false,
                 toOrder: airtableGameInfo.toOrder || false,
@@ -166,6 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return {
                 ...game,
                 tlcsCode: airtableGameInfo.tlcsCode || null,
+                subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
                 forSale: airtableGameInfo.forSale || false,
                 toOrder: airtableGameInfo.toOrder || false,

@@ -193,9 +193,9 @@ export const GameCard: React.FC<GameCardProps> = ({
 
                 {/* Game info (category, BGG rank, weight, more info) at the bottom of this section */}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
-                  {/* Category first */}
+                  {/* Category first - prefer TLCS subcategory if available */}
                   <span className={`${genreColorClass} text-xs px-3 py-1 rounded whitespace-nowrap`}>
-                    {primaryGenre}
+                    {game.subcategoryName || primaryGenre}
                   </span>
                   
                   {/* BGG Rank second */}
