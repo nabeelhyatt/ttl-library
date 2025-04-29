@@ -107,6 +107,7 @@ export interface BGGGame {
   publishers: string[];
   // Airtable-specific fields
   tlcsCode?: string | null;
+  subcategoryName?: string | null;
   forRent?: boolean;
   forSale?: boolean;
   toOrder?: boolean;

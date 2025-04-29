@@ -108,7 +108,9 @@ class AirtableService {
           'to Order', 
           '# for Rent', 
           '# for Sale', 
-          'Title'
+          'Title',
+          'TLCS Subcategory',
+          'TLCS Subcategory.Name'
         ]
       }).firstPage();
       
@@ -126,6 +128,7 @@ class AirtableService {
       // Create result object
       const result: {
         tlcsCode?: string;
+        subcategoryName?: string;
         forRent?: boolean;
         forSale?: boolean;
         toOrder?: boolean;
@@ -135,6 +138,12 @@ class AirtableService {
       // Add TLCS code if available
       if (fields['TLCS Code']) {
         result.tlcsCode = fields['TLCS Code'] as string;
+      }
+      
+      // Add subcategory name if available (linked field)
+      if (fields['TLCS Subcategory.Name']) {
+        result.subcategoryName = fields['TLCS Subcategory.Name'] as string;
+        console.log('Found subcategory name:', result.subcategoryName);
       }
       
       // Add availability information with correct Airtable field names

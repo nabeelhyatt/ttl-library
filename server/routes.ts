@@ -211,6 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enrichedGame = {
         ...game,
         tlcsCode: airtableGameInfo?.tlcsCode || null,
+        subcategoryName: airtableGameInfo?.subcategoryName || null,
         forRent: airtableGameInfo?.forRent || false,
         forSale: airtableGameInfo?.forSale || false,
         toOrder: airtableGameInfo?.toOrder || false,
