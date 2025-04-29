@@ -97,8 +97,15 @@ export const GameCard: React.FC<GameCardProps> = ({
   const primaryGenre = getPrimaryGenre(game.categories || []);
   const weightClass = game.weightRating ? getBGGtoTLCSWeight(parseFloat(game.weightRating)) : null;
   
-  // Log the subcategory name to help with debugging
-  console.log(`Game ${game.name} - subcategoryName:`, game.subcategoryName);
+  // More detailed debugging to check what data we have
+  console.log(`Game ${game.name}:`, {
+    bggId: game.gameId,
+    tlcsCode: game.tlcsCode,
+    subcategoryName: game.subcategoryName,
+    forRent: game.forRent,
+    forSale: game.forSale,
+    toOrder: game.toOrder
+  });
   
   // Determine genre/category to display
   const displayCategory = game.subcategoryName || primaryGenre;
