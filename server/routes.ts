@@ -193,7 +193,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      return res.status(200).json(enrichedResults);
+      // Sort results by BGG rank if available (games with ranks come first, sorted by rank)
+      const sortedResults = enrichedResults.sort((a, b) => {
+        // If both games have a rank, sort by rank (lower rank is better)
+        if (a.bggRank && b.bggRank) {
+          return a.bggRank - b.bggRank;
+        }
+        // If only one game has a rank, prioritize the ranked game
+        if (a.bggRank) return -1;
+        if (b.bggRank) return 1;
+        // If neither has a rank, sort alphabetically by name
+        return a.name.localeCompare(b.name);
+      });
+      
+      return res.status(200).json(sortedResults);
     } catch (error) {
       console.error("Error searching games:", error);
       return res.status(500).json({ message: "Failed to search games" });
