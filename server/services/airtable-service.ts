@@ -92,6 +92,7 @@ class AirtableService {
   
   async getGameByBGGId(bggId: number): Promise<{
     tlcsCode?: string;
+    subcategoryName?: string;
     forRent?: boolean;
     forSale?: boolean;
     toOrder?: boolean;

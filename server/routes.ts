@@ -10,6 +10,16 @@ import MemoryStore from "memorystore";
 
 const MemoryStoreSession = MemoryStore(session);
 
+// Define the interface explicitly to include subcategoryName
+interface AirtableGameInfo {
+  tlcsCode?: string;
+  subcategoryName?: string;
+  forRent?: boolean;
+  forSale?: boolean;
+  toOrder?: boolean;
+  categories?: string[];
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   app.use(
