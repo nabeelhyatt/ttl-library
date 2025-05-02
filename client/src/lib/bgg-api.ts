@@ -6,8 +6,20 @@ export async function fetchHotGames(): Promise<BGGGame[]> {
   return response.json();
 }
 
-export async function searchGames(query: string): Promise<BGGGame[]> {
-  const response = await apiRequest("GET", `/api/bgg/search?query=${encodeURIComponent(query)}`);
+export async function searchGames(
+  query: string, 
+  options?: { 
+    exact?: boolean; 
+    limit?: number; 
+    sort?: 'rank' | 'rating' | 'year' 
+  }
+): Promise<BGGGame[]> {
+  const params = new URLSearchParams({ query });
+  if (options?.exact) params.append('exact', 'true');
+  if (options?.limit) params.append('limit', options.limit.toString());
+  if (options?.sort) params.append('sort', options.sort);
+  
+  const response = await apiRequest("GET", `/api/bgg/search?${params}`);
   return response.json();
 }
 
