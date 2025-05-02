@@ -315,8 +315,8 @@
         }
     </style>
     <div class="vote-buttons" vid="61">
-        <button class="vote-button" vid="62">I'd play this</button>
-        <button class="vote-button" vid="63">I like this game</button>
+        <button class="vote-button" vid="62">Want to play</button>
+        <button class="vote-button" vid="63">I play this</button>
         <button class="vote-button" vid="64">Can't get enough</button>
     </div>
 </div>
