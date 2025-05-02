@@ -273,6 +273,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug endpoint for Airtable integration
+  app.get("/api/airtable/debug", async (req, res) => {
+    try {
+      console.log("Starting Airtable debug...");
+      await debugAirtableBase();
+      return res.status(200).json({ message: "Airtable debug completed, check console logs" });
+    } catch (error) {
+      console.error(`Error debugging Airtable:`, error);
+      return res.status(500).json({ message: "Failed to debug Airtable connection" });
+    }
+  });
+  
   // Votes routes
   app.post("/api/votes", async (req, res) => {
     try {

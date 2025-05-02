@@ -101,18 +101,23 @@ class AirtableService {
     try {
       console.log(`Looking for game with BGG ID ${bggId} in Airtable`);
       
+      // Using the exact field name as shown in Airtable
+      const desiredFields = [
+        'BGG ID', 
+        'TLCS Code', 
+        'to Order', 
+        '# for Rent', 
+        '# for Sale', 
+        'Title',
+        'TLCS Subcategory',
+        'Subcategory Name (from TLCS Subcategory)'
+      ];
+      
+      console.log(`Requesting fields: ${desiredFields.join(', ')}`);
+      
       const records = await this.gamesTable.select({
         filterByFormula: `{BGG ID} = ${bggId}`,
-        fields: [
-          'BGG ID', 
-          'TLCS Code', 
-          'to Order', 
-          '# for Rent', 
-          '# for Sale', 
-          'Title',
-          'TLCS Subcategory',
-          'Subcategory Name (from TLCS Subcategory)'
-        ]
+        fields: desiredFields
       }).firstPage();
       
       if (records.length === 0) {
