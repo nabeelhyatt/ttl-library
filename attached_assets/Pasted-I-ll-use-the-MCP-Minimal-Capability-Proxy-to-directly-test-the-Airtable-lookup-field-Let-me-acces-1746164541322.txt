@@ -1,0 +1,47 @@
+I'll use the MCP (Minimal Capability Proxy) to directly test the Airtable lookup field. Let me access your Airtable database and test this specific field retrieval:
+
+Now that I can see your Airtable base ID, let me check the tables in the database:
+
+Perfect, I can see the "Games" table and "TLCS Subcategories" table. Let me check the structure of the Games table to understand the field naming:
+
+Now I'll examine the TLCS Subcategories table to understand how it's structured:
+
+Perfect! Now I'll test fetching some records from the Games table to check if I can access the Subcategory Name lookup field:
+
+Now I'll test directly accessing the "Subcategory Name (from TLCS Subcategory)" field using the Airtable API syntax:
+
+Based on my testing, here's how to properly structure an API call to retrieve the "Subcategory Name (from TLCS Subcategory)" field from your Games table:
+
+1. When using Airtable's API or MCP functions:
+
+```javascript
+// Using the exact field name as it appears in Airtable
+base('Games').select({
+  fields: [
+    'Title',
+    'TLCS Subcategory',  // The linked field
+    'Subcategory Name (from TLCS Subcategory)'  // The lookup field
+  ]
+})
+```
+
+2. When accessing the data:
+
+```javascript
+// The field is accessed using the exact field name
+const subcategoryName = record.fields['Subcategory Name (from TLCS Subcategory)'];
+```
+
+Important findings from my testing:
+
+1. The correct field name to use is `'Subcategory Name (from TLCS Subcategory)'` - Airtable's API allows you to use the actual field name as displayed in the UI, including spaces and parentheses.
+
+2. The field returns an array since it's a "multipleLookupValues" field type (as seen in the table description).
+
+3. For fields that can contain multiple values, like yours, the value will be an array. For example: `["RPG Board Games", "Adventure Co-op"]`
+
+4. You don't need to use dot notation like `'TLCS Subcategory.Name'` in this case - the lookup field already exists as a named field in your table.
+
+If you're instructing an AI coding agent, here's exactly what to tell them:
+
+"When retrieving the Subcategory Name from the linked TLCS Subcategory table in Airtable, use the field name 'Subcategory Name (from TLCS Subcategory)' exactly as it appears in the Airtable UI. This field returns an array of string values since it's a multipleLookupValues field that can contain multiple entries."
