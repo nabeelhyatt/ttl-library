@@ -18,8 +18,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
       <div className="container">
         <div className="header-inner">
           <div className="logo">
-            <Link href="/" className="no-underline">
-              TABLETOP LIBRARY
+            <Link href="/" className="no-underline title-font">
+              THE TABLETOP LIBRARY
             </Link>
           </div>
           <nav>

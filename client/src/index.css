@@ -1,6 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Palatino+Linotype:wght@400;700&display=swap');
 @import './styles/globals.css';
+
+/* Define the title font */
+.title-font {
+  font-family: "et-book", Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif !important;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
 
 @tailwind base;
 @tailwind components;
