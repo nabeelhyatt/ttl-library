@@ -285,6 +285,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug endpoint for specific game with Airtable data
+  app.get("/api/airtable/test-game", async (req, res) => {
+    try {
+      // Use Ark Nova as a test case since it has subcategory data in Airtable
+      const bggId = 342942;
+      
+      // Get full game details from BGG
+      const game = await boardGameGeekService.getGameDetails(bggId);
+      
+      // Get Airtable-specific data
+      const airtableData = await airtableService.getGameByBGGId(bggId);
+      
+      // Create a combined object for debugging
+      const debugData = {
+        game: game,
+        airtableData: airtableData,
+        combined: {
+          ...game,
+          tlcsCode: airtableData?.tlcsCode || null,
+          subcategoryName: airtableData?.subcategoryName || null,
+          forRent: airtableData?.forRent || false,
+          forSale: airtableData?.forSale || false,
+          toOrder: airtableData?.toOrder || false
+        }
+      };
+      
+      return res.status(200).json(debugData);
+    } catch (error) {
+      console.error(`Error in test-game endpoint:`, error);
+      return res.status(500).json({ message: "Test game endpoint failed", error: error.message });
+    }
+  });
+  
   // Votes routes
   app.post("/api/votes", async (req, res) => {
     try {
