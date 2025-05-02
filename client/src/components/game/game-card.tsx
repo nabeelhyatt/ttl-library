@@ -210,9 +210,6 @@ export const GameCard: React.FC<GameCardProps> = ({
                 <div className="stars-outer">
                   <div className="stars-inner" style={{ width: `${(game.weightRating ? (5 - Math.min(parseFloat(game.weightRating), 5)) / 5 * 100 : 50)}%` }}></div>
                 </div>
-                <span className="rating-text">
-                  {game.weightRating ? (5 - Math.min(parseFloat(game.weightRating), 5)).toFixed(1) : '3.0'}/5
-                </span>
               </div>
             </div>
             
@@ -223,9 +220,6 @@ export const GameCard: React.FC<GameCardProps> = ({
                 <div className="stars-outer">
                   <div className="stars-inner" style={{ width: `${game.bggRank ? Math.max(0, 100 - Math.min(game.bggRank, 2000) / 20) : 50}%` }}></div>
                 </div>
-                <span className="rating-text">
-                  {game.bggRank ? (5 - Math.min(game.bggRank, 2000) / 400).toFixed(1) : '3.0'}/5
-                </span>
               </div>
             </div>
             
@@ -236,9 +230,6 @@ export const GameCard: React.FC<GameCardProps> = ({
                 <div className="stars-outer">
                   <div className="stars-inner" style={{ width: `${game.bggRating ? parseFloat(game.bggRating) / 10 * 100 : 70}%` }}></div>
                 </div>
-                <span className="rating-text">
-                  {game.bggRating ? (parseFloat(game.bggRating) / 2).toFixed(1) : '3.5'}/5
-                </span>
               </div>
             </div>
           </div>

@@ -103,10 +103,11 @@ nav a {
 
 /* Rating system */
 .rating-title {
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  text-align: center;
 }
 
 .rating-label {
@@ -125,7 +126,7 @@ nav a {
   position: relative;
   display: inline-block;
   width: 100%;
-  height: 16px;
+  height: 8px;
   background-color: #e0e0e0;
 }
 
@@ -171,15 +172,30 @@ nav a {
 }
 
 .game-ratings {
-  padding: var(--grid-size);
+  padding: var(--grid-size) var(--grid-size) calc(var(--grid-size) * 0.75);
   border-top: 1px solid #000;
 }
 
 .rating-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: calc(var(--grid-size) / 2);
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(var(--grid-size) / 3);
   margin-bottom: var(--grid-size);
+}
+
+.rating-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.rating-label {
+  font-size: 10px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.rating-stars {
+  width: 100%;
 }
 
 .more-info {
