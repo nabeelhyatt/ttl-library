@@ -144,18 +144,28 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
         
         {/* Games List */}
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div>Loading games...</div>
+          <div className="loading-indicator">
+            <div className="loading-message">Loading games from BoardGameGeek...</div>
+            <div className="loading-spinner"></div>
+            <div className="loading-note">
+              This may take a moment due to API rate limits.
+            </div>
           </div>
         ) : filteredGames.length === 0 ? (
-          <div className="text-center p-8">
-            <h3>No games found</h3>
+          <div className="empty-state">
+            <h3>No Games Found</h3>
             <p>
               {searchMode 
                 ? "We couldn't find any games matching your search criteria. Try a different search term."
-                : "We couldn't load any games at this time. Please try again later."
+                : "We couldn't load any games at this time. The BoardGameGeek API may be rate-limited, please try again in a moment."
               }
             </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="btn"
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <div className="games-grid">
