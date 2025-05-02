@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
                 </button>
               </>
             ) : (
-              <button onClick={() => setIsLoginOpen(true)} className="btn">
+              <button onClick={() => setIsLoginOpen(true)} className="login-btn">
                 Login
               </button>
             )}
