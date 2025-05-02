@@ -39,16 +39,32 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
   }
 
   body {
-    @apply antialiased bg-background text-foreground;
-    font-family: 'EB Garamond', serif;
-    line-height: 1.6;
+    @apply antialiased;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background-image: 
+      linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
+    background-size: var(--grid-size) var(--grid-size);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-tufte;
+    margin: 0;
+    line-height: 1.2;
+    font-weight: 700;
   }
 }
 

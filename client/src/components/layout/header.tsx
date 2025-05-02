@@ -14,45 +14,47 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   return (
-    <header className="py-12 py-6 bg-transparent">
-      <div className="container flex justify-between items-center">
-        <div className="flex items-center">
-          <h1 className="logo">
-            <Link href="/" className="no-underline text-black">
-              Tabletop Library
+    <header>
+      <div className="container">
+        <div className="header-inner">
+          <div className="logo">
+            <Link href="/" className="no-underline">
+              TABLETOP LIBRARY
             </Link>
-          </h1>
-        </div>
-        <nav>
-          <Link 
-            href="/rankings" 
-            className={`${location === '/rankings' ? 'font-bold' : ''}`}
-          >
-            Rankings
-          </Link>
-            
-          {user ? (
-            <>
-              <Link 
-                href="/my-votes" 
-                className={`${location === '/my-votes' ? 'font-bold' : ''}`}
-              >
-                My Votes
-              </Link>
-              <button 
-                onClick={onLogout}
-              >
-                Log out
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={() => setIsLoginOpen(true)}
+          </div>
+          <nav>
+            <Link 
+              href="/rankings" 
+              className={location === '/rankings' ? 'active' : ''}
             >
-              Login
-            </button>
-          )}
-        </nav>
+              Rankings
+            </Link>
+              
+            {user ? (
+              <>
+                <Link 
+                  href="/my-votes" 
+                  className={location === '/my-votes' ? 'active' : ''}
+                >
+                  My Votes
+                </Link>
+                <button 
+                  onClick={onLogout}
+                  className="btn"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={() => setIsLoginOpen(true)}
+                className="btn"
+              >
+                Login
+              </button>
+            )}
+          </nav>
+        </div>
       </div>
 
       <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>

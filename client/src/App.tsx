@@ -46,21 +46,21 @@ function Router() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="app-wrapper">
       <Header user={user} onLogout={logout} />
-      <div className="flex-grow">
-        {isLoading ? (
-          <div className="tufte-container py-12 flex justify-center">
-            <div className="animate-pulse">Loading...</div>
+      {isLoading ? (
+        <main>
+          <div className="container">
+            <div className="loading-indicator">Loading...</div>
           </div>
-        ) : (
-          <Switch>
-            <Route path="/" component={() => <Home user={user} onLogin={login} />} />
-            <Route path="/my-votes" component={() => <MyVotes user={user} />} />
-            <Route component={NotFound} />
-          </Switch>
-        )}
-      </div>
+        </main>
+      ) : (
+        <Switch>
+          <Route path="/" component={() => <Home user={user} onLogin={login} />} />
+          <Route path="/my-votes" component={() => <MyVotes user={user} />} />
+          <Route component={NotFound} />
+        </Switch>
+      )}
       <Footer />
     </div>
   );
