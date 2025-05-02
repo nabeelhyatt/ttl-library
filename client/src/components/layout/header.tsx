@@ -19,37 +19,31 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
         <div className="header-inner">
           <div className="logo">
             <Link href="/" className="no-underline title-font">
-              THE TABLETOP LIBRARY
+              The Tabletop Library
             </Link>
           </div>
           <nav>
-            <Link 
-              href="/rankings" 
-              className={location === '/rankings' ? 'active' : ''}
+            <Link
+              href="/rankings"
+              className={location === "/rankings" ? "active" : ""}
             >
               Rankings
             </Link>
-              
+
             {user ? (
               <>
-                <Link 
-                  href="/my-votes" 
-                  className={location === '/my-votes' ? 'active' : ''}
+                <Link
+                  href="/my-votes"
+                  className={location === "/my-votes" ? "active" : ""}
                 >
                   My Votes
                 </Link>
-                <button 
-                  onClick={onLogout}
-                  className="btn"
-                >
+                <button onClick={onLogout} className="btn">
                   Log out
                 </button>
               </>
             ) : (
-              <button 
-                onClick={() => setIsLoginOpen(true)}
-                className="btn"
-              >
+              <button onClick={() => setIsLoginOpen(true)} className="btn">
                 Login
               </button>
             )}
