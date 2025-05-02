@@ -1,8 +1,7 @@
 :root {
   --grid-size: 24px;
-  --grid-line-color: rgba(0, 0, 0, 0.08);
   --text-color: #000;
-  --bg-color: #fff;
+  --bg-color: #f8f5f1; /* Light beige color */
 }
 
 * {
@@ -16,10 +15,6 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   line-height: 1.5;
-  background-image: 
-    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
-  background-size: var(--grid-size) var(--grid-size);
 }
 
 .container {
