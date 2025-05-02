@@ -141,16 +141,31 @@ export const GameCard: React.FC<GameCardProps> = ({
   return (
     <>
       <div className="game-card">
-        {/* Game Image */}
-        <img 
-          src={game.thumbnail || game.image} 
-          alt={`${game.name} board game`} 
-          className="game-image"
-          onError={(e) => {
-            // Fallback image if the thumbnail fails to load
-            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
-          }}
-        />
+        {/* Game Image with status overlay */}
+        <div className="relative">
+          <img 
+            src={game.thumbnail || game.image} 
+            alt={`${game.name} board game`} 
+            className="game-image"
+            onError={(e) => {
+              // Fallback image if the thumbnail fails to load
+              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+            }}
+          />
+          
+          {/* Availability Status Overlay */}
+          <div className="absolute top-2 right-2 flex flex-col gap-1">
+            {(game.forRent === true) && (
+              <span className="text-xs px-2 py-1 border border-black bg-white bg-opacity-90">Can Play @ TTL</span>
+            )}
+            {(game.forSale === true) && (
+              <span className="text-xs px-2 py-1 border border-black bg-white bg-opacity-90">In Stock @ TTL</span>
+            )}
+            {(game.toOrder === true) && (
+              <span className="text-xs px-2 py-1 border border-black bg-white bg-opacity-90">On order @ TTL</span>
+            )}
+          </div>
+        </div>
         
         {/* Game Header */}
         <div className="game-header">
@@ -174,19 +189,6 @@ export const GameCard: React.FC<GameCardProps> = ({
               "No description available."
             )}
           </p>
-          
-          {/* Availability Status */}
-          <div className="flex gap-2 mb-2">
-            {(game.forRent === true) && (
-              <span className="text-xs px-2 py-1 border border-black">TTL In House</span>
-            )}
-            {(game.forSale === true) && (
-              <span className="text-xs px-2 py-1 border border-black">TTL In Stock</span>
-            )}
-            {(game.toOrder === true) && (
-              <span className="text-xs px-2 py-1 border border-black">TTL Ordered</span>
-            )}
-          </div>
           
           <a href={`https://boardgamegeek.com/boardgame/${game.gameId}`} 
             target="_blank" 
