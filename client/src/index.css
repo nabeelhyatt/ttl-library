@@ -8,9 +8,8 @@
 
 :root {
   /* Base color system */
-  --background-color: #ffffff;
+  --background-color: #f8f5f1; /* Light beige color */
   --text-color: #000000;
-  --grid-line-color: rgba(0, 0, 0, 0.1);
   --grid-size: 24px;
   
   /* Grid system */
@@ -18,7 +17,7 @@
   --grid-gap: 48px;
   
   /* System colors */
-  --background: 0 0% 100%;
+  --background: 36 30% 97%;
   --foreground: 0 0% 0%;
   --muted: 0 0% 96.1%;
   --muted-foreground: 0 0% 45.1%;
@@ -55,10 +54,6 @@
     min-height: 100vh;
     margin: 0;
     padding: 0;
-    background-image: 
-      linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
-    background-size: var(--grid-size) var(--grid-size);
   }
 
   h1, h2, h3, h4, h5, h6 {
