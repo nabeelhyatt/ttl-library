@@ -72,12 +72,11 @@ class BoardGameGeekService {
   }
   
   // Search games by name
-  async searchGames(query: string, options: { exact?: boolean; limit?: number; sort?: 'rank' | 'rating' | 'year' } = {}): Promise<BGGGame[]> {
+  async searchGames(query: string): Promise<BGGGame[]> {
     const searchGamesImpl = async (retries = 0): Promise<BGGGame[]> => {
       try {
         await this.rateLimit();
-        const searchQuery = options.exact ? `"${query}"` : query;
-        const response = await axios.get(`${this.API_BASE}search?query=${encodeURIComponent(searchQuery)}&type=boardgame`);
+        const response = await axios.get(`${this.API_BASE}search?query=${encodeURIComponent(query)}&type=boardgame`);
         const result = await parseStringPromise(response.data, { explicitArray: false });
         
         // Check if there are results
@@ -88,27 +87,8 @@ class BoardGameGeekService {
         // Ensure items.item is an array
         const items = Array.isArray(result.items.item) ? result.items.item : [result.items.item];
         
-        // Extract game IDs from search results
-        const gameIds = items.map((item: any) => parseInt(item.$.id)).slice(0, options.limit || 10);
-        
-        // Get full details for games
-        let games = await this.getGamesDetails(gameIds);
-        
-        // Sort results if requested
-        if (options.sort) {
-          games.sort((a, b) => {
-            switch (options.sort) {
-              case 'rank':
-                return (a.bggRank || 999999) - (b.bggRank || 999999);
-              case 'rating':
-                return (parseFloat(b.bggRating || '0') - parseFloat(a.bggRating || '0'));
-              case 'year':
-                return (b.yearPublished || 0) - (a.yearPublished || 0);
-              default:
-                return 0;
-            }
-          });
-        }
+        // Extract game IDs from search results, limit to 10 for better performance
+        const gameIds = items.map((item: any) => parseInt(item.$.id)).slice(0, 10);
         
         // Fetch details for each game
         const gamesWithDetails = await this.getGamesDetails(gameIds);
