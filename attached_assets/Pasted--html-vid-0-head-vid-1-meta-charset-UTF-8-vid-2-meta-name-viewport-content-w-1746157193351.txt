@@ -1,0 +1,419 @@
+<html vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">Tabletop Library</title>
+    <style vid="5">
+        :root {
+            --grid-size: 24px;
+            --grid-line-color: rgba(0, 0, 0, 0.08);
+            --text-color: #000;
+            --bg-color: #fff;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+            background-image: 
+                linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
+            background-size: var(--grid-size) var(--grid-size);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        
+        header {
+            padding: 48px 0 24px;
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        .logo {
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+        
+        nav a {
+            margin-left: 24px;
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 14px;
+        }
+        
+        .search-container {
+            margin: 48px 0 24px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #000;
+            padding-bottom: 8px;
+        }
+        
+        .search-container input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            padding: 8px 0;
+            outline: none;
+        }
+        
+        .search-container button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+        
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: calc(var(--grid-size) * 2);
+            margin-bottom: 48px;
+        }
+        
+        .game-card {
+            display: grid;
+            grid-template-rows: auto auto 1fr auto;
+            border: 1px solid #000;
+            position: relative;
+            background-color: var(--bg-color);
+        }
+        
+        .game-image {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-bottom: 1px solid #000;
+        }
+        
+        .game-header {
+            padding: 16px 16px 0;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+        }
+        
+        .game-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+        }
+        
+        .game-dewey {
+            font-size: 12px;
+            font-family: monospace;
+            align-self: start;
+        }
+        
+        .game-genre {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+        
+        .game-content {
+            padding: 0 16px 16px;
+        }
+        
+        .game-description {
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .more-info {
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            border-bottom: 1px solid currentColor;
+            display: inline-block;
+        }
+        
+        .game-ratings {
+            padding: 16px;
+            border-top: 1px solid #000;
+        }
+        
+        .rating-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+        
+        .rating-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .rating-item {
+            text-align: center;
+        }
+        
+        .rating-label {
+            font-size: 10px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .rating-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .vote-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        
+        .vote-button {
+            padding: 8px;
+            background: none;
+            border: 1px solid #000;
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .vote-button:hover {
+            background-color: #000;
+            color: #fff;
+        }
+    </style>
+</head>
+<body vid="6">
+    <div class="container" vid="7">
+        <header vid="8">
+            <div class="logo" style="font-family: 'Times New Roman', Times, serif;" vid="9">Tabletop Library</div>
+            <nav vid="10">
+                <a href="#" vid="11">Login</a>
+                <a href="#" vid="12">Rankings</a>
+            </nav>
+        </header>
+        
+        <div class="search-container" vid="13">
+            <input type="text" placeholder="Search for games..." vid="14">
+            <button vid="15">Search</button>
+        </div>
+        
+        <div class="games-grid" vid="16">
+            <!-- Game Card 1 -->
+            <div class="game-card" vid="17">
+                <img src="https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=500&amp;q=80" alt="Catan" class="game-image" vid="18">
+                <div class="game-header" vid="19">
+                    <div vid="20">
+                        <h2 class="game-title" vid="21">Catan</h2>
+                        <div class="game-genre" vid="22">Strategy / Resource Management</div>
+                    </div>
+                    <div class="game-dewey" vid="23">794.23</div>
+                </div>
+                <div class="game-content" vid="24">
+                    <p class="game-description" vid="25">Trade, build and settle on the island of Catan. Players collect resources to build roads, settlements and cities on their way to victory.</p>
+                    <a href="#" class="more-info" vid="26">More Information</a>
+                </div>
+                <div class="game-ratings" vid="27">
+    <h3 class="rating-title" vid="28">Ratings</h3>
+    <div class="rating-grid" vid="29">
+        <div class="rating-item" vid="30">
+            <span class="rating-label" vid="31">Easy to Learn</span>
+            <div class="rating-stars" vid="32">
+                <div class="stars-outer" vid="33">
+                    <div class="stars-inner" style="width: 84%;" vid="34"></div>
+                </div>
+                <span class="rating-text" vid="35">4.2/5</span>
+            </div>
+        </div>
+        <div class="rating-item" vid="36">
+            <span class="rating-label" vid="37">Replayable</span>
+            <div class="rating-stars" vid="38">
+                <div class="stars-outer" vid="39">
+                    <div class="stars-inner" style="width: 90%;" vid="40"></div>
+                </div>
+                <span class="rating-text" vid="41">4.5/5</span>
+            </div>
+        </div>
+        <div class="rating-item" vid="42">
+            <span class="rating-label" vid="43">Randomness</span>
+            <div class="rating-stars" vid="44">
+                <div class="stars-outer" vid="45">
+                    <div class="stars-inner" style="width: 76%;" vid="46"></div>
+                </div>
+                <span class="rating-text" vid="47">3.8/5</span>
+            </div>
+        </div>
+        <div class="rating-item" vid="48">
+            <span class="rating-label" vid="49">Interaction</span>
+            <div class="rating-stars" vid="50">
+                <div class="stars-outer" vid="51">
+                    <div class="stars-inner" style="width: 80%;" vid="52"></div>
+                </div>
+                <span class="rating-text" vid="53">4.0/5</span>
+            </div>
+        </div>
+        <div class="rating-item" vid="54">
+            <span class="rating-label" vid="55">Theming</span>
+            <div class="rating-stars" vid="56">
+                <div class="stars-outer" vid="57">
+                    <div class="stars-inner" style="width: 70%;" vid="58"></div>
+                </div>
+                <span class="rating-text" vid="59">3.5/5</span>
+            </div>
+        </div>
+    </div>
+    <style vid="60">
+        .rating-stars {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .stars-outer {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            height: 16px;
+            background-color: #e0e0e0;
+        }
+        .stars-inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #000;
+        }
+        .rating-text {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
+    <div class="vote-buttons" vid="61">
+        <button class="vote-button" vid="62">I'd play this</button>
+        <button class="vote-button" vid="63">I like this game</button>
+        <button class="vote-button" vid="64">Can't get enough</button>
+    </div>
+</div>
+            </div>
+            
+            <!-- Game Card 2 -->
+            <div class="game-card" vid="65">
+                <img src="https://images.unsplash.com/photo-1606503153255-59d8b2e4739e?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=500&amp;q=80" alt="Ticket to Ride" class="game-image" vid="66">
+                <div class="game-header" vid="67">
+                    <div vid="68">
+                        <h2 class="game-title" vid="69">Ticket to Ride</h2>
+                        <div class="game-genre" vid="70">Strategy / Route Building</div>
+                    </div>
+                    <div class="game-dewey" vid="71">794.24</div>
+                </div>
+                <div class="game-content" vid="72">
+                    <p class="game-description" vid="73">Players collect cards of various types of train cars to claim railway routes connecting cities throughout North America.</p>
+                    <a href="#" class="more-info" vid="74">More Information</a>
+                </div>
+                <div class="game-ratings" vid="75">
+                    <h3 class="rating-title" vid="76">Ratings</h3>
+                    <div class="rating-grid" vid="77">
+                        <div class="rating-item" vid="78">
+                            <span class="rating-label" vid="79">Easy to Learn</span>
+                            <span class="rating-value" vid="80">4.8</span>
+                        </div>
+                        <div class="rating-item" vid="81">
+                            <span class="rating-label" vid="82">Replayable</span>
+                            <span class="rating-value" vid="83">4.3</span>
+                        </div>
+                        <div class="rating-item" vid="84">
+                            <span class="rating-label" vid="85">Randomness</span>
+                            <span class="rating-value" vid="86">3.2</span>
+                        </div>
+                        <div class="rating-item" vid="87">
+                            <span class="rating-label" vid="88">Interaction</span>
+                            <span class="rating-value" vid="89">3.5</span>
+                        </div>
+                        <div class="rating-item" vid="90">
+                            <span class="rating-label" vid="91">Theming</span>
+                            <span class="rating-value" vid="92">4.1</span>
+                        </div>
+                    </div>
+                    <div class="vote-buttons" vid="93">
+                        <button class="vote-button" vid="94">I'd play this</button>
+                        <button class="vote-button" vid="95">I like this game</button>
+                        <button class="vote-button" vid="96">Can't get enough</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Card 3 -->
+            <div class="game-card" vid="97">
+                <img src="https://images.unsplash.com/photo-1611032033810-e0e4d5bf4aba?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=500&amp;q=80" alt="Pandemic" class="game-image" vid="98">
+                <div class="game-header" vid="99">
+                    <div vid="100">
+                        <h2 class="game-title" vid="101">Pandemic</h2>
+                        <div class="game-genre" vid="102">Cooperative / Strategy</div>
+                    </div>
+                    <div class="game-dewey" vid="103">794.28</div>
+                </div>
+                <div class="game-content" vid="104">
+                    <p class="game-description" vid="105">Players work as a team to treat infections around the world while gathering resources for cures. You must work together, playing to your characters' strengths.</p>
+                    <a href="#" class="more-info" vid="106">More Information</a>
+                </div>
+                <div class="game-ratings" vid="107">
+                    <h3 class="rating-title" vid="108">Ratings</h3>
+                    <div class="rating-grid" vid="109">
+                        <div class="rating-item" vid="110">
+                            <span class="rating-label" vid="111">Easy to Learn</span>
+                            <span class="rating-value" vid="112">3.9</span>
+                        </div>
+                        <div class="rating-item" vid="113">
+                            <span class="rating-label" vid="114">Replayable</span>
+                            <span class="rating-value" vid="115">4.2</span>
+                        </div>
+                        <div class="rating-item" vid="116">
+                            <span class="rating-label" vid="117">Randomness</span>
+                            <span class="rating-value" vid="118">3.7</span>
+                        </div>
+                        <div class="rating-item" vid="119">
+                            <span class="rating-label" vid="120">Interaction</span>
+                            <span class="rating-value" vid="121">4.8</span>
+                        </div>
+                        <div class="rating-item" vid="122">
+                            <span class="rating-label" vid="123">Theming</span>
+                            <span class="rating-value" vid="124">4.5</span>
+                        </div>
+                    </div>
+                    <div class="vote-buttons" vid="125">
+                        <button class="vote-button" vid="126">I'd play this</button>
+                        <button class="vote-button" vid="127">I like this game</button>
+                        <button class="vote-button" vid="128">Can't get enough</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body></html>

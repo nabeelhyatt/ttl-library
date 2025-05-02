@@ -14,50 +14,44 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   return (
-    <header className="border-b border-gray-800 py-4">
-      <div className="tufte-container flex justify-between items-center">
+    <header className="py-12 py-6 bg-transparent">
+      <div className="container flex justify-between items-center">
         <div className="flex items-center">
-          <h1 className="text-4xl font-tufte text-foreground">
-            <Link href="/" className="no-underline text-foreground hover:text-accent transition duration-200">
-              The Tabletop Library
+          <h1 className="logo">
+            <Link href="/" className="no-underline text-black">
+              Tabletop Library
             </Link>
           </h1>
         </div>
         <nav>
-          <div className="flex space-x-6">
-            <a 
-              href="https://www.tabletoplibrary.com/membership" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-lg font-tufte text-muted-foreground hover:text-accent transition duration-200"
-            >
-              Become a member
-            </a>
+          <Link 
+            href="/rankings" 
+            className={`${location === '/rankings' ? 'font-bold' : ''}`}
+          >
+            Rankings
+          </Link>
             
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <Link 
-                  href="/my-votes" 
-                  className={`text-lg font-tufte ${location === '/my-votes' ? 'text-accent' : 'text-muted-foreground hover:text-accent'} transition duration-200`}
-                >
-                  My Votes
-                </Link>
-                <button 
-                  onClick={onLogout}
-                  className="text-lg font-tufte text-muted-foreground hover:text-accent transition duration-200"
-                >
-                  Log out
-                </button>
-              </div>
-            ) : (
-              <button 
-                onClick={() => setIsLoginOpen(true)}
-                className="text-lg font-tufte text-muted-foreground hover:text-accent transition duration-200"
+          {user ? (
+            <>
+              <Link 
+                href="/my-votes" 
+                className={`${location === '/my-votes' ? 'font-bold' : ''}`}
               >
-                Log in
+                My Votes
+              </Link>
+              <button 
+                onClick={onLogout}
+              >
+                Log out
               </button>
-            )}
-          </div>
+            </>
+          ) : (
+            <button 
+              onClick={() => setIsLoginOpen(true)}
+            >
+              Login
+            </button>
+          )}
         </nav>
       </div>
 

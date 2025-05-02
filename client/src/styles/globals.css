@@ -1,0 +1,130 @@
+:root {
+  --grid-size: 24px;
+  --grid-line-color: rgba(0, 0, 0, 0.08);
+  --text-color: #000;
+  --bg-color: #fff;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.5;
+  background-image: 
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Typography */
+.logo {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.game-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.game-dewey {
+  font-size: 12px;
+  font-family: monospace;
+  align-self: start;
+}
+
+.game-genre {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.game-description {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Navigation and buttons */
+nav a {
+  margin-left: 24px;
+  text-decoration: none;
+  color: var(--text-color);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 14px;
+}
+
+.btn {
+  padding: 8px 16px;
+  background: none;
+  border: 1px solid #000;
+  cursor: pointer;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn:hover {
+  background-color: #000;
+  color: #fff;
+}
+
+/* Rating system */
+.rating-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.rating-label {
+  font-size: 10px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.rating-stars {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stars-outer {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 16px;
+  background-color: #e0e0e0;
+}
+
+.stars-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #000;
+}
+
+.rating-text {
+  font-size: 12px;
+  margin-top: 4px;
+}
