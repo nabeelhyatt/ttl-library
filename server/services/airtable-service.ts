@@ -144,17 +144,22 @@ class AirtableService {
       // Add subcategory name if available (using the correct field name)
       console.log(`Checking for subcategory name in fields:`, Object.keys(fields));
       
-      if (fields['Subcategory Name (from TLCS Subcategory)']) {
+      const exactFieldName = 'Subcategory Name (from TLCS Subcategory)';
+      
+      if (fields[exactFieldName]) {
         // This field returns an array - either use the first value or join them with commas
-        const subcategoryNames = fields['Subcategory Name (from TLCS Subcategory)'];
+        const subcategoryNames = fields[exactFieldName];
         console.log(`Raw subcategory data:`, subcategoryNames, `Type:`, typeof subcategoryNames);
         
         if (Array.isArray(subcategoryNames) && subcategoryNames.length > 0) {
           result.subcategoryName = subcategoryNames.join(', ');
+          console.log('Found subcategory name (array):', result.subcategoryName);
         } else if (typeof subcategoryNames === 'string') {
           result.subcategoryName = subcategoryNames;
+          console.log('Found subcategory name (string):', result.subcategoryName);
+        } else {
+          console.log('Subcategory name found but has unexpected type:', typeof subcategoryNames);
         }
-        console.log('Found subcategory name:', result.subcategoryName);
       } else {
         console.log('No subcategory name found in fields');
       }

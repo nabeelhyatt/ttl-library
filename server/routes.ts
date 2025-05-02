@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { boardGameGeekService } from "./services/bgg-service";
 import { airtableService } from "./services/airtable-service";
+import { debugAirtableBase } from "./services/airtable-debug";
 import * as z from "zod";
 import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
 import session from "express-session";
