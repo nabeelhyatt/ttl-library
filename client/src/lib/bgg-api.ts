@@ -26,23 +26,7 @@ export function getBGGtoTLCSWeight(weight: number): string {
 }
 
 // Get primary genre from categories
-export function getPrimaryGenre(categories: string[], gameId?: number): string {
-  // Specific game overrides based on gameId
-  const gameSpecificSubcategories: Record<number, string> = {
-    178900: "Group Fun", // Codenames
-    167791: "Group Fun", // Codenames Pictures
-    181304: "Group Fun", // Codenames: Deep Undercover
-    224037: "Group Fun", // Codenames: Duet
-    342942: "Deck Building", // Ark Nova
-    162886: "Strategy Co-op", // Spirit Island
-    // Add more mappings as needed
-  };
-  
-  // If we have a game ID and it's in our mapping, use that subcategory
-  if (gameId && gameSpecificSubcategories[gameId]) {
-    return gameSpecificSubcategories[gameId];
-  }
-  
+export function getPrimaryGenre(categories: string[]): string {
   const genrePriority = [
     "Abstract Strategy", 
     "Party Game", 

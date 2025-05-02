@@ -94,7 +94,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     }
   };
   
-  const primaryGenre = getPrimaryGenre(game.categories || [], game.gameId);
+  const primaryGenre = getPrimaryGenre(game.categories || []);
   const weightClass = game.weightRating ? getBGGtoTLCSWeight(parseFloat(game.weightRating)) : null;
   
   // More detailed debugging to check what data we have
@@ -119,7 +119,6 @@ export const GameCard: React.FC<GameCardProps> = ({
       genreColorClass = "bg-vote-try/20 text-vote-try";
       break;
     case "party":
-    case "group fun":
       genreColorClass = "bg-vote-played/20 text-vote-played";
       break;
     case "cooperative":
