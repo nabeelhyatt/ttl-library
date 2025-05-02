@@ -137,81 +137,51 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
   };
   
   return (
-    <main className="container mx-auto py-8 px-4 bg-black min-h-screen text-white">
-      {/* Page Title */}
-      <div className="mb-12 md:mb-16 mt-4">
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="h-16 w-16 flex items-center justify-center mb-6 text-accent">
-            <HexagonIcon />
-          </div>
-          <h1 className="font-tufte text-3xl font-bold text-white mb-2">The Tabletop Library</h1>
-          <h2 className="font-tufte text-xl text-accent mb-2">Game Voting Platform</h2>
-          <p className="mt-4 max-w-2xl text-zinc-400">
-            Help us choose which games to add to our collection. Search for games, vote on your favorites, 
-            and see what others are excited about.
-          </p>
-        </div>
-      </div>
-      
-      {/* Search and Filters */}
-      <div className="mb-12">
-        <div className="bg-zinc-900 p-6 rounded border border-zinc-800 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-grow">
-              <GameSearch onSearch={handleSearch} isSearching={isSearching} />
-            </div>
-            <GameFilters 
-              weightFilter={weightFilter}
-              onWeightFilterChange={handleWeightFilterChange}
-              genreFilter={genreFilter}
-              onGenreFilterChange={handleGenreFilterChange}
-              disabled={isSearching}
-            />
-          </div>
-        </div>
+    <main>
+      <div className="container">
+        {/* Search Section */}
+        <GameSearch onSearch={handleSearch} isSearching={isSearching} />
         
-        {/* Games List Title */}
-        <div className="mb-6">
-          <h2 className="font-tufte text-2xl text-accent mb-2">
-            {searchMode ? "Search Results" : "Hottest Games"}
-          </h2>
-          <p className="text-zinc-400 mt-2">
-            {searchMode 
-              ? "Games matching your search criteria. Vote on the ones you'd like to see at The Tabletop Library."
-              : "These games are currently trending on BoardGameGeek. Vote on the ones you'd like to see at The Tabletop Library."
-            }
-          </p>
+        {/* Games List */}
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div>Loading games...</div>
+          </div>
+        ) : filteredGames.length === 0 ? (
+          <div className="text-center p-8">
+            <h3>No games found</h3>
+            <p>
+              {searchMode 
+                ? "We couldn't find any games matching your search criteria. Try a different search term."
+                : "We couldn't load any games at this time. Please try again later."
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="games-grid">
+            {filteredGames.map(game => (
+              <GameCard 
+                key={game.gameId} 
+                game={game} 
+                user={user} 
+                onLogin={onLogin}
+                onVoteSuccess={handleVoteSuccess}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* Optional Filters (can be added back if needed) */}
+        <div className="hidden">
+          <GameFilters 
+            weightFilter={weightFilter}
+            onWeightFilterChange={handleWeightFilterChange}
+            genreFilter={genreFilter}
+            onGenreFilterChange={handleGenreFilterChange}
+            disabled={isSearching}
+          />
         </div>
       </div>
-      
-      {/* Games List */}
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-pulse text-lg text-muted-foreground">Loading games...</div>
-        </div>
-      ) : filteredGames.length === 0 ? (
-        <div className="bg-zinc-900 rounded p-8 text-center">
-          <h3 className="text-xl font-tufte text-white mb-3">No games found</h3>
-          <p className="text-zinc-400">
-            {searchMode 
-              ? "We couldn't find any games matching your search criteria. Try a different search term or filters."
-              : "We couldn't load any games at this time. Please try again later."
-            }
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredGames.map(game => (
-            <GameCard 
-              key={game.gameId} 
-              game={game} 
-              user={user} 
-              onLogin={onLogin}
-              onVoteSuccess={handleVoteSuccess}
-            />
-          ))}
-        </div>
-      )}
     </main>
   );
 };

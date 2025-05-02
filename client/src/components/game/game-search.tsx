@@ -34,27 +34,23 @@ export const GameSearch: React.FC<GameSearchProps> = ({ onSearch, isSearching })
   
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div className="flex">
-        <Input 
+      <div className="search-container">
+        <input 
           type="text" 
           value={query}
           onChange={handleInputChange}
-          placeholder="Search for board games..."
-          className="w-full px-4 py-6 bg-zinc-800 border border-zinc-700 rounded-l-lg text-white focus:outline-none focus:border-accent transition duration-200 text-lg placeholder:text-zinc-500"
+          placeholder="Search for games..."
           disabled={isSearching}
         />
-        <Button 
+        <button 
           type="submit"
-          variant="default"
-          className="py-6 px-6 rounded-r-lg bg-accent hover:bg-accent/90 text-white"
           disabled={isSearching || query.trim().length < 2}
         >
-          <FontAwesomeIcon icon="search" className="mr-2" />
           Search
-        </Button>
+        </button>
       </div>
       {isSearching && (
-        <p className="text-xs text-zinc-400 mt-2">
+        <p className="text-xs mt-2">
           Searching BoardGameGeek... This may take a moment due to API rate limits.
         </p>
       )}
