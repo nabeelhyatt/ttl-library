@@ -65,25 +65,34 @@ export const GameCard: React.FC<GameCardProps> = ({
       const loggedInUser = await onLogin(email);
       setIsLoginOpen(false);
 
-      // Add a small delay to ensure the session is properly set up on the server
+      // Increase the delay to ensure the session is properly set up on the server
       if (votingType && loggedInUser) {
-        setTimeout(() => {
-          submitVote(game.gameId, votingType)
-            .then(() => {
-              setIsVoteSuccessOpen(true);
-              if (onVoteSuccess) {
-                onVoteSuccess();
-              }
-            })
-            .catch((err) => {
-              console.error("Vote error after login:", err);
-              toast({
-                title: "Vote Failed",
-                description: "We couldn't record your vote. Please try again.",
-                variant: "destructive",
-              });
+        // Show a toast indicating the vote is being processed
+        toast({
+          title: "Processing Vote",
+          description: "Please wait while we submit your vote...",
+        });
+        
+        // Set a longer delay to ensure session is established
+        setTimeout(async () => {
+          try {
+            setIsVoting(true);
+            await submitVote(game.gameId, votingType);
+            setIsVoteSuccessOpen(true);
+            if (onVoteSuccess) {
+              onVoteSuccess();
+            }
+          } catch (err) {
+            console.error("Vote error after login:", err);
+            toast({
+              title: "Vote Failed",
+              description: "We couldn't record your vote. Please try again.",
+              variant: "destructive",
             });
-        }, 500);
+          } finally {
+            setIsVoting(false);
+          }
+        }, 1500); // Increased to 1.5 seconds
       }
     } catch (error) {
       toast({
