@@ -3,6 +3,148 @@ import Airtable from 'airtable';
 /**
  * This utility file is for debugging the Airtable connection and understanding field structure
  */
+
+export async function testAirtableWrite() {
+  try {
+    console.log('Starting Airtable write test...');
+    
+    // Initialize Airtable with API key
+    const apiKey = process.env.AIRTABLE_API_KEY || '';
+    // Securely log part of the key for debugging
+    const maskedKey = apiKey ? 
+      `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : 
+      'not provided';
+    console.log(`Using Airtable API key: ${maskedKey}`);
+    
+    Airtable.configure({
+      apiKey: apiKey,
+      requestTimeout: 30000, // 30 second timeout
+    });
+    
+    const baseId = process.env.AIRTABLE_BASE_ID || '';
+    if (!baseId) {
+      console.error('AIRTABLE_BASE_ID environment variable is not set');
+      return { success: false, error: 'Base ID not provided' };
+    }
+    console.log(`Using Airtable Base ID: ${baseId}`);
+    
+    const base = Airtable.base(baseId);
+    
+    // Try to write to Users table first
+    try {
+      console.log('\nAttempting to write to Users table...');
+      const usersTable = base('Users');
+      const testUser = {
+        'Email': `test-${Date.now()}@example.com`,
+        'Last Login': new Date().toISOString()
+      };
+      console.log('Payload for user creation:', JSON.stringify(testUser));
+      
+      const userRecord = await usersTable.create(testUser);
+      console.log('Successfully created user with ID:', userRecord.getId());
+      
+      // Try to write to Games table
+      try {
+        console.log('\nAttempting to write to Games table...');
+        const gamesTable = base('Games');
+        const testGame = {
+          'Title': `Test Game ${Date.now()}`,
+          'BGG ID': Math.floor(Math.random() * 1000000),
+        };
+        console.log('Payload for game creation:', JSON.stringify(testGame));
+        
+        const gameRecord = await gamesTable.create(testGame);
+        console.log('Successfully created game with ID:', gameRecord.getId());
+        
+        // Now try to write to Votes table
+        try {
+          console.log('\nAttempting to write to Votes table...');
+          const votesTable = base('Votes');
+          
+          // Check if the Votes table structure uses User/Game or different field names
+          const testVote = {
+            'User': [userRecord.getId()],  // Link to user
+            'Game': [gameRecord.getId()],  // Link to game
+            'Vote Type': 1,
+            'Created At': new Date().toISOString()
+          };
+          console.log('Payload for vote creation:', JSON.stringify(testVote));
+          
+          const voteRecord = await votesTable.create(testVote);
+          console.log('Successfully created vote with ID:', voteRecord.getId());
+          
+          return { 
+            success: true, 
+            results: {
+              user: userRecord.getId(),
+              game: gameRecord.getId(),
+              vote: voteRecord.getId()
+            }
+          };
+        } catch (voteErr) {
+          console.error('Error writing to Votes table:', voteErr);
+          
+          // Try alternative field names
+          console.log('\nTrying alternative field names for Votes table...');
+          try {
+            const votesTable = base('Votes');
+            const altTestVote = {
+              'User ID': [userRecord.getId()],  // Try alternate name
+              'Game ID': [gameRecord.getId()],  // Try alternate name 
+              'Vote Type': 1,
+              'Created': new Date().toISOString()  // Try alternate name
+            };
+            console.log('Alternative payload for vote creation:', JSON.stringify(altTestVote));
+            
+            const voteRecord = await votesTable.create(altTestVote);
+            console.log('Successfully created vote with ID using alternative fields:', voteRecord.getId());
+            
+            return { 
+              success: true, 
+              results: {
+                user: userRecord.getId(),
+                game: gameRecord.getId(),
+                vote: voteRecord.getId()
+              }
+            };
+          } catch (altVoteErr) {
+            console.error('Error writing to Votes table with alternative fields:', altVoteErr);
+            return { 
+              success: false, 
+              partialResults: {
+                user: userRecord.getId(),
+                game: gameRecord.getId()
+              },
+              error: `Vote error: ${altVoteErr instanceof Error ? altVoteErr.message : String(altVoteErr)}`
+            };
+          }
+        }
+      } catch (gameErr) {
+        console.error('Error writing to Games table:', gameErr);
+        return { 
+          success: false, 
+          partialResults: {
+            user: userRecord.getId()
+          },
+          error: `Game error: ${gameErr instanceof Error ? gameErr.message : String(gameErr)}`
+        };
+      }
+    } catch (userErr) {
+      console.error('Error writing to Users table:', userErr);
+      return { 
+        success: false, 
+        error: `User error: ${userErr instanceof Error ? userErr.message : String(userErr)}`
+      };
+    }
+  } catch (err) {
+    console.error('General error in Airtable write test:', err);
+    return { 
+      success: false, 
+      error: `General error: ${err instanceof Error ? err.message : String(err)}`
+    };
+  }
+}
+
 export async function debugAirtableBase() {
   try {
     // Initialize Airtable with API key

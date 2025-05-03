@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { boardGameGeekService } from "./services/bgg-service";
 import { airtableService } from "./services/airtable-service";
-import { debugAirtableBase } from "./services/airtable-debug";
+import { debugAirtableBase, testAirtableWrite } from "./services/airtable-debug";
 import * as z from "zod";
 import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
 import session from "express-session";
@@ -282,6 +282,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error debugging Airtable:`, error);
       return res.status(500).json({ message: "Failed to debug Airtable connection" });
+    }
+  });
+  
+  // Debug endpoint for testing Airtable write operations
+  app.post("/api/airtable/test-write", async (req, res) => {
+    try {
+      console.log("Starting Airtable write test...");
+      const result = await testAirtableWrite();
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error(`Error testing Airtable write:`, error);
+      return res.status(500).json({ 
+        message: "Failed to test Airtable write operations",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   
