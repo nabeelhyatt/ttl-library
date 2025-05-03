@@ -224,41 +224,98 @@ class AirtableService {
         throw new Error('User or game not found');
       }
       
-      // Create or update user in Airtable
-      await this.updateUser(user);
+      // Log detailed information for debugging
+      console.log('Creating vote in Airtable:');
+      console.log(`- User: ${user.id} (${user.email})`);
+      console.log(`- Game: ${game.id} (${game.name}, BGG ID: ${game.bggId})`);
+      console.log(`- Vote Type: ${vote.voteType}`);
       
-      // Create or update game in Airtable
+      // Create or update user in Airtable - this is optional, continue if it fails
+      try {
+        await this.updateUser(user);
+      } catch (err) {
+        const userError = err instanceof Error ? err : new Error(String(err));
+        console.log('Warning: Could not update user in Airtable:', userError.message);
+        // Continue anyway
+      }
+      
+      // Find game in Airtable - this is optional, continue if it fails
       let gameAirtableId = '';
-      const gameRecords = await this.gamesTable.select({
-        filterByFormula: `{BGG ID} = ${game.bggId}`,
-      }).firstPage();
-      
-      if (gameRecords.length > 0) {
-        gameAirtableId = gameRecords[0].id;
-      } else {
-        gameAirtableId = await this.createGame(game);
+      try {
+        const gameRecords = await this.gamesTable.select({
+          filterByFormula: `{BGG ID} = ${game.bggId}`,
+        }).firstPage();
+        
+        if (gameRecords.length > 0) {
+          gameAirtableId = gameRecords[0].id;
+          console.log(`Found game in Airtable with ID: ${gameAirtableId}`);
+        } else {
+          console.log('Game not found in Airtable, skipping vote creation in Airtable');
+          return '';
+        }
+      } catch (err) {
+        const gameError = err instanceof Error ? err : new Error(String(err));
+        console.log('Warning: Could not find game in Airtable:', gameError.message);
+        return '';
       }
       
       // Find user record in Airtable
-      const userRecords = await this.usersTable.select({
-        filterByFormula: `{Email} = "${user.email}"`,
-      }).firstPage();
-      
-      if (userRecords.length === 0 || !gameAirtableId) {
-        throw new Error('User or game not found in Airtable');
+      try {
+        const userRecords = await this.usersTable.select({
+          filterByFormula: `{Email} = "${user.email}"`,
+        }).firstPage();
+        
+        if (userRecords.length === 0) {
+          console.log('User not found in Airtable, attempting to create user');
+          try {
+            await this.createUser(user);
+            // Try to find user again
+            const newUserRecords = await this.usersTable.select({
+              filterByFormula: `{Email} = "${user.email}"`,
+            }).firstPage();
+            
+            if (newUserRecords.length > 0) {
+              // Create vote record with newly created user
+              console.log('Successfully created user, creating vote');
+              const voteRecord = await this.votesTable.create({
+                'User': [newUserRecords[0].id],
+                'Game': [gameAirtableId],
+                'Vote Type': vote.voteType,
+                'Created At': vote.createdAt ? vote.createdAt.toISOString() : new Date().toISOString(),
+              });
+              
+              console.log('Successfully created vote in Airtable');
+              return voteRecord.getId();
+            } else {
+              console.log('Created user but could not find it in Airtable');
+              return '';
+            }
+          } catch (err) {
+            const createUserError = err instanceof Error ? err : new Error(String(err));
+            console.log('Could not create user in Airtable:', createUserError.message);
+            return '';
+          }
+        }
+        
+        // Create vote record with existing user
+        console.log('Found user in Airtable, creating vote');
+        const voteRecord = await this.votesTable.create({
+          'User': [userRecords[0].id],
+          'Game': [gameAirtableId],
+          'Vote Type': vote.voteType,
+          'Created At': vote.createdAt ? vote.createdAt.toISOString() : new Date().toISOString(),
+        });
+        
+        console.log('Successfully created vote in Airtable');
+        return voteRecord.getId();
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        console.error('Error creating vote in Airtable:', error.message);
+        return '';
       }
-      
-      // Create vote record
-      const voteRecord = await this.votesTable.create({
-        'User': [userRecords[0].id],
-        'Game': [gameAirtableId],
-        'Vote Type': vote.voteType,
-        'Created At': vote.createdAt ? vote.createdAt.toISOString() : new Date().toISOString(),
-      });
-      
-      return voteRecord.getId();
-    } catch (error) {
-      console.error('Error creating vote in Airtable:', error);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Error creating vote in Airtable:', error.message);
       // Continue without Airtable if it fails
       return '';
     }
@@ -266,32 +323,72 @@ class AirtableService {
   
   async updateVote(vote: Vote): Promise<void> {
     try {
-      // Get all votes for this user-game combination
-      const voteRecords = await this.votesTable.select({
-        filterByFormula: `AND({User Record ID} = "${vote.userId}", {Game Record ID} = "${vote.gameId}")`,
-      }).firstPage();
+      console.log(`Updating vote in Airtable: Vote ID ${vote.id}, User ID ${vote.userId}, Game ID ${vote.gameId}`);
       
-      if (voteRecords.length > 0) {
-        // Update existing vote
-        await this.votesTable.update(voteRecords[0].id, {
-          'Vote Type': vote.voteType,
-        });
-      } else {
-        // Create new vote if not found
-        await this.createVote(vote);
+      // Get user and game details
+      const user = await storage.getUser(vote.userId);
+      const game = await storage.getGame(vote.gameId);
+      
+      if (!user || !game) {
+        console.log('User or game not found, cannot update vote in Airtable');
+        return;
       }
-    } catch (error) {
-      console.error('Error updating vote in Airtable:', error);
+      
+      console.log(`Updating vote for user ${user.email} and game ${game.name} (BGG ID: ${game.bggId})`);
+      
+      // Find user and game records in Airtable
+      try {
+        const userRecords = await this.usersTable.select({
+          filterByFormula: `{Email} = "${user.email}"`,
+        }).firstPage();
+        
+        const gameRecords = await this.gamesTable.select({
+          filterByFormula: `{BGG ID} = ${game.bggId}`,
+        }).firstPage();
+        
+        if (userRecords.length === 0 || gameRecords.length === 0) {
+          console.log('User or game not found in Airtable, cannot update vote');
+          return;
+        }
+        
+        // Try to find existing vote
+        console.log(`Looking for existing vote with User=${userRecords[0].id} and Game=${gameRecords[0].id}`);
+        const voteRecords = await this.votesTable.select({
+          filterByFormula: `AND({User} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
+        }).firstPage();
+        
+        if (voteRecords.length > 0) {
+          // Update existing vote
+          console.log(`Found existing vote in Airtable (ID: ${voteRecords[0].id}), updating Vote Type to ${vote.voteType}`);
+          await this.votesTable.update(voteRecords[0].id, {
+            'Vote Type': vote.voteType,
+          });
+          console.log('Successfully updated vote in Airtable');
+        } else {
+          // Create new vote if not found
+          console.log('No existing vote found in Airtable, creating new vote');
+          await this.createVote(vote);
+        }
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        console.error('Error finding vote in Airtable:', error.message);
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Error updating vote in Airtable:', error.message);
       // Continue without Airtable if it fails
     }
   }
   
   async deleteVote(voteId: number): Promise<void> {
     try {
+      console.log(`Deleting vote from Airtable: Vote ID ${voteId}`);
+      
       // Find the vote in our storage first
       const vote = await storage.getVote(voteId);
       if (!vote) {
-        throw new Error('Vote not found');
+        console.log(`Vote with ID ${voteId} not found in local storage`);
+        return;
       }
       
       // Get user and game details
@@ -299,33 +396,50 @@ class AirtableService {
       const game = await storage.getGame(vote.gameId);
       
       if (!user || !game) {
-        throw new Error('User or game not found');
-      }
-      
-      // Find the vote in Airtable
-      const userRecords = await this.usersTable.select({
-        filterByFormula: `{Email} = "${user.email}"`,
-      }).firstPage();
-      
-      const gameRecords = await this.gamesTable.select({
-        filterByFormula: `{BGG ID} = ${game.bggId}`,
-      }).firstPage();
-      
-      if (userRecords.length === 0 || gameRecords.length === 0) {
-        // Skip if we can't find the records
+        console.log('User or game not found, cannot delete vote from Airtable');
         return;
       }
       
-      const voteRecords = await this.votesTable.select({
-        filterByFormula: `AND({User} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
-      }).firstPage();
+      console.log(`Deleting vote for user ${user.email} and game ${game.name} (BGG ID: ${game.bggId})`);
       
-      if (voteRecords.length > 0) {
-        // Delete the vote
-        await this.votesTable.destroy(voteRecords[0].id);
+      try {
+        // Find the vote in Airtable
+        const userRecords = await this.usersTable.select({
+          filterByFormula: `{Email} = "${user.email}"`,
+        }).firstPage();
+        
+        if (userRecords.length === 0) {
+          console.log(`User with email ${user.email} not found in Airtable`);
+          return;
+        }
+        
+        const gameRecords = await this.gamesTable.select({
+          filterByFormula: `{BGG ID} = ${game.bggId}`,
+        }).firstPage();
+        
+        if (gameRecords.length === 0) {
+          console.log(`Game with BGG ID ${game.bggId} not found in Airtable`);
+          return;
+        }
+        
+        console.log(`Looking for vote with User=${userRecords[0].id} and Game=${gameRecords[0].id}`);
+        const voteRecords = await this.votesTable.select({
+          filterByFormula: `AND({User} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
+        }).firstPage();
+        
+        if (voteRecords.length > 0) {
+          // Delete the vote
+          console.log(`Found vote in Airtable (ID: ${voteRecords[0].id}), deleting it`);
+          await this.votesTable.destroy(voteRecords[0].id);
+          console.log('Successfully deleted vote from Airtable');
+        } else {
+          console.log('No matching vote found in Airtable');
+        }
+      } catch (error) {
+        console.error('Error finding vote in Airtable:', error instanceof Error ? error.message : String(error));
       }
     } catch (error) {
-      console.error('Error deleting vote in Airtable:', error);
+      console.error('Error deleting vote from Airtable:', error instanceof Error ? error.message : String(error));
       // Continue without Airtable if it fails
     }
   }
