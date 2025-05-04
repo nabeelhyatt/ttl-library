@@ -110,7 +110,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BoardGameGeek API routes
   app.get("/api/bgg/hot", async (req, res) => {
     try {
+      console.log("==============================================");
       console.log("🔍 GET /api/bgg/hot - Fetching hot games (will use cache if available)");
+      const startTime = Date.now();
+      
       // Get basic hot games list
       const hotGames = await boardGameGeekService.getHotGames();
       

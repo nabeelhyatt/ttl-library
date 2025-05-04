@@ -52,12 +52,15 @@ class BoardGameGeekService {
       const minutesRemaining = Math.floor((this.CACHE_TTL - (now - this.hotGamesCacheTimestamp)) / 60000);
       console.log('*********************************************');
       console.log(`🔄 CACHE HIT: Using cached hot games (expires in ${minutesRemaining} minutes)`);
+      console.log(`🔄 Cache created: ${new Date(this.hotGamesCacheTimestamp).toLocaleTimeString()}`);
+      console.log(`🔄 Cache expires: ${new Date(this.hotGamesCacheTimestamp + this.CACHE_TTL).toLocaleTimeString()}`);
       console.log('*********************************************');
       return this.hotGamesCache;
     }
     
     console.log('*********************************************');
     console.log('❌ CACHE MISS: Fetching hot games from BGG API...');
+    console.log(`❌ Current time: ${new Date().toLocaleTimeString()}`);
     console.log('*********************************************');
     
     const fetchHotGames = async (retries = 0): Promise<BGGGame[]> => {
@@ -91,6 +94,8 @@ class BoardGameGeekService {
       this.hotGamesCacheTimestamp = Date.now();
       console.log('*********************************************');
       console.log(`✅ CACHE UPDATED: Stored ${hotGames.length} hot games in cache (valid for 1 hour)`);
+      console.log(`✅ Cache created at: ${new Date(this.hotGamesCacheTimestamp).toLocaleTimeString()}`);
+      console.log(`✅ Cache expires at: ${new Date(this.hotGamesCacheTimestamp + this.CACHE_TTL).toLocaleTimeString()}`);
       console.log('*********************************************');
       
       return hotGames;
