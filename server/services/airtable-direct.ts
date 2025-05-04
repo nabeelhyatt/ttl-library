@@ -617,6 +617,82 @@ export class AirtableDirectService {
   }
   
   /**
+   * Get most voted games from Airtable, sorted by total votes
+   */
+  async getMostVotedGames(limit: number = 15): Promise<GameWithVotes[]> {
+    try {
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return [];
+      }
+      
+      console.log(`Fetching most voted games from Airtable (limit: ${limit})...`);
+      
+      // Construct the URL to get games sorted by Total Votes
+      // We'll select fields we need and sort by Total Votes in descending order
+      const fields = [
+        'Title', 
+        'BGG ID', 
+        'Total Votes',
+        'Subcategory Name (from TLCS Subcategory)'
+      ].map(field => `fields%5B%5D=${encodeURIComponent(field)}`).join('&');
+      
+      const url = `https://api.airtable.com/v0/${this.baseId}/Games?${fields}&sort%5B0%5D%5Bfield%5D=Total+Votes&sort%5B0%5D%5Bdirection%5D=desc&maxRecords=${limit}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      });
+      
+      if (!response.ok) {
+        console.error(`Error retrieving games from Airtable: ${response.status} ${response.statusText}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      
+      if (!data.records || data.records.length === 0) {
+        console.log('No games found in Airtable or no games have votes');
+        return [];
+      }
+      
+      // Map the Airtable records to our GameWithVotes interface
+      const games: GameWithVotes[] = data.records
+        .filter(record => record.fields['BGG ID'] && record.fields['Title'])
+        .map((record, index) => {
+          const fields = record.fields;
+          const subcategoryField = fields['Subcategory Name (from TLCS Subcategory)'];
+          let subcategory: string | null = null;
+          
+          if (subcategoryField) {
+            if (Array.isArray(subcategoryField) && subcategoryField.length > 0) {
+              subcategory = subcategoryField[0];
+            } else if (typeof subcategoryField === 'string') {
+              subcategory = subcategoryField;
+            }
+          }
+          
+          return {
+            // We use index as a temporary ID, as we'll look up the actual ID later
+            id: index,
+            bggId: fields['BGG ID'] || 0,
+            name: fields['Title'] || 'Unknown',
+            subcategory,
+            voteCount: fields['Total Votes'] || 0
+          };
+        });
+      
+      console.log(`Retrieved ${games.length} games with votes from Airtable`);
+      return games;
+    } catch (err) {
+      console.error('Error getting most voted games from Airtable:', err instanceof Error ? err.message : String(err));
+      return [];
+    }
+  }
+
+  /**
    * Converts VoteType enum to string values expected by Airtable
    */
   private getVoteTypeString(voteType: number): string {
