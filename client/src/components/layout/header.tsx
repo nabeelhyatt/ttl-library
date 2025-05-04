@@ -24,6 +24,12 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
           </div>
           <nav>
             <Link
+              href="/"
+              className={location === "/" ? "active" : ""}
+            >
+              Hot
+            </Link>
+            <Link
               href="/rankings"
               className={location === "/rankings" ? "active" : ""}
             >

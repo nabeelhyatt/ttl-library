@@ -7,6 +7,14 @@ import { Vote, User, Game } from '@shared/schema';
 import { storage } from '../storage';
 import { VoteType } from '@shared/schema';
 
+export interface GameWithVotes {
+  id: number;
+  bggId: number;
+  name: string;
+  subcategory: string | null;
+  voteCount: number;
+}
+
 export class AirtableDirectService {
   private apiKey: string;
   private baseId: string;
