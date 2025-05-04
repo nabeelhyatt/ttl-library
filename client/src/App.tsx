@@ -29,8 +29,8 @@ function Router() {
     }
   };
 
-  const login = async (email: string) => {
-    const res = await apiRequest("POST", "/api/auth/login", { email });
+  const login = async (email: string, name: string) => {
+    const res = await apiRequest("POST", "/api/auth/login", { email, name });
     const userData = await res.json();
     setUser(userData);
     return userData;

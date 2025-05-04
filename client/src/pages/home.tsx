@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface HomeProps {
   user: User | null;
-  onLogin: (email: string) => Promise<User>;
+  onLogin: (email: string, name: string) => Promise<User>;
 }
 
 const Home: React.FC<HomeProps> = ({ user, onLogin }) => {

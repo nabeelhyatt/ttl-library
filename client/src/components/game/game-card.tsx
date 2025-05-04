@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 interface GameCardProps {
   game: BGGGame;
   user: User | null;
-  onLogin: (email: string) => Promise<User>;
+  onLogin: (email: string, name: string) => Promise<User>;
   onVoteSuccess?: () => void;
 }
 
@@ -60,9 +60,9 @@ export const GameCard: React.FC<GameCardProps> = ({
     }
   };
 
-  const handleLoginSuccess = async (email: string) => {
+  const handleLoginSuccess = async (email: string, name: string) => {
     try {
-      const loggedInUser = await onLogin(email);
+      const loggedInUser = await onLogin(email, name);
       setIsLoginOpen(false);
 
       // Increase the delay to ensure the session is properly set up on the server
@@ -97,7 +97,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Could not log in with this email. Please try again.",
+        description: "Could not log in with this information. Please try again.",
         variant: "destructive",
       });
     }
