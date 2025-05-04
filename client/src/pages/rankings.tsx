@@ -83,12 +83,16 @@ export default function Rankings() {
 
   // Handle search by redirecting to the home page with the search query
   const handleSearch = (query: string) => {
+    console.log('Rankings handleSearch called with query:', query);
+    
     if (!query.trim()) {
+      console.log('Empty query, not searching');
       return;
     }
     
     // Prevent multiple concurrent searches
     if (isSearching) {
+      console.log('Already searching, ignoring request');
       return;
     }
     
@@ -96,7 +100,15 @@ export default function Rankings() {
       setIsSearching(true);
       
       // Navigate to the home page with the search query as a parameter
-      setLocation(`/?search=${encodeURIComponent(query)}`);
+      const searchUrl = `/?search=${encodeURIComponent(query)}`;
+      console.log('Attempting to navigate to:', searchUrl);
+      
+      // Use window.location.href for direct navigation instead of wouter
+      window.location.href = searchUrl;
+      
+      // The code below doesn't run if we use window.location.href
+      // setLocation(searchUrl);
+      console.log('Navigation request sent');
     } catch (error) {
       console.error('Navigation error:', error);
       
