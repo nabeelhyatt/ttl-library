@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { boardGameGeekService } from "./services/bgg-service";
 import { airtableService } from "./services/airtable-service";
 import { debugAirtableBase, testAirtableWrite } from "./services/airtable-debug";
+import { testAirtableMCP } from "./services/airtable-mcp-test";
 import * as z from "zod";
 import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
 import session from "express-session";
@@ -295,6 +296,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error testing Airtable write:`, error);
       return res.status(500).json({ 
         message: "Failed to test Airtable write operations",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Debug endpoint for testing Airtable with MCP approach
+  app.post("/api/airtable/test-mcp", async (req, res) => {
+    try {
+      console.log("Starting Airtable MCP test...");
+      const result = await testAirtableMCP();
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error(`Error testing Airtable MCP:`, error);
+      return res.status(500).json({ 
+        message: "Failed to test Airtable MCP approach",
         error: error instanceof Error ? error.message : String(error)
       });
     }

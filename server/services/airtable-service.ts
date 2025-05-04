@@ -99,7 +99,7 @@ class AirtableService {
         'Publishers': (game.publishers || []).join(', '),
       });
       
-      return record.getId();
+      return typeof record.getId === 'function' ? record.getId() : record.id;
     } catch (error) {
       console.error('Error creating game in Airtable:', error);
       // Continue without Airtable if it fails
@@ -336,7 +336,7 @@ class AirtableService {
               const voteRecord = await this.votesTable.create(votePayload);
               
               console.log('Successfully created vote in Airtable');
-              return voteRecord.getId();
+              return typeof voteRecord.getId === 'function' ? voteRecord.getId() : voteRecord.id;
             } else {
               console.log('Created user but could not find it in Airtable');
               return '';
@@ -371,7 +371,7 @@ class AirtableService {
         const voteRecord = await this.votesTable.create(votePayload);
         
         console.log('Successfully created vote in Airtable');
-        return voteRecord.getId();
+        return typeof voteRecord.getId === 'function' ? voteRecord.getId() : voteRecord.id;
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
         console.error('Error creating vote in Airtable:', error.message);
