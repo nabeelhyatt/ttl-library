@@ -293,7 +293,7 @@ nav a {
 
 .search-container button {
   padding: 12px 24px;
-  background: #000;
+  background: #737373; /* Changed from black to grey */
   color: #fff;
   border: none;
   cursor: pointer;
@@ -303,7 +303,7 @@ nav a {
 }
 
 .search-container button:hover {
-  background: #333;
+  background: #8f8f8f; /* Lighter grey on hover */
 }
 
 /* Header Styles */
