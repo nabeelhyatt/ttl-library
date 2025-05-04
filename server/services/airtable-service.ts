@@ -242,11 +242,11 @@ class AirtableService {
       case 1: // WantToTry
         return "Want to try";
       case 2: // PlayedWillPlayAgain
-        return "Played, again!";
+        return "Played, will play again";
       case 3: // WouldJoinClub
-        return "Join club";
+        return "Would join a club";
       case 4: // WouldJoinTournament
-        return "Tournament";
+        return "Would join a tournament";
       case 5: // WouldTeach
         return "Would teach";
       default:
