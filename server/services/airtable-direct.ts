@@ -414,16 +414,21 @@ export class AirtableDirectService {
     // First try to find existing member
     const memberId = await this.findMember(user.email);
     if (memberId) {
+      // If member exists and they have a name, update their Full Name field
+      if (user.name) {
+        await this.updateMemberName(memberId, user.name);
+      }
       return memberId;
     }
     
     // If not found, create a new member
     try {
-      console.log(`Creating member with email ${user.email}`);
+      console.log(`Creating member with email ${user.email} and name ${user.name || 'N/A'}`);
       
       const payload = {
         fields: {
-          "Email": user.email
+          "Email": user.email,
+          "Full Name": user.name || '' // Add the Full Name field
         }
       };
       
@@ -566,6 +571,40 @@ export class AirtableDirectService {
     } catch (err) {
       console.error('Error finding vote:', err instanceof Error ? err.message : String(err));
       return null;
+    }
+  }
+  
+  /**
+   * Updates a member's name in Airtable
+   */
+  private async updateMemberName(memberId: string, name: string): Promise<void> {
+    try {
+      console.log(`Updating member ${memberId} with name: "${name}"`);
+      
+      const payload = {
+        fields: {
+          "Full Name": name
+        }
+      };
+      
+      const response = await fetch(`https://api.airtable.com/v0/${this.baseId}/Members/${memberId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error updating member name in Airtable:', JSON.stringify(errorData));
+        return;
+      }
+      
+      console.log(`Successfully updated name for member ${memberId}`);
+    } catch (err) {
+      console.error('Error updating member name:', err instanceof Error ? err.message : String(err));
     }
   }
   

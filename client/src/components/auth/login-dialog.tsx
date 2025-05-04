@@ -47,12 +47,6 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       <DialogHeader>
         <div className="flex justify-between items-center mb-2">
           <DialogTitle className="font-tufte text-xl text-foreground">Log In / Register</DialogTitle>
-          <button 
-            onClick={onClose} 
-            className="text-muted-foreground hover:text-foreground transition"
-          >
-            <FontAwesomeIcon icon="times" />
-          </button>
         </div>
         <DialogDescription className="text-muted-foreground">
           Enter your name and email to log in or create a new account. No password needed!
