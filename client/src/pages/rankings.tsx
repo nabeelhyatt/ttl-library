@@ -3,10 +3,9 @@ import { Footer } from '../components/layout/footer';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { GameSearch } from '../components/game/game-search';
-import { searchGames } from '../lib/bgg-api';
 import { useToast } from '../hooks/use-toast';
-import { BGGGame } from '@shared/schema';
 import './rankings.css';
+import { useLocation } from 'wouter';
 
 // Type definition for games with votes
 interface GameWithVotes {
@@ -51,8 +50,6 @@ const fallbackGames = [
 
 export default function Rankings() {
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<BGGGame[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
   const { toast } = useToast();
 
   // Fetch most voted games from API
@@ -75,16 +72,18 @@ export default function Rankings() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Handle game link click - now performs search instead of going to BGG
+  // Get wouter location hook for navigation
+  const [, setLocation] = useLocation();
+  
+  // Handle game link click - redirects to home page with search query
   const handleGameClick = (bggId: number, gameName: string) => {
-    // Implement search on name instead of going to BGG
+    // Navigate to home page with search query
     handleSearch(gameName);
   };
 
-  // Handle search
-  const handleSearch = async (query: string) => {
+  // Handle search by redirecting to the home page with the search query
+  const handleSearch = (query: string) => {
     if (!query.trim()) {
-      setShowSearchResults(false);
       return;
     }
     
@@ -96,24 +95,14 @@ export default function Rankings() {
     try {
       setIsSearching(true);
       
-      const results = await searchGames(query);
-      setSearchResults(results);
-      setShowSearchResults(true);
-      
-      if (results.length === 0) {
-        toast({
-          title: "No results found",
-          description: `We couldn't find any games matching "${query}". BGG API may be rate-limited, please try again in a moment.`,
-          variant: "default"
-        });
-      }
+      // Navigate to the home page with the search query as a parameter
+      setLocation(`/?search=${encodeURIComponent(query)}`);
     } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults([]);
+      console.error('Navigation error:', error);
       
       toast({
-        title: "Search failed",
-        description: "We couldn't complete your search. BGG API may be rate-limited, please try again in a moment.",
+        title: "Navigation failed",
+        description: "We couldn't navigate to the search results. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -129,144 +118,99 @@ export default function Rankings() {
           <GameSearch onSearch={handleSearch} isSearching={isSearching} />
         </div>
         
-        {/* Search Results (Conditionally displayed) */}
-        {showSearchResults && (
-          <div className="mb-8 border border-[#d1d5db] p-6">
+        {/* Main Content */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* Left Column - Most Voted Games */}
+          <div className="border border-[#d1d5db] p-6">
             <div className="flex items-baseline mb-4">
-              <span className="section-number">(00)</span>
-              <h2 className="section-title">Search Results</h2>
+              <span className="section-number">(01.1)</span>
+              <h2 className="section-title">Most Voted Games</h2>
             </div>
             
             <div className="border-t border-[#d1d5db] pt-4">
-              {searchResults.length === 0 ? (
-                <p>No games found matching your search criteria.</p>
-              ) : (
-                <div className="games-grid">
-                  {searchResults.map(game => (
-                    <div key={game.gameId} className="flex justify-between dotted-border">
+              {/* Table Header */}
+              <div className="flex justify-between mb-2">
+                <div className="column-header">Name - Secondary Category</div>
+                <div className="column-header">Votes</div>
+              </div>
+              
+              {/* Games List */}
+              <div className="space-y-2">
+                {isLoadingGames ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                ) : gamesError ? (
+                  <div className="text-red-500 py-4">
+                    Error loading most voted games. Please try again later.
+                  </div>
+                ) : (
+                  (mostVotedGames?.length ? mostVotedGames : fallbackGames).map((game) => (
+                    <div key={game.id} className="flex justify-between dotted-border">
                       <div>
                         <span 
                           className="game-name cursor-pointer hover:underline"
-                          onClick={() => handleGameClick(game.gameId, game.name)}
+                          onClick={() => handleGameClick(game.bggId, game.name)}
                         >
                           {game.name}
                         </span>
-                        {game.categories && game.categories.length > 0 && (
+                        {game.subcategory && (
                           <div className="game-category mt-1">
-                            {game.categories[0]}
+                            {game.subcategory}
                           </div>
                         )}
                       </div>
+                      <div className="vote-count">{game.voteCount}</div>
                     </div>
-                  ))}
-                </div>
-              )}
-              
-              <button 
-                onClick={() => setShowSearchResults(false)} 
-                className="mt-4 text-sm text-blue-500 hover:underline"
-              >
-                Return to Rankings
-              </button>
+                  ))
+                )}
+              </div>
             </div>
           </div>
-        )}
-        
-        {/* Main Content (Hidden during search results) */}
-        {!showSearchResults && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Left Column - Most Voted Games */}
-            <div className="border border-[#d1d5db] p-6">
-              <div className="flex items-baseline mb-4">
-                <span className="section-number">(01.1)</span>
-                <h2 className="section-title">Most Voted Games</h2>
-              </div>
-              
-              <div className="border-t border-[#d1d5db] pt-4">
-                {/* Table Header */}
-                <div className="flex justify-between mb-2">
-                  <div className="column-header">Name - Secondary Category</div>
-                  <div className="column-header">Votes</div>
-                </div>
-                
-                {/* Games List */}
-                <div className="space-y-2">
-                  {isLoadingGames ? (
-                    <div className="flex justify-center items-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                    </div>
-                  ) : gamesError ? (
-                    <div className="text-red-500 py-4">
-                      Error loading most voted games. Please try again later.
-                    </div>
-                  ) : (
-                    (mostVotedGames?.length ? mostVotedGames : fallbackGames).map((game) => (
-                      <div key={game.id} className="flex justify-between dotted-border">
-                        <div>
-                          <span 
-                            className="game-name cursor-pointer hover:underline"
-                            onClick={() => handleGameClick(game.bggId, game.name)}
-                          >
-                            {game.name}
-                          </span>
-                          {game.subcategory && (
-                            <div className="game-category mt-1">
-                              {game.subcategory}
-                            </div>
-                          )}
-                        </div>
-                        <div className="vote-count">{game.voteCount}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+          
+          {/* Right Column - Categories */}
+          <div className="border border-[#d1d5db] p-6">
+            <div className="flex items-baseline mb-4">
+              <span className="section-number">(01.2)</span>
+              <h2 className="section-title">Categories</h2>
             </div>
             
-            {/* Right Column - Categories */}
-            <div className="border border-[#d1d5db] p-6">
-              <div className="flex items-baseline mb-4">
-                <span className="section-number">(01.2)</span>
-                <h2 className="section-title">Categories</h2>
-              </div>
+            <div className="border-t border-[#d1d5db] pt-4">
+              <p className="category-explanation">
+                We organize games by category to encourage your curiosity in browsing 
+                games. These are the current votes by game category.
+              </p>
               
-              <div className="border-t border-[#d1d5db] pt-4">
-                <p className="category-explanation">
-                  We organize games by category to encourage your curiosity in browsing 
-                  games. These are the current votes by game category.
-                </p>
-                
-                {/* Categories List */}
-                <div className="space-y-4">
-                  {isLoadingCategories ? (
-                    <div className="flex justify-center items-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                    </div>
-                  ) : categoriesError ? (
-                    <div className="text-red-500 py-4">
-                      Error loading categories. Please try again later.
-                    </div>
-                  ) : (
-                    (categoryData?.length ? categoryData : fallbackCategories).map((category) => (
-                      <div key={category.id}>
-                        <div className="flex justify-between mb-1">
-                          <div>
-                            <span className="category-number">{category.id}</span>
-                            <span className="category-name">{category.name}:</span>
-                          </div>
-                          <div className="vote-count">{category.voteCount}</div>
+              {/* Categories List */}
+              <div className="space-y-4">
+                {isLoadingCategories ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                ) : categoriesError ? (
+                  <div className="text-red-500 py-4">
+                    Error loading categories. Please try again later.
+                  </div>
+                ) : (
+                  (categoryData?.length ? categoryData : fallbackCategories).map((category) => (
+                    <div key={category.id}>
+                      <div className="flex justify-between mb-1">
+                        <div>
+                          <span className="category-number">{category.id}</span>
+                          <span className="category-name">{category.name}:</span>
                         </div>
-                        <div className="category-description">
-                          {category.description}
-                        </div>
+                        <div className="vote-count">{category.voteCount}</div>
                       </div>
-                    ))
-                  )}
-                </div>
+                      <div className="category-description">
+                        {category.description}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
-        )}
+        </div>
       </main>
     </div>
   );
