@@ -660,8 +660,8 @@ export class AirtableDirectService {
       
       // Map the Airtable records to our GameWithVotes interface
       const games: GameWithVotes[] = data.records
-        .filter(record => record.fields['BGG ID'] && record.fields['Title'])
-        .map((record, index) => {
+        .filter((record: any) => record.fields['BGG ID'] && record.fields['Title'])
+        .map((record: any, index: number) => {
           const fields = record.fields;
           const subcategoryField = fields['Subcategory Name (from TLCS Subcategory)'];
           let subcategory: string | null = null;

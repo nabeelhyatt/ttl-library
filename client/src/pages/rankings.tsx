@@ -1,26 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { Header } from '../components/layout/header';
 import { Footer } from '../components/layout/footer';
+import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '../lib/queryClient';
+import { Loader2 } from 'lucide-react';
 import './rankings.css';
 
-// Sample data for initial rendering - will be replaced with real data later
-const mostVotedGames = [
-  { name: 'Catan', category: 'Engine Builder', votes: 12 },
-  { name: 'Gloomhaven', category: 'Campaign', votes: 10 },
-  { name: 'Wingspan', category: 'Engine Builder', votes: 9 },
-  { name: 'Pandemic', category: 'Cooperative', votes: 8 },
-  { name: 'Terraforming Mars', category: 'Engine Builder', votes: 7 },
-  { name: 'Scythe', category: 'Area Control', votes: 6 },
-  { name: 'Azul', category: 'Abstract', votes: 5 },
-  { name: '7 Wonders', category: 'Card Drafting', votes: 5 },
-  { name: 'Ticket to Ride', category: 'Set Collection', votes: 4 },
-  { name: 'Codenames', category: 'Party', votes: 4 },
-  { name: 'Spirit Island', category: 'Cooperative', votes: 3 },
-  { name: 'Brass: Birmingham', category: 'Economic', votes: 3 },
-  { name: 'Root', category: 'Asymmetric', votes: 2 },
-];
+// Type definition for games with votes
+interface GameWithVotes {
+  id: number;
+  bggId: number;
+  name: string;
+  subcategory: string | null;
+  voteCount: number;
+}
 
+// Static categories data
 const categories = [
   { id: 100, name: 'ABSTRACT STRATEGY', votes: 12, description: 'For games with deep strategic thinking and no theming' },
   { id: 200, name: 'FAMILY FAVORITES', votes: 15, description: 'Accessible, widely appealing games' },
@@ -32,7 +28,31 @@ const categories = [
   { id: 800, name: 'DEXTERITY & SKILL', votes: 7, description: 'Physical skill, precision, and hand-eye coordination' },
 ];
 
+// Fallback data for when API call fails
+const fallbackGames = [
+  { id: 1, bggId: 13, name: 'Catan', subcategory: 'Engine Builder', voteCount: 12 },
+  { id: 2, bggId: 174430, name: 'Gloomhaven', subcategory: 'Campaign', voteCount: 10 },
+  { id: 3, bggId: 266192, name: 'Wingspan', subcategory: 'Engine Builder', voteCount: 9 },
+  { id: 4, bggId: 30549, name: 'Pandemic', subcategory: 'Cooperative', voteCount: 8 },
+  { id: 5, bggId: 167791, name: 'Terraforming Mars', subcategory: 'Engine Builder', voteCount: 7 },
+  { id: 6, bggId: 169786, name: 'Scythe', subcategory: 'Area Control', voteCount: 6 },
+  { id: 7, bggId: 230802, name: 'Azul', subcategory: 'Abstract', voteCount: 5 },
+  { id: 8, bggId: 68448, name: '7 Wonders', subcategory: 'Card Drafting', voteCount: 5 },
+];
+
 export default function Rankings() {
+  // Fetch most voted games from API
+  const { data: mostVotedGames, isLoading, error } = useQuery<GameWithVotes[]>({
+    queryKey: ['/api/rankings/most-voted'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Handle game link click
+  const handleGameClick = (bggId: number) => {
+    // Navigate to game details or open BGG page
+    window.open(`https://boardgamegeek.com/boardgame/${bggId}`, '_blank');
+  };
+
   return (
     <div className="rankings-page min-h-screen flex flex-col">
       <main className="flex-grow container mx-auto px-4 py-8 max-w-5xl">
@@ -53,15 +73,32 @@ export default function Rankings() {
               
               {/* Games List */}
               <div className="space-y-2">
-                {mostVotedGames.map((game, index) => (
-                  <div key={index} className="flex justify-between dotted-border">
-                    <div>
-                      <span className="game-name">{game.name}</span>
-                      <span className="game-category"> - {game.category}</span>
-                    </div>
-                    <div className="vote-count">{game.votes}</div>
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                   </div>
-                ))}
+                ) : error ? (
+                  <div className="text-red-500 py-4">
+                    Error loading most voted games. Please try again later.
+                  </div>
+                ) : (
+                  (mostVotedGames?.length ? mostVotedGames : fallbackGames).map((game) => (
+                    <div key={game.id} className="flex justify-between dotted-border">
+                      <div>
+                        <span 
+                          className="game-name cursor-pointer hover:underline"
+                          onClick={() => handleGameClick(game.bggId)}
+                        >
+                          {game.name}
+                        </span>
+                        {game.subcategory && (
+                          <span className="game-category"> - {game.subcategory}</span>
+                        )}
+                      </div>
+                      <div className="vote-count">{game.voteCount}</div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

@@ -323,6 +323,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoint to get most voted games from Airtable for Rankings page
+  app.get("/api/rankings/most-voted", async (req, res) => {
+    try {
+      // Get limit parameter from query string or default to 15
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 15;
+      
+      console.log(`Fetching most voted games (limit: ${limit})...`);
+      const games = await airtableDirectService.getMostVotedGames(limit);
+      
+      return res.status(200).json(games);
+    } catch (error) {
+      console.error(`Error fetching most voted games:`, error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve most voted games from Airtable",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Endpoint to verify Airtable votes for the current user
   // Debug endpoint to check if a game exists in Airtable by BGG ID
   app.get("/api/airtable/game-by-bgg-id/:bggId", async (req, res) => {
