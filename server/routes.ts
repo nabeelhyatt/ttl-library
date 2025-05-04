@@ -733,6 +733,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint to get category votes from Airtable for Rankings page
+  app.get("/api/rankings/category-votes", async (req, res) => {
+    try {
+      console.log("Fetching category votes...");
+      const categories = await airtableDirectService.getCategoryVotes();
+      
+      return res.status(200).json(categories);
+    } catch (error) {
+      console.error(`Error fetching category votes:`, error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve category votes from Airtable",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

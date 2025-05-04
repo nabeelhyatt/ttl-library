@@ -17,16 +17,24 @@ interface GameWithVotes {
   voteCount: number;
 }
 
-// Static categories data
-const categories = [
-  { id: 100, name: 'ABSTRACT STRATEGY', votes: 12, description: 'For games with deep strategic thinking and no theming' },
-  { id: 200, name: 'FAMILY FAVORITES', votes: 15, description: 'Accessible, widely appealing games' },
-  { id: 300, name: 'PARTY TIME', votes: 8, description: 'Social, high-interaction games' },
-  { id: 400, name: 'COOPERATIVE', votes: 10, description: 'Games where players work together' },
-  { id: 500, name: 'EURO STRATEGY', votes: 18, description: 'Resource management, optimization' },
-  { id: 600, name: 'CONFLICT & POLITICS', votes: 9, description: 'Direct competition, area control' },
-  { id: 700, name: 'THEMATIC ADVENTURES', votes: 14, description: 'Immersive storytelling and narrative-driven experiences' },
-  { id: 800, name: 'DEXTERITY & SKILL', votes: 7, description: 'Physical skill, precision, and hand-eye coordination' },
+// Type definition for category with votes
+interface CategoryWithVotes {
+  id: number;
+  name: string;
+  description: string;
+  voteCount: number;
+}
+
+// Fallback category data for when API call fails
+const fallbackCategories: CategoryWithVotes[] = [
+  { id: 100, name: 'ABSTRACT STRATEGY', voteCount: 12, description: 'For games with deep strategic thinking and no theming' },
+  { id: 200, name: 'FAMILY FAVORITES', voteCount: 15, description: 'Accessible, widely appealing games' },
+  { id: 300, name: 'PARTY TIME', voteCount: 8, description: 'Social, high-interaction games' },
+  { id: 400, name: 'COOPERATIVE', voteCount: 10, description: 'Games where players work together' },
+  { id: 500, name: 'EURO STRATEGY', voteCount: 18, description: 'Resource management, optimization' },
+  { id: 600, name: 'CONFLICT & POLITICS', voteCount: 9, description: 'Direct competition, area control' },
+  { id: 700, name: 'THEMATIC ADVENTURES', voteCount: 14, description: 'Immersive storytelling and narrative-driven experiences' },
+  { id: 800, name: 'DEXTERITY & SKILL', voteCount: 7, description: 'Physical skill, precision, and hand-eye coordination' },
 ];
 
 // Fallback data for when API call fails
@@ -48,15 +56,29 @@ export default function Rankings() {
   const { toast } = useToast();
 
   // Fetch most voted games from API
-  const { data: mostVotedGames, isLoading, error } = useQuery<GameWithVotes[]>({
+  const { 
+    data: mostVotedGames, 
+    isLoading: isLoadingGames, 
+    error: gamesError 
+  } = useQuery<GameWithVotes[]>({
     queryKey: ['/api/rankings/most-voted'],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+  
+  // Fetch category votes from API
+  const {
+    data: categoryData,
+    isLoading: isLoadingCategories,
+    error: categoriesError
+  } = useQuery<CategoryWithVotes[]>({
+    queryKey: ['/api/rankings/category-votes'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-  // Handle game link click
-  const handleGameClick = (bggId: number) => {
-    // Navigate to game details or open BGG page
-    window.open(`https://boardgamegeek.com/boardgame/${bggId}`, '_blank');
+  // Handle game link click - now performs search instead of going to BGG
+  const handleGameClick = (bggId: number, gameName: string) => {
+    // Implement search on name instead of going to BGG
+    handleSearch(gameName);
   };
 
   // Handle search
@@ -125,12 +147,14 @@ export default function Rankings() {
                       <div>
                         <span 
                           className="game-name cursor-pointer hover:underline"
-                          onClick={() => handleGameClick(game.gameId)}
+                          onClick={() => handleGameClick(game.gameId, game.name)}
                         >
                           {game.name}
                         </span>
                         {game.categories && game.categories.length > 0 && (
-                          <span className="game-category"> - {game.categories[0]}</span>
+                          <div className="game-category mt-1">
+                            {game.categories[0]}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -167,11 +191,11 @@ export default function Rankings() {
                 
                 {/* Games List */}
                 <div className="space-y-2">
-                  {isLoading ? (
+                  {isLoadingGames ? (
                     <div className="flex justify-center items-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                     </div>
-                  ) : error ? (
+                  ) : gamesError ? (
                     <div className="text-red-500 py-4">
                       Error loading most voted games. Please try again later.
                     </div>
@@ -181,12 +205,14 @@ export default function Rankings() {
                         <div>
                           <span 
                             className="game-name cursor-pointer hover:underline"
-                            onClick={() => handleGameClick(game.bggId)}
+                            onClick={() => handleGameClick(game.bggId, game.name)}
                           >
                             {game.name}
                           </span>
                           {game.subcategory && (
-                            <span className="game-category"> - {game.subcategory}</span>
+                            <div className="game-category mt-1">
+                              {game.subcategory}
+                            </div>
                           )}
                         </div>
                         <div className="vote-count">{game.voteCount}</div>
@@ -212,28 +238,36 @@ export default function Rankings() {
                 
                 {/* Categories List */}
                 <div className="space-y-4">
-                  {categories.map((category) => (
-                    <div key={category.id}>
-                      <div className="flex justify-between mb-1">
-                        <div>
-                          <span className="category-number">{category.id}</span>
-                          <span className="category-name">{category.name}:</span>
-                        </div>
-                        <div className="vote-count">{category.votes}</div>
-                      </div>
-                      <div className="category-description">
-                        {category.description}
-                      </div>
+                  {isLoadingCategories ? (
+                    <div className="flex justify-center items-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                     </div>
-                  ))}
+                  ) : categoriesError ? (
+                    <div className="text-red-500 py-4">
+                      Error loading categories. Please try again later.
+                    </div>
+                  ) : (
+                    (categoryData?.length ? categoryData : fallbackCategories).map((category) => (
+                      <div key={category.id}>
+                        <div className="flex justify-between mb-1">
+                          <div>
+                            <span className="category-number">{category.id}</span>
+                            <span className="category-name">{category.name}:</span>
+                          </div>
+                          <div className="vote-count">{category.voteCount}</div>
+                        </div>
+                        <div className="category-description">
+                          {category.description}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
       </main>
-      
-      <Footer />
     </div>
   );
 }
