@@ -355,44 +355,28 @@ export class AirtableDirectService {
         forSale: forSaleValue
       });
       
-      // Convert to boolean values
-      if (typeof toOrderValue === 'number') {
-        result.toOrder = toOrderValue > 0;
-      } else {
-        result.toOrder = Boolean(toOrderValue);
-      }
+      result.toOrder = Boolean(toOrderValue);
+      result.forRent = Boolean(forRentValue && forRentValue > 0);
+      result.forSale = Boolean(forSaleValue && forSaleValue > 0);
       
-      if (typeof forRentValue === 'number') {
-        result.forRent = forRentValue > 0;
-      } else {
-        result.forRent = Boolean(forRentValue);
-      }
-      
-      if (typeof forSaleValue === 'number') {
-        result.forSale = forSaleValue > 0;
-      } else {
-        result.forSale = Boolean(forSaleValue);
-      }
-      
-      // Just use an empty array for categories
-      result.categories = [];
-      
-      console.log('Game data from Airtable:', JSON.stringify(result));
+      // Return result
+      console.log('Game data from Airtable:', result);
       return result;
-    } catch (error) {
-      console.error('Error retrieving game from Airtable:', error);
+    } catch (err) {
+      console.error('Error retrieving game from Airtable:', err instanceof Error ? err.message : String(err));
       return null;
     }
   }
-  
-  // Helper functions
-  
-  /**
-   * Finds a member in Airtable by email
-   */
+
   private async findMember(email: string): Promise<string | null> {
     try {
-      const encodedFormula = encodeURIComponent(`{Email}="${email}"`);
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return null;
+      }
+      
+      // Encode the query
+      const encodedFormula = encodeURIComponent(`LOWER({Email}) = "${email.toLowerCase()}"`);
       const url = `https://api.airtable.com/v0/${this.baseId}/Members?filterByFormula=${encodedFormula}`;
       
       const response = await fetch(url, {
@@ -403,21 +387,21 @@ export class AirtableDirectService {
       });
       
       if (!response.ok) {
-        console.error(`Error finding member: ${response.status} ${response.statusText}`);
+        console.error(`Error finding member in Airtable: ${response.status} ${response.statusText}`);
         return null;
       }
       
       const data = await response.json();
       
       if (!data.records || data.records.length === 0) {
-        console.log(`No member found with email ${email}`);
+        console.log(`No member found with email ${email} in Airtable`);
         return null;
       }
       
-      console.log(`Found member with ID: ${data.records[0].id}`);
+      console.log(`Found member with email ${email} in Airtable: ${data.records[0].id}`);
       return data.records[0].id;
     } catch (err) {
-      console.error('Error finding member:', err instanceof Error ? err.message : String(err));
+      console.error('Error finding member in Airtable:', err instanceof Error ? err.message : String(err));
       return null;
     }
   }
@@ -426,24 +410,32 @@ export class AirtableDirectService {
    * Finds or creates a member in Airtable
    */
   private async findOrCreateMember(user: User): Promise<string | null> {
-    // First try to find existing member
-    const memberId = await this.findMember(user.email);
-    if (memberId) {
-      // If member exists and they have a name, update their Full Name field
-      if (user.name) {
-        await this.updateMemberName(memberId, user.name);
-      }
-      return memberId;
-    }
-    
-    // If not found, create a new member
     try {
-      console.log(`Creating member with email ${user.email} and name ${user.name || 'N/A'}`);
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return null;
+      }
       
-      const payload = {
+      // First, try to find the member by email
+      const memberId = await this.findMember(user.email);
+      
+      // If member exists, check if we need to update the name
+      if (memberId) {
+        // Update full name if needed
+        if (user.name) {
+          await this.updateMemberName(memberId, user.name);
+        }
+        return memberId;
+      }
+      
+      // If not found, create a new member
+      console.log(`Creating new member in Airtable for ${user.email}`);
+      
+      const createPayload = {
         fields: {
           "Email": user.email,
-          "Full Name": user.name || '' // Add the Full Name field
+          "Full Name": user.name || "",
+          "Member ID": user.id
         }
       };
       
@@ -453,20 +445,20 @@ export class AirtableDirectService {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(createPayload)
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error creating member:', JSON.stringify(errorData));
+        console.error('Error creating member in Airtable:', JSON.stringify(errorData));
         return null;
       }
       
       const data = await response.json();
-      console.log(`Created member with ID: ${data.id}`);
+      console.log('Successfully created member in Airtable:', JSON.stringify(data));
       return data.id;
     } catch (err) {
-      console.error('Error creating member:', err instanceof Error ? err.message : String(err));
+      console.error('Error creating member in Airtable:', err instanceof Error ? err.message : String(err));
       return null;
     }
   }
@@ -476,8 +468,13 @@ export class AirtableDirectService {
    */
   private async findGame(bggId: number): Promise<string | null> {
     try {
-      const encodedFormula = encodeURIComponent(`{BGG ID}=${bggId}`);
-      const url = `https://api.airtable.com/v0/${this.baseId}/Games?filterByFormula=${encodedFormula}`;
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return null;
+      }
+      
+      // Construct the URL with the filter
+      const url = `https://api.airtable.com/v0/${this.baseId}/Games?filterByFormula={BGG%20ID}=${bggId}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -487,21 +484,21 @@ export class AirtableDirectService {
       });
       
       if (!response.ok) {
-        console.error(`Error finding game: ${response.status} ${response.statusText}`);
+        console.error(`Error finding game in Airtable: ${response.status} ${response.statusText}`);
         return null;
       }
       
       const data = await response.json();
       
       if (!data.records || data.records.length === 0) {
-        console.log(`No game found with BGG ID ${bggId}`);
+        console.log(`No game found with BGG ID ${bggId} in Airtable`);
         return null;
       }
       
-      console.log(`Found game with ID: ${data.records[0].id}`);
+      console.log(`Found game with BGG ID ${bggId} in Airtable: ${data.records[0].id}`);
       return data.records[0].id;
     } catch (err) {
-      console.error('Error finding game:', err instanceof Error ? err.message : String(err));
+      console.error('Error finding game in Airtable:', err instanceof Error ? err.message : String(err));
       return null;
     }
   }
@@ -511,24 +508,25 @@ export class AirtableDirectService {
    */
   private async createGameInAirtable(game: Game): Promise<string | null> {
     try {
-      console.log(`Creating new game record in Airtable for ${game.name} (BGG ID: ${game.bggId})`);
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return null;
+      }
       
-      // Use only the most essential fields that we know are safe
-      const payload = {
+      console.log(`Creating game in Airtable: ${game.name} (BGG ID: ${game.bggId})`);
+      
+      // Create the game with the necessary fields
+      const createPayload = {
         fields: {
-          "Title": game.name || "",
+          "Title": game.name,
           "BGG ID": game.bggId,
           "Year Published": game.yearPublished || null,
           "Player Count Min": game.minPlayers || null,
           "Player Count Max": game.maxPlayers || null,
-          "Play Time": game.playingTime || null,
-          "BGG Rating": parseFloat(game.bggRating || '0'),
-          "Complexity": parseFloat(game.weightRating || '0'),
-          "Thumbnail": game.thumbnail || ""
+          // Only add subcategory if we have one
+          ...(game.subcategory ? { "Subcategory": game.subcategory } : {})
         }
       };
-      
-      console.log('Game creation payload:', JSON.stringify(payload));
       
       const response = await fetch(`https://api.airtable.com/v0/${this.baseId}/Games`, {
         method: 'POST',
@@ -536,7 +534,7 @@ export class AirtableDirectService {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(createPayload)
       });
       
       if (!response.ok) {
@@ -546,7 +544,7 @@ export class AirtableDirectService {
       }
       
       const data = await response.json();
-      console.log(`Successfully created game in Airtable with ID: ${data.id}`);
+      console.log('Successfully created game in Airtable:', JSON.stringify(data));
       return data.id;
     } catch (err) {
       console.error('Error creating game in Airtable:', err instanceof Error ? err.message : String(err));
@@ -559,7 +557,13 @@ export class AirtableDirectService {
    */
   private async findVote(memberId: string, gameId: string): Promise<string | null> {
     try {
-      const encodedFormula = encodeURIComponent(`AND({Member}="${memberId}", {Game}="${gameId}")`);
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return null;
+      }
+      
+      // Create a formula to find votes where both Member and Game match
+      const encodedFormula = encodeURIComponent(`AND(FIND("${memberId}", ARRAYJOIN(Member)), FIND("${gameId}", ARRAYJOIN(Game)))`);
       const url = `https://api.airtable.com/v0/${this.baseId}/Votes?filterByFormula=${encodedFormula}`;
       
       const response = await fetch(url, {
@@ -570,21 +574,21 @@ export class AirtableDirectService {
       });
       
       if (!response.ok) {
-        console.error(`Error finding vote: ${response.status} ${response.statusText}`);
+        console.error(`Error finding vote in Airtable: ${response.status} ${response.statusText}`);
         return null;
       }
       
       const data = await response.json();
       
       if (!data.records || data.records.length === 0) {
-        console.log(`No vote found for member ${memberId} and game ${gameId}`);
+        console.log(`No vote found for member ${memberId} and game ${gameId} in Airtable`);
         return null;
       }
       
-      console.log(`Found vote with ID: ${data.records[0].id}`);
+      console.log(`Found vote for member ${memberId} and game ${gameId} in Airtable: ${data.records[0].id}`);
       return data.records[0].id;
     } catch (err) {
-      console.error('Error finding vote:', err instanceof Error ? err.message : String(err));
+      console.error('Error finding vote in Airtable:', err instanceof Error ? err.message : String(err));
       return null;
     }
   }
@@ -594,9 +598,14 @@ export class AirtableDirectService {
    */
   private async updateMemberName(memberId: string, name: string): Promise<void> {
     try {
-      console.log(`Updating member ${memberId} with name: "${name}"`);
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return;
+      }
       
-      const payload = {
+      console.log(`Updating member name in Airtable. Member ID: ${memberId}, New Name: ${name}`);
+      
+      const updatePayload = {
         fields: {
           "Full Name": name
         }
@@ -608,7 +617,7 @@ export class AirtableDirectService {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(updatePayload)
       });
       
       if (!response.ok) {
@@ -617,9 +626,9 @@ export class AirtableDirectService {
         return;
       }
       
-      console.log(`Successfully updated name for member ${memberId}`);
+      console.log(`Successfully updated name for member ${memberId} in Airtable`);
     } catch (err) {
-      console.error('Error updating member name:', err instanceof Error ? err.message : String(err));
+      console.error('Error updating member name in Airtable:', err instanceof Error ? err.message : String(err));
     }
   }
   
@@ -654,68 +663,123 @@ export class AirtableDirectService {
       });
       
       if (!response.ok) {
-        console.error(`Error retrieving games from Airtable: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`Error fetching games from Airtable: ${response.status} ${response.statusText}`, errorText);
         return [];
       }
       
       const data = await response.json();
       
       if (!data.records || data.records.length === 0) {
-        console.log('No games found in Airtable or no games have votes');
+        console.log('No games found in Airtable');
         return [];
       }
       
-      // Map the Airtable records to our GameWithVotes interface
-      const games: GameWithVotes[] = data.records
-        .filter((record: any) => record.fields['BGG ID'] && record.fields['Title'])
-        .map((record: any, index: number) => {
-          const fields = record.fields;
-          const subcategoryField = fields['Subcategory Name (from TLCS Subcategory)'];
-          let subcategory: string | null = null;
-          
-          if (subcategoryField) {
-            if (Array.isArray(subcategoryField) && subcategoryField.length > 0) {
-              subcategory = subcategoryField[0];
-            } else if (typeof subcategoryField === 'string') {
-              subcategory = subcategoryField;
-            }
-          }
-          
-          return {
-            // We use index as a temporary ID, as we'll look up the actual ID later
-            id: index,
-            bggId: fields['BGG ID'] || 0,
-            name: fields['Title'] || 'Unknown',
-            subcategory,
-            voteCount: fields['Total Votes'] || 0
-          };
-        });
+      console.log(`Retrieved ${data.records.length} games with votes from Airtable`);
       
-      console.log(`Retrieved ${games.length} games with votes from Airtable`);
+      // Map Airtable records to our GameWithVotes interface
+      const games: GameWithVotes[] = data.records.map((record: any, index: number) => {
+        const fields = record.fields;
+        return {
+          id: index,
+          bggId: parseInt(fields['BGG ID'] || 0),
+          name: fields['Title'] || 'Unknown Game',
+          subcategory: fields['Subcategory Name (from TLCS Subcategory)'] 
+            ? Array.isArray(fields['Subcategory Name (from TLCS Subcategory)']) 
+              ? fields['Subcategory Name (from TLCS Subcategory)'][0] 
+              : fields['Subcategory Name (from TLCS Subcategory)'] 
+            : null,
+          voteCount: parseInt(fields['Total Votes'] || 0)
+        };
+      });
+      
       return games;
     } catch (err) {
-      console.error('Error getting most voted games from Airtable:', err instanceof Error ? err.message : String(err));
+      console.error('Error fetching games from Airtable:', err instanceof Error ? err.message : String(err));
       return [];
     }
   }
 
+  /**
+   * Get category data with vote counts from TLCS Categories table
+   */
+  async getCategoryVotes(): Promise<CategoryWithVotes[]> {
+    try {
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return [];
+      }
+      
+      console.log(`Fetching category votes from Airtable...`);
+      
+      // Construct the URL to get categories
+      // We'll select fields we need and include vote count information
+      const fields = [
+        'Category ID',
+        'Category Name',
+        'Description',
+        'Total Votes'
+      ].map(field => `fields%5B%5D=${encodeURIComponent(field)}`).join('&');
+      
+      const url = `https://api.airtable.com/v0/${this.baseId}/TLCS%20Categories?${fields}&sort%5B0%5D%5Bfield%5D=Category%20ID&sort%5B0%5D%5Bdirection%5D=asc`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error fetching categories from Airtable: ${response.status} ${response.statusText}`, errorText);
+        return [];
+      }
+      
+      const data = await response.json();
+      
+      if (!data.records || data.records.length === 0) {
+        console.log('No categories found in Airtable');
+        return [];
+      }
+      
+      console.log(`Retrieved ${data.records.length} categories from Airtable`);
+      
+      // Map Airtable records to our CategoryWithVotes interface
+      const categories: CategoryWithVotes[] = data.records.map((record: any) => {
+        const fields = record.fields;
+        return {
+          id: parseInt(fields['Category ID'] || 0),
+          name: fields['Category Name'] || '',
+          description: fields['Description'] || '',
+          voteCount: parseInt(fields['Total Votes'] || 0)
+        };
+      });
+      
+      return categories;
+    } catch (err) {
+      console.error('Error fetching categories from Airtable:', err instanceof Error ? err.message : String(err));
+      return [];
+    }
+  }
+  
   /**
    * Converts VoteType enum to string values expected by Airtable
    */
   private getVoteTypeString(voteType: number): string {
     switch (voteType) {
       case VoteType.WantToTry:
-        return "Want to try";
+        return 'Want to Try';
       case VoteType.PlayedWillPlayAgain:
-        return "Played, again!";
+        return 'Played, Will Play Again';
       case VoteType.WouldJoinClub:
-        return "Join club";
+        return 'Would Join a Club';
       case VoteType.WouldJoinTournament:
-        return "Tournament";
+        return 'Would Join a Tournament';  
       case VoteType.WouldTeach:
-        return "Would teach";
+        return 'Would Teach';
       default:
-        return "Want to try"; // Default value
+        return 'Want to Try';
     }
   }
 }
