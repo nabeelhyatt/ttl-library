@@ -12,6 +12,7 @@ class BoardGameGeekService {
   private hotGamesCache: BGGGame[] | null = null;
   private hotGamesCacheTimestamp: number = 0;
   private CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+  private CACHE_HITS: number = 0; // Counter for cache hits
   
   // Apply rate limiting to requests
   private async rateLimit(): Promise<void> {
@@ -49,11 +50,13 @@ class BoardGameGeekService {
     // Check if we have a valid cache
     const now = Date.now();
     if (this.hotGamesCache && (now - this.hotGamesCacheTimestamp < this.CACHE_TTL)) {
+      this.CACHE_HITS++;
       const minutesRemaining = Math.floor((this.CACHE_TTL - (now - this.hotGamesCacheTimestamp)) / 60000);
       console.log('*********************************************');
-      console.log(`🔄 CACHE HIT: Using cached hot games (expires in ${minutesRemaining} minutes)`);
+      console.log(`🔄 CACHE HIT #${this.CACHE_HITS}: Using cached hot games (expires in ${minutesRemaining} minutes)`);
       console.log(`🔄 Cache created: ${new Date(this.hotGamesCacheTimestamp).toLocaleTimeString()}`);
       console.log(`🔄 Cache expires: ${new Date(this.hotGamesCacheTimestamp + this.CACHE_TTL).toLocaleTimeString()}`);
+      console.log(`🔄 Cache hits since server start: ${this.CACHE_HITS}`);
       console.log('*********************************************');
       return this.hotGamesCache;
     }

@@ -153,7 +153,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      console.log(`✅ GET /api/bgg/hot - Successfully returned ${enrichedGames.length} hot games`);
+      const endTime = Date.now();
+      const executionTime = endTime - startTime;
+      console.log(`✅ GET /api/bgg/hot - Successfully returned ${enrichedGames.length} hot games in ${executionTime}ms`);
+      console.log("==============================================");
       return res.status(200).json(enrichedGames);
     } catch (error) {
       console.error("❌ Error fetching hot games:", error);
