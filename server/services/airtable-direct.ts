@@ -715,13 +715,15 @@ export class AirtableDirectService {
       // Construct the URL to get categories
       // We'll select fields we need and include vote count information
       const fields = [
-        'Category ID',
+        'Category Code',
         'Category Name',
-        'Description',
+        'Category Description',
         'Total Votes'
       ].map(field => `fields%5B%5D=${encodeURIComponent(field)}`).join('&');
       
-      const url = `https://api.airtable.com/v0/${this.baseId}/TLCS%20Categories?${fields}&sort%5B0%5D%5Bfield%5D=Category%20ID&sort%5B0%5D%5Bdirection%5D=asc`;
+      // Get the correct table ID for TLCS Categories
+      const tableId = 'tblWT4nF0DlbeGA4c'; // TLCS Categories table ID
+      const url = `https://api.airtable.com/v0/${this.baseId}/${tableId}?${fields}&sort%5B0%5D%5Bfield%5D=Category%20Code&sort%5B0%5D%5Bdirection%5D=asc`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -748,10 +750,20 @@ export class AirtableDirectService {
       // Map Airtable records to our CategoryWithVotes interface
       const categories: CategoryWithVotes[] = data.records.map((record: any) => {
         const fields = record.fields;
+        // Parse the category code as the ID, or use the record ID as a fallback
+        let categoryId = 0;
+        try {
+          // Try to extract numeric value from Category Code (e.g., "100" from "100")
+          const codeMatch = (fields['Category Code'] || '').match(/^(\d+)/);
+          categoryId = codeMatch ? parseInt(codeMatch[1]) : 0;
+        } catch (e) {
+          console.warn(`Could not parse category ID from ${fields['Category Code']}`);
+        }
+        
         return {
-          id: parseInt(fields['Category ID'] || 0),
+          id: categoryId || 0,
           name: fields['Category Name'] || '',
-          description: fields['Description'] || '',
+          description: fields['Category Description'] || '',
           voteCount: parseInt(fields['Total Votes'] || 0)
         };
       });

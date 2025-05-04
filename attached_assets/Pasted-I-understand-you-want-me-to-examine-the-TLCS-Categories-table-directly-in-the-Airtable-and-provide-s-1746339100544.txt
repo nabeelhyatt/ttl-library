@@ -1,0 +1,87 @@
+I understand you want me to examine the TLCS Categories table directly in the Airtable and provide specific instructions. Let me look at the TLCS Categories structure from the MCP information:
+
+Now let me look at a few records to understand the actual content:
+
+Based on my examination of the TLCS Categories table structure, here are direct instructions for grabbing the categories and vote counts in Replit:
+
+## Instructions for Retrieving TLCS Categories and Vote Counts in Replit
+
+1. Create a new JavaScript file in Replit (e.g., `fetch-categories.js`)
+
+2. Add the following code to fetch TLCS Categories with their vote counts:
+
+```javascript
+// Function to get TLCS categories with vote counts
+async function getTLCSCategoriesWithVotes() {
+  try {
+    // Fetch all records from the TLCS Categories table
+    const result = await list_records({
+      baseId: 'app5ba31NSaWtrCXd',
+      tableId: 'tblWT4nF0DlbeGA4c'
+    });
+    
+    // Format the data for your rankings page
+    const formattedCategories = result.records.map(record => {
+      return {
+        id: record.id,
+        code: record.fields['Category Code'] || '',
+        name: record.fields['Category Name'] || '',
+        description: record.fields['Category Description'] || '',
+        // Use the pre-calculated Total Votes field directly
+        voteCount: record.fields['Total Votes'] || 0
+      };
+    });
+    
+    // Sort categories by code for display
+    formattedCategories.sort((a, b) => a.code.localeCompare(b.code));
+    
+    console.log('Categories with vote counts:', formattedCategories);
+    return formattedCategories;
+  } catch (error) {
+    console.error('Error fetching TLCS Categories:', error);
+    return [];
+  }
+}
+
+// Call the function
+getTLCSCategoriesWithVotes();
+```
+
+3. This code takes advantage of the "Total Votes" formula field that's already in your Airtable, which counts votes across all linked games.
+
+4. In your rankings page, update the category vote display with this data:
+
+```javascript
+// Function to update category vote counts on the page
+function updateCategoryVoteCounts(categories) {
+  categories.forEach(category => {
+    // Find the element for this category on the page
+    const categoryElement = document.querySelector(`.category-item[data-category-code="${category.code}"]`);
+    if (categoryElement) {
+      // Update the vote count
+      const voteCountElement = categoryElement.querySelector('.vote-count');
+      if (voteCountElement) {
+        voteCountElement.textContent = category.voteCount;
+      }
+    }
+  });
+}
+
+// Fetch and update
+getTLCSCategoriesWithVotes()
+  .then(categories => {
+    updateCategoryVoteCounts(categories);
+  });
+```
+
+## Key Benefits of This Approach:
+
+1. **Efficiency**: This approach uses the pre-calculated "Total Votes" formula field directly from Airtable, eliminating the need to count votes manually.
+
+2. **Simplicity**: Only requires a single API call to get all category data, including vote counts.
+
+3. **Accuracy**: The vote counts come directly from Airtable's formula field, ensuring they're always in sync with the actual data.
+
+4. **Performance**: Minimal processing needed on the client side - just map and display the data.
+
+Remember to ensure that your HTML elements have the appropriate data attributes (`data-category-code`) to match the category codes from Airtable.
