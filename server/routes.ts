@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bgg/hot", async (req, res) => {
     try {
       console.log("==============================================");
-      console.log("🔍 GET /api/bgg/hot - Fetching hot games (will use cache if available)");
+      console.log("🚀 PERFORMANCE: GET /api/bgg/hot - Fetching hot games (will use cache if available)");
       const startTime = Date.now();
       
       // Get basic hot games list
