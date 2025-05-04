@@ -155,7 +155,7 @@ export default function Rankings() {
                           {game.name}
                         </span>
                         {game.subcategory && (
-                          <div className="game-category mt-1">
+                          <div className="game-category mt-1 ml-6">
                             {game.subcategory}
                           </div>
                         )}
