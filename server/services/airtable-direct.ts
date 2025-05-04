@@ -182,60 +182,49 @@ export class AirtableDirectService {
       
       console.log(`Deleting vote from Airtable: Vote ID ${voteId}`);
       
-      // Find the vote in our storage first
-      const vote = await storage.getVote(voteId);
-      if (!vote) {
-        console.log(`Vote with ID ${voteId} not found in local storage`);
-        return;
-      }
+      // Important: In case the vote is already deleted from local storage,
+      // we need to directly query Airtable for votes with the given ID
+      const encodedFormula = encodeURIComponent(`{Vote ID}=${voteId}`);
+      const url = `https://api.airtable.com/v0/${this.baseId}/Votes?filterByFormula=${encodedFormula}`;
       
-      // Get user and game details
-      const user = await storage.getUser(vote.userId);
-      const game = await storage.getGame(vote.gameId);
-      
-      if (!user || !game) {
-        console.log('User or game not found, cannot delete vote');
-        return;
-      }
-      
-      // Find member in Airtable
-      const memberId = await this.findMember(user.email);
-      if (!memberId) {
-        console.log('Member not found in Airtable');
-        return;
-      }
-      
-      // Find game in Airtable
-      const gameId = await this.findGame(game.bggId);
-      if (!gameId) {
-        console.log('Game not found in Airtable');
-        return;
-      }
-      
-      // Find the vote to delete
-      const airtableVoteId = await this.findVote(memberId, gameId);
-      if (!airtableVoteId) {
-        console.log('Vote not found in Airtable');
-        return;
-      }
-      
-      // Delete the vote
-      console.log(`Deleting vote with ID ${airtableVoteId}`);
-      
-      const response = await fetch(`https://api.airtable.com/v0/${this.baseId}/Votes/${airtableVoteId}`, {
-        method: 'DELETE',
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`
         }
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        console.error(`Error finding vote in Airtable: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (!data.records || data.records.length === 0) {
+        console.log(`No vote found with Vote ID ${voteId} in Airtable`);
+        return;
+      }
+      
+      // Get the Airtable record ID for the vote
+      const airtableVoteId = data.records[0].id;
+      console.log(`Found vote in Airtable with record ID: ${airtableVoteId}`);
+      
+      // Delete the vote directly using its record ID
+      const deleteResponse = await fetch(`https://api.airtable.com/v0/${this.baseId}/Votes/${airtableVoteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      });
+      
+      if (!deleteResponse.ok) {
+        const errorData = await deleteResponse.json();
         console.error('Error deleting vote in Airtable:', JSON.stringify(errorData));
         return;
       }
       
-      console.log('Successfully deleted vote from Airtable');
+      console.log(`Successfully deleted vote with ID ${voteId} from Airtable`);
     } catch (err) {
       console.error('Error deleting vote from Airtable:', err instanceof Error ? err.message : String(err));
     }
