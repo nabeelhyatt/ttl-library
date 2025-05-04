@@ -781,17 +781,17 @@ export class AirtableDirectService {
   private getVoteTypeString(voteType: number): string {
     switch (voteType) {
       case VoteType.WantToTry:
-        return 'Want to Try';
+        return 'Want to try';
       case VoteType.PlayedWillPlayAgain:
-        return 'Played, Will Play Again';
+        return 'Played, will play again';
       case VoteType.WouldJoinClub:
-        return 'Would Join a Club';
+        return 'Would join a club';
       case VoteType.WouldJoinTournament:
-        return 'Would Join a Tournament';  
+        return 'Would join a tournament';  
       case VoteType.WouldTeach:
-        return 'Would Teach';
+        return 'Would teach';
       default:
-        return 'Want to Try';
+        return 'Want to try';
     }
   }
 }
