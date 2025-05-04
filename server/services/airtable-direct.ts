@@ -494,11 +494,12 @@ export class AirtableDirectService {
       console.log(`Creating new game record in Airtable for ${game.name} (BGG ID: ${game.bggId})`);
       
       // Prepare the game data for Airtable
+      // Handle all possible null/undefined fields with defaults
       const payload = {
         fields: {
-          "Title": game.name,
+          "Title": game.name || "",
           "BGG ID": game.bggId,
-          "Description": game.description.substring(0, 2000), // Airtable has character limits
+          "Description": game.description ? game.description.substring(0, 2000) : "", // Airtable has character limits
           "Year Published": game.yearPublished,
           "Min Players": game.minPlayers,
           "Max Players": game.maxPlayers,

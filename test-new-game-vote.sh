@@ -1,24 +1,20 @@
 #!/bin/bash
 
 # This script tests whether the system can handle voting on a game that doesn't exist in Airtable yet
-# We will test with an expansion that's less likely to be in the Airtable base
 
 # Login to get a session cookie
 echo "Logging in..."
 LOGIN_RESPONSE=$(curl -s -c cookies.txt -H "Content-Type: application/json" -X POST -d '{"email":"test@example.com"}' http://localhost:5000/api/auth/login)
 echo "Login response: $LOGIN_RESPONSE"
 
-# Find a game that might not be in Airtable - let's search for an expansion
-echo -e "\nSearching for a specific expansion as a test target..."
-SEARCH_RESPONSE=$(curl -s -b cookies.txt "http://localhost:5000/api/bgg/search?q=HEAT%3A+Pedal+to+the+Metal+Monte+Carlo+Monza")
-echo "Search response: $SEARCH_RESPONSE"
-
-# Extract a BGG ID from search results
-BGG_ID=$(echo $SEARCH_RESPONSE | jq -r '.[0].gameId')
-echo -e "\nUsing game with BGG ID: $BGG_ID"
+# Use a specific game ID that's less likely to be in Airtable
+# Lifeboat BGG ID: 4174 - We've already verified this doesn't exist in the Airtable in our logs
+BGG_ID=4174
+GAME_NAME="Lifeboat"
+echo -e "\nUsing game: $GAME_NAME (BGG ID: $BGG_ID)"
 
 # Try to cast a vote for this game
-echo -e "\nVoting for potentially new game..."
+echo -e "\nVoting for game that should be auto-created in Airtable..."
 VOTE_RESPONSE=$(curl -s -b cookies.txt -H "Content-Type: application/json" -X POST -d "{\"bggId\":$BGG_ID,\"voteType\":1}" http://localhost:5000/api/votes)
 echo "Vote response: $VOTE_RESPONSE"
 
