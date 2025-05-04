@@ -36,6 +36,8 @@ class AirtableService {
       const fields: any = {
         // Try both possible field names for email
         'Email': user.email,
+        // Add Full Name field if available
+        'Full Name': user.name || '',
       };
       
       // Add Last Login field if available
@@ -66,6 +68,7 @@ class AirtableService {
       if (records.length > 0) {
         await this.usersTable.update(records[0].id, {
           'Last Login': user.lastLogin ? user.lastLogin.toISOString() : null,
+          'Full Name': user.name || '',
         });
       } else {
         // Create if not exists
