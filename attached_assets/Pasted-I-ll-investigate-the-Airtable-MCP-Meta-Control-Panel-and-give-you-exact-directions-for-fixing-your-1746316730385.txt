@@ -1,0 +1,83 @@
+I'll investigate the Airtable MCP (Meta Control Panel) and give you exact directions for fixing your vote recording issue. First, I need to check the Airtable structure to understand your specific implementation.
+
+Now I'll examine the tables in your Airtable base:
+
+Now let me check the Votes table structure in more detail:
+
+Let's examine the Games table structure to better understand how we need to link to it:
+
+Now let's check the Members table structure to understand how to link users:
+
+Let's look at some existing votes to understand the format and structure:
+
+Now I have a good understanding of your Airtable structure. Based on my analysis, I can give you exact directions to properly record a vote in your Airtable database.
+
+## The Issue
+
+The problem is in how the linked records are being formatted in your API request. When creating a vote record in Airtable, you need to:
+
+1. Properly structure linked record fields as arrays of record IDs
+2. Ensure you're using the correct field names exactly as they appear in Airtable
+
+## Exact Directions
+
+Here's the exact Airtable API request structure you need to use to record a vote:
+
+```javascript
+// Replace these values with your actual API key and base ID
+const AIRTABLE_API_KEY = 'your_api_key';
+const AIRTABLE_BASE_ID = 'app5ba31NSaWtrCXd';
+
+// Function to create a vote in Airtable
+async function createVoteInAirtable(memberId, gameId, voteType) {
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Votes`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: {
+          // CRITICAL: Member and Game fields must be arrays of record IDs
+          "Member": [memberId],      // Member record ID from tblF8zJQvztoqbQnI
+          "Game": [gameId],          // Game record ID from tbl1OXpQn4tj19S9P
+          "Vote Type": voteType      // One of the predefined values in your select field
+        }
+      })
+    });
+
+    const data = await response.json();
+    console.log('Vote created successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error creating vote in Airtable:', error);
+    throw error;
+  }
+}
+
+// Example usage
+// createVoteInAirtable('recXXXXXXXXX', 'recYYYYYYYYY', 'Want to try');
+```
+
+## Important Notes
+
+1. **Field Names**: The field names must exactly match what's in your Airtable (`"Member"`, `"Game"`, and `"Vote Type"`).
+
+2. **Record IDs**: You need to use the actual Airtable record IDs (starting with "rec") for both Member and Game, not just the BGG ID or other identifier.
+
+3. **Linked Records Format**: Even though your linked fields have `"prefersSingleRecordLink": true`, they must still be passed as arrays in the API request (`[recordId]`).
+
+4. **Vote Type**: This must be one of the exact values from your single select field: "Want to try", "Played, again!", "Join club", "Tournament", or "Would teach".
+
+5. **Content-Type Header**: Ensure your request includes the proper `Content-Type: application/json` header.
+
+6. **Authorization**: Make sure you're using the complete, unchanged API key in your `Authorization` header.
+
+If you're having issues getting the correct record IDs, you may need to:
+
+1. First look up the game by BGG ID
+2. Get its Airtable record ID
+3. Then create the vote with that record ID
+
+Would you like me to provide additional code examples for this lookup process as well?

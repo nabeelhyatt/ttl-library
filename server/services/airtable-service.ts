@@ -26,12 +26,29 @@ class AirtableService {
   // User methods
   async createUser(user: User): Promise<string> {
     try {
-      const record = await this.usersTable.create({
-        'Email': user.email,
-        'Last Login': user.lastLogin ? user.lastLogin.toISOString() : null,
+      console.log('Creating user in Airtable:', {
+        email: user.email,
+        lastLogin: user.lastLogin
       });
       
-      return record.getId();
+      // In Airtable, the table might be named "Members" instead of "Users"
+      // And the fields might be named differently
+      const fields: any = {
+        // Try both possible field names for email
+        'Email': user.email,
+      };
+      
+      // Add Last Login field if available
+      if (user.lastLogin) {
+        fields['Last Login'] = user.lastLogin.toISOString();
+      }
+      
+      console.log('Airtable user creation payload:', fields);
+      
+      const record = await this.usersTable.create(fields);
+      
+      // Handle the case where getId() might not exist
+      return typeof record.getId === 'function' ? record.getId() : record.id;
     } catch (error) {
       console.error('Error creating user in Airtable:', error);
       // Continue without Airtable if it fails
@@ -213,6 +230,27 @@ class AirtableService {
     }
   }
   
+  // Helper method to convert numeric vote types to string values expected by Airtable
+  // Based on the attached content, Airtable expects specific string values
+  private getVoteTypeString(voteType: number): string {
+    // Maps the VoteType enum to the string values expected by Airtable
+    // as mentioned in the attached content
+    switch (voteType) {
+      case 1: // WantToTry
+        return "Want to try";
+      case 2: // PlayedWillPlayAgain
+        return "Played, again!";
+      case 3: // WouldJoinClub
+        return "Join club";
+      case 4: // WouldJoinTournament
+        return "Tournament";
+      case 5: // WouldTeach
+        return "Would teach";
+      default:
+        return "Want to try"; // Default value
+    }
+  }
+  
   // Vote methods
   async createVote(vote: Vote): Promise<string> {
     try {
@@ -277,12 +315,25 @@ class AirtableService {
             if (newUserRecords.length > 0) {
               // Create vote record with newly created user
               console.log('Successfully created user, creating vote');
-              const voteRecord = await this.votesTable.create({
-                'User': [newUserRecords[0].id],
+              // Based on the Airtable documentation, the field names might be different
+              // The field names for linked records could be "Member" instead of "User"
+              // and the vote type might have specific string values
+              const votePayload: any = {
+                // Try both possible field names for linked records
+                'Member': [newUserRecords[0].id],  // This might be the correct field name
                 'Game': [gameAirtableId],
-                'Vote Type': vote.voteType,
-                'Created At': vote.createdAt ? vote.createdAt.toISOString() : new Date().toISOString(),
-              });
+                // Add vote type - this might need to be converted to a string value
+                'Vote Type': this.getVoteTypeString(vote.voteType),
+              };
+              
+              // Add creation date with both possible field names
+              const creationDate = vote.createdAt ? vote.createdAt.toISOString() : new Date().toISOString();
+              votePayload['Created At'] = creationDate;
+              votePayload['Created'] = creationDate;  // Alternative field name
+              
+              console.log('Vote creation payload:', JSON.stringify(votePayload));
+              
+              const voteRecord = await this.votesTable.create(votePayload);
               
               console.log('Successfully created vote in Airtable');
               return voteRecord.getId();
@@ -299,12 +350,25 @@ class AirtableService {
         
         // Create vote record with existing user
         console.log('Found user in Airtable, creating vote');
-        const voteRecord = await this.votesTable.create({
-          'User': [userRecords[0].id],
+        
+        // Based on the Airtable documentation, the field names might be different
+        const votePayload: any = {
+          // Try both possible field names for linked records
+          'Member': [userRecords[0].id],  // Primary field name based on the attached content
+          'User': [userRecords[0].id],    // Alternative field name
           'Game': [gameAirtableId],
-          'Vote Type': vote.voteType,
-          'Created At': vote.createdAt ? vote.createdAt.toISOString() : new Date().toISOString(),
-        });
+          // Add vote type - this might need to be converted to a string value
+          'Vote Type': this.getVoteTypeString(vote.voteType),
+        };
+        
+        // Add creation date with both possible field names
+        const creationDate = vote.createdAt ? vote.createdAt.toISOString() : new Date().toISOString();
+        votePayload['Created At'] = creationDate;
+        votePayload['Created'] = creationDate;  // Alternative field name
+        
+        console.log('Vote creation payload:', JSON.stringify(votePayload));
+        
+        const voteRecord = await this.votesTable.create(votePayload);
         
         console.log('Successfully created vote in Airtable');
         return voteRecord.getId();
@@ -351,17 +415,27 @@ class AirtableService {
           return;
         }
         
-        // Try to find existing vote
-        console.log(`Looking for existing vote with User=${userRecords[0].id} and Game=${gameRecords[0].id}`);
-        const voteRecords = await this.votesTable.select({
-          filterByFormula: `AND({User} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
+        // Try to find existing vote - we need to check both possible field names
+        console.log(`Looking for existing vote with Member=${userRecords[0].id} and Game=${gameRecords[0].id}`);
+        
+        // First try with "Member" field
+        let voteRecords = await this.votesTable.select({
+          filterByFormula: `AND({Member} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
         }).firstPage();
+        
+        // If not found, try with "User" field
+        if (voteRecords.length === 0) {
+          console.log(`No vote found with Member field, trying User field instead`);
+          voteRecords = await this.votesTable.select({
+            filterByFormula: `AND({User} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
+          }).firstPage();
+        }
         
         if (voteRecords.length > 0) {
           // Update existing vote
           console.log(`Found existing vote in Airtable (ID: ${voteRecords[0].id}), updating Vote Type to ${vote.voteType}`);
           await this.votesTable.update(voteRecords[0].id, {
-            'Vote Type': vote.voteType,
+            'Vote Type': this.getVoteTypeString(vote.voteType),
           });
           console.log('Successfully updated vote in Airtable');
         } else {
@@ -422,10 +496,20 @@ class AirtableService {
           return;
         }
         
-        console.log(`Looking for vote with User=${userRecords[0].id} and Game=${gameRecords[0].id}`);
-        const voteRecords = await this.votesTable.select({
-          filterByFormula: `AND({User} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
+        console.log(`Looking for vote with Member=${userRecords[0].id} and Game=${gameRecords[0].id}`);
+        
+        // First try with "Member" field
+        let voteRecords = await this.votesTable.select({
+          filterByFormula: `AND({Member} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
         }).firstPage();
+        
+        // If not found, try with "User" field
+        if (voteRecords.length === 0) {
+          console.log(`No vote found with Member field, trying User field instead`);
+          voteRecords = await this.votesTable.select({
+            filterByFormula: `AND({User} = "${userRecords[0].id}", {Game} = "${gameRecords[0].id}")`,
+          }).firstPage();
+        }
         
         if (voteRecords.length > 0) {
           // Delete the vote
