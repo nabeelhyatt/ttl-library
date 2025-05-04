@@ -64,6 +64,7 @@
 
 .game-name {
   font-weight: normal;
+  color: #F27134; /* Same orange as Login button */
 }
 
 .game-category {

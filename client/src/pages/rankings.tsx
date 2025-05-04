@@ -28,6 +28,8 @@ const categories = [
   { id: 400, name: 'COOPERATIVE', votes: 10, description: 'Games where players work together' },
   { id: 500, name: 'EURO STRATEGY', votes: 18, description: 'Resource management, optimization' },
   { id: 600, name: 'CONFLICT & POLITICS', votes: 9, description: 'Direct competition, area control' },
+  { id: 700, name: 'THEMATIC ADVENTURES', votes: 14, description: 'Immersive storytelling and narrative-driven experiences' },
+  { id: 800, name: 'DEXTERITY & SKILL', votes: 7, description: 'Physical skill, precision, and hand-eye coordination' },
 ];
 
 export default function Rankings() {
