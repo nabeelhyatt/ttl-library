@@ -8,6 +8,11 @@ class BoardGameGeekService {
   private MAX_RETRIES = 5; // Increase retry attempts
   private lastRequestTime = 0; // Track last request time for rate limiting
   
+  // Cache for hot games data
+  private hotGamesCache: BGGGame[] | null = null;
+  private hotGamesCacheTimestamp: number = 0;
+  private CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+  
   // Apply rate limiting to requests
   private async rateLimit(): Promise<void> {
     const now = Date.now();
@@ -41,6 +46,20 @@ class BoardGameGeekService {
 
   // Get hot games from BGG
   async getHotGames(): Promise<BGGGame[]> {
+    // Check if we have a valid cache
+    const now = Date.now();
+    if (this.hotGamesCache && (now - this.hotGamesCacheTimestamp < this.CACHE_TTL)) {
+      const minutesRemaining = Math.floor((this.CACHE_TTL - (now - this.hotGamesCacheTimestamp)) / 60000);
+      console.log('*********************************************');
+      console.log(`🔄 CACHE HIT: Using cached hot games (expires in ${minutesRemaining} minutes)`);
+      console.log('*********************************************');
+      return this.hotGamesCache;
+    }
+    
+    console.log('*********************************************');
+    console.log('❌ CACHE MISS: Fetching hot games from BGG API...');
+    console.log('*********************************************');
+    
     const fetchHotGames = async (retries = 0): Promise<BGGGame[]> => {
       try {
         await this.rateLimit();
@@ -64,9 +83,26 @@ class BoardGameGeekService {
     };
     
     try {
-      return await fetchHotGames();
+      // Fetch fresh data from BGG
+      const hotGames = await fetchHotGames();
+      
+      // Update cache with new data and timestamp
+      this.hotGamesCache = hotGames;
+      this.hotGamesCacheTimestamp = Date.now();
+      console.log('*********************************************');
+      console.log(`✅ CACHE UPDATED: Stored ${hotGames.length} hot games in cache (valid for 1 hour)`);
+      console.log('*********************************************');
+      
+      return hotGames;
     } catch (error) {
       console.error('Error fetching hot games from BGG:', error);
+      
+      // If we have an expired cache, return it as a fallback
+      if (this.hotGamesCache) {
+        console.log('Returning expired cache as fallback due to BGG API error');
+        return this.hotGamesCache;
+      }
+      
       throw new Error('Failed to fetch hot games from BoardGameGeek');
     }
   }
