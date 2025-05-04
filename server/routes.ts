@@ -362,8 +362,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const memberId = data.records[0].id;
       
-      // Get votes for this member
-      const votesUrl = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/Votes?filterByFormula=${encodeURIComponent(`{Member}="${memberId}"`)}`;
+      // Get all votes for debugging purposes
+      const votesUrl = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/Votes`;
+      
+      console.log(`Checking for votes in Airtable for member: ${memberId}`);
       
       const votesResponse = await fetch(votesUrl, {
         method: 'GET',
@@ -382,12 +384,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const votesData = await votesResponse.json();
       
+      // Filter votes for this member for more clarity
+      const memberVotes = votesData.records?.filter(record => {
+        // Check if the record has Member field and if it's an array containing memberId
+        return record.fields.Member && 
+               Array.isArray(record.fields.Member) && 
+               record.fields.Member.includes(memberId);
+      }) || [];
+      
+      console.log(`Found ${memberVotes.length} votes for member ${memberId} out of ${votesData.records?.length || 0} total votes`);
+      
       return res.status(200).json({
         member: {
           id: memberId,
           email: user.email
         },
-        votes: votesData.records || []
+        allVotes: votesData.records || [],
+        memberVotes: memberVotes
       });
     } catch (error) {
       console.error(`Error in Airtable my-votes endpoint:`, error);
