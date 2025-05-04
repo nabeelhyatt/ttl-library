@@ -209,7 +209,7 @@ export default function Rankings() {
                       <div className="flex justify-between mb-1">
                         <div>
                           <span className="category-number">{category.id}</span>
-                          <span className="category-name">{category.name}:</span>
+                          <span className="category-name">{category.name.toUpperCase()}:</span>
                         </div>
                         <div className="vote-count">{category.voteCount}</div>
                       </div>
