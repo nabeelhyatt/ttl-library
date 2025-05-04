@@ -1,0 +1,275 @@
+I'll create a workflow for handling games that don't exist in your Airtable database. First, let me examine the Airtable MCP to understand the specific fields and structure needed for game records.
+
+Now I'll examine the tables in your base to understand the structure:
+
+Next, let me look at the Games table in more detail to understand how to create a new game record:
+
+Let me look at the Votes table structure to understand how it relates to the Games table:
+
+Now I'll look at how to use the web search tool to search for information about a BGG game by ID:
+
+Let me get more details about the BoardGameGeek API endpoints that are useful for our task:
+
+Let me get more specific information about the BGG XML API2 thing endpoint:
+
+Based on my analysis of the Airtable structure and the BGG API, I can now provide detailed instructions for adding records to your Airtable database when a BGG ID is not found. Let me create the workflow:
+
+```javascript
+/**
+ * Complete workflow for handling votes with BGG ID validation
+ * and automatic game record creation if needed
+ * 
+ * This function checks if a game exists in Airtable by BGG ID
+ * If not found, fetches game data from BGG API and creates a new game record
+ * Then creates the vote record linking to the game
+ */
+async function processVoteWithGameValidation(bggId, memberId, voteType) {
+  try {
+    // Step 1: Check if the game already exists in Airtable by BGG ID
+    const existingGame = await findGameByBggId(bggId);
+    
+    if (existingGame) {
+      // Game found - create vote directly
+      return await createVoteInAirtable(memberId, existingGame.id, voteType);
+    } else {
+      // Game not found - fetch from BGG and create
+      const gameDetails = await fetchGameDetailsFromBGG(bggId);
+      const newGame = await createGameInAirtable(gameDetails);
+      
+      // Now create vote linking to the new game
+      return await createVoteInAirtable(memberId, newGame.id, voteType);
+    }
+  } catch (error) {
+    console.error('Error processing vote:', error);
+    throw error;
+  }
+}
+
+/**
+ * Function to find a game in Airtable by BGG ID
+ * Returns the game record if found, null otherwise
+ */
+async function findGameByBggId(bggId) {
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Games?filterByFormula={BGG ID}=${bggId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.records && data.records.length > 0) {
+      return data.records[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding game in Airtable:', error);
+    throw error;
+  }
+}
+
+/**
+ * Function to fetch game details from BoardGameGeek API
+ * Returns parsed game data ready for Airtable insertion
+ */
+async function fetchGameDetailsFromBGG(bggId) {
+  try {
+    // BGG XML API2 endpoint for game details
+    const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1&videos=1`);
+    const xmlText = await response.text();
+    
+    // Parse XML response
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+    
+    // Extract relevant game information
+    const gameData = {
+      title: getXmlValue(xmlDoc, 'name[type="primary"]', 'value'),
+      bggId: parseInt(bggId),
+      description: getXmlValue(xmlDoc, 'description'),
+      yearPublished: parseInt(getXmlValue(xmlDoc, 'yearpublished', 'value') || 0),
+      minPlayers: parseInt(getXmlValue(xmlDoc, 'minplayers', 'value') || 0),
+      maxPlayers: parseInt(getXmlValue(xmlDoc, 'maxplayers', 'value') || 0),
+      playTime: parseInt(getXmlValue(xmlDoc, 'playingtime', 'value') || 0),
+      bggRating: parseFloat(getXmlValue(xmlDoc, 'statistics > ratings > average', 'value') || 0),
+      complexity: parseFloat(getXmlValue(xmlDoc, 'statistics > ratings > averageweight', 'value') || 0),
+      thumbnail: getXmlValue(xmlDoc, 'thumbnail'),
+      publisher: getXmlValue(xmlDoc, 'link[type="publisher"]', 'value'),
+      bggRank: getXmlValue(xmlDoc, 'statistics > ratings > ranks > rank[name="boardgame"]', 'value'),
+      
+      // Categories will need to be processed separately
+      categories: Array.from(xmlDoc.querySelectorAll('link[type="boardgamecategory"]')).map(
+        category => category.getAttribute('value')
+      )
+    };
+    
+    return gameData;
+  } catch (error) {
+    console.error('Error fetching game from BGG:', error);
+    throw error;
+  }
+}
+
+/**
+ * Helper function to extract values from XML
+ */
+function getXmlValue(xmlDoc, selector, attribute = null) {
+  const element = xmlDoc.querySelector(selector);
+  if (!element) return null;
+  
+  if (attribute) {
+    return element.getAttribute(attribute);
+  } else {
+    return element.textContent;
+  }
+}
+
+/**
+ * Function to create a new game record in Airtable
+ * with data from BGG API
+ */
+async function createGameInAirtable(gameData) {
+  try {
+    // Map BGG categories to Airtable category options if needed
+    const bggCategories = mapBggCategoriesToAirtable(gameData.categories);
+    
+    // Prepare the table size based on player count or other factors
+    const tableSize = determineTableSize(gameData.minPlayers, gameData.maxPlayers);
+    
+    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Games`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: {
+          "Title": gameData.title,
+          "BGG ID": gameData.bggId,
+          "Description": gameData.description, 
+          "Publisher": gameData.publisher,
+          "BGG Rating": gameData.bggRating,
+          "Player Count Min": gameData.minPlayers,
+          "Player Count Max": gameData.maxPlayers,
+          "Best Player Count": Math.floor((gameData.minPlayers + gameData.maxPlayers) / 2),
+          "Play Time": gameData.playTime,
+          "Year Published": gameData.yearPublished,
+          "Complexity": gameData.complexity,
+          "Thumbnail": gameData.thumbnail,
+          "BGGRank": gameData.bggRank,
+          "BGG Categories": bggCategories,
+          "Table Size": tableSize,
+          "Update AI Fields": true // Flag for any AI field updates you might have
+        }
+      })
+    });
+    
+    const data = await response.json();
+    console.log('Game created successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error creating game in Airtable:', error);
+    throw error;
+  }
+}
+
+/**
+ * Helper function to map BGG categories to matching Airtable options
+ */
+function mapBggCategoriesToAirtable(bggCategories) {
+  // This mapping needs to be customized based on your specific Airtable setup
+  const categoryMapping = {
+    'Card Game': 'Drafting',
+    'Deduction': 'Social Deduction',
+    'Economic': 'Economic',
+    'Strategy': 'Strategy',
+    'Tile Placement': 'Tile Placement',
+    'Dice': 'Dice Rolling',
+    'Area Control Area Influence': 'Area Control',
+    'Party Game': 'Party',
+    'Set Collection': 'Set Collection'
+    // Add more mappings as needed
+  };
+  
+  // Filter and map categories that have a matching entry in Airtable
+  return bggCategories
+    .map(category => categoryMapping[category])
+    .filter(category => category !== undefined);
+}
+
+/**
+ * Helper function to determine the table size based on game characteristics
+ */
+function determineTableSize(minPlayers, maxPlayers) {
+  if (maxPlayers <= 2) return 'Small';
+  if (maxPlayers <= 5) return 'Medium';
+  return 'Large';
+}
+
+/**
+ * Function to create a vote in Airtable
+ * This is the same function from your previous implementation
+ */
+async function createVoteInAirtable(memberId, gameId, voteType) {
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Votes`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: {
+          // CRITICAL: Member and Game fields must be arrays of record IDs
+          "Member": [memberId],      // Member record ID from tblF8zJQvztoqbQnI
+          "Game": [gameId],          // Game record ID from tbl1OXpQn4tj19S9P
+          "Vote Type": voteType      // One of the predefined values in your select field
+        }
+      })
+    });
+    
+    const data = await response.json();
+    console.log('Vote created successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error creating vote in Airtable:', error);
+    throw error;
+  }
+}
+
+// Example usage
+// processVoteWithGameValidation(123456, 'recXXXXXXXXX', 'Want to try');
+```
+
+## Implementation Notes:
+
+1. **Game Detection**: The workflow first checks if the game exists in your Airtable by BGG ID. This avoids duplicate entries.
+
+2. **BGG API Integration**: When a game isn't found, the system automatically fetches game details from the BoardGameGeek XML API2, specifically using the `/thing` endpoint with the `stats=1` parameter to get ratings information.
+
+3. **Data Mapping**: 
+   - The code includes functions to properly map BGG data to your Airtable fields
+   - BGG Categories are mapped to your Airtable's specific category options
+   - Table Size is determined based on player count
+
+4. **Field Consistency**: The `createGameInAirtable` function includes all the relevant fields from your Games table that can be populated from BGG data.
+
+5. **Error Handling**: The code includes comprehensive error handling throughout the process.
+
+## Important Considerations:
+
+1. **XML Parsing**: This implementation uses the browser's DOMParser for XML parsing. If running in Node.js, you'll need to use a library like `xml2js` or `fast-xml-parser`.
+
+2. **Categories Mapping**: You'll need to customize the category mapping based on the exact categories that appear in your BGG data and your Airtable options.
+
+3. **API Key Security**: Ensure your Airtable API key is stored securely and not exposed in client-side code.
+
+4. **Rate Limiting**: The BGG API may have rate limits, so consider adding retry logic or delay mechanisms if needed.
+
+5. **Cross-Origin Requests**: If implementing this in a browser, you may need to handle CORS issues when fetching from the BGG API.
+
+This implementation provides a complete solution that handles the scenario when a BGG ID is not found in your Airtable database, creates the game record with relevant data from BGG, and then creates the vote record properly linked to the new game.

@@ -54,11 +54,20 @@ export class AirtableDirectService {
         return '';
       }
       
-      // Second step: Find game in Airtable
-      const gameId = await this.findGame(game.bggId);
+      // Second step: Find game in Airtable, or create if it doesn't exist
+      let gameId = await this.findGame(game.bggId);
+      
+      // If game doesn't exist in Airtable, create it with data from our storage
       if (!gameId) {
-        console.log('Game not found in Airtable, skipping vote creation');
-        return '';
+        console.log(`Game with BGG ID ${game.bggId} not found in Airtable. Creating new record...`);
+        gameId = await this.createGameInAirtable(game);
+        
+        if (!gameId) {
+          console.log('Failed to create game in Airtable, skipping vote creation');
+          return '';
+        }
+        
+        console.log(`Successfully created game with BGG ID ${game.bggId} in Airtable`);
       }
       
       // Create the vote with the correct structure
@@ -124,11 +133,20 @@ export class AirtableDirectService {
         return;
       }
       
-      // Find game in Airtable
-      const gameId = await this.findGame(game.bggId);
+      // Find game in Airtable, or create if it doesn't exist
+      let gameId = await this.findGame(game.bggId);
+      
+      // If game doesn't exist in Airtable, create it with data from our storage
       if (!gameId) {
-        console.log('Game not found in Airtable');
-        return;
+        console.log(`Game with BGG ID ${game.bggId} not found in Airtable. Creating new record...`);
+        gameId = await this.createGameInAirtable(game);
+        
+        if (!gameId) {
+          console.log('Failed to create game in Airtable, skipping vote update');
+          return;
+        }
+        
+        console.log(`Successfully created game with BGG ID ${game.bggId} in Airtable`);
       }
       
       // Find existing vote
@@ -464,6 +482,58 @@ export class AirtableDirectService {
       return data.records[0].id;
     } catch (err) {
       console.error('Error finding game:', err instanceof Error ? err.message : String(err));
+      return null;
+    }
+  }
+  
+  /**
+   * Creates a game in Airtable with data from BGG
+   */
+  private async createGameInAirtable(game: Game): Promise<string | null> {
+    try {
+      console.log(`Creating new game record in Airtable for ${game.name} (BGG ID: ${game.bggId})`);
+      
+      // Prepare the game data for Airtable
+      const payload = {
+        fields: {
+          "Title": game.name,
+          "BGG ID": game.bggId,
+          "Description": game.description.substring(0, 2000), // Airtable has character limits
+          "Year Published": game.yearPublished,
+          "Min Players": game.minPlayers,
+          "Max Players": game.maxPlayers,
+          "Play Time": game.playingTime,
+          "BGG Rating": parseFloat(game.bggRating || '0'),
+          "Weight Rating": parseFloat(game.weightRating || '0'),
+          "Thumbnail": game.thumbnail,
+          "Image": game.image,
+          // Default values for availability flags
+          "to Order": false
+        }
+      };
+      
+      console.log('Game creation payload:', JSON.stringify(payload));
+      
+      const response = await fetch(`https://api.airtable.com/v0/${this.baseId}/Games`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error creating game in Airtable:', JSON.stringify(errorData));
+        return null;
+      }
+      
+      const data = await response.json();
+      console.log(`Successfully created game in Airtable with ID: ${data.id}`);
+      return data.id;
+    } catch (err) {
+      console.error('Error creating game in Airtable:', err instanceof Error ? err.message : String(err));
       return null;
     }
   }
