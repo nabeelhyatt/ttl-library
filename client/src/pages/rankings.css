@@ -1,0 +1,106 @@
+/* Fonts and typography styles */
+.font-tufte {
+  font-family: "Palatino Linotype", "Palatino", "Georgia", serif;
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+.rankings-page {
+  font-family: "Palatino Linotype", "Palatino", "Georgia", serif;
+  line-height: 1.5;
+  color: rgb(17, 17, 17);
+  background: rgb(249, 249, 249);
+}
+
+.section-number {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-right: 1rem;
+}
+
+.section-title {
+  font-size: 1.75rem;
+  font-weight: normal;
+  margin-bottom: 0.75rem;
+}
+
+.column-header {
+  color: #4b5563;
+  font-weight: normal;
+  margin-bottom: 0.5rem;
+}
+
+.dotted-border {
+  border-bottom: 1px dotted #d1d5db;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.category-number {
+  font-family: monospace;
+  font-weight: normal;
+  color: #000;
+}
+
+.category-name {
+  font-weight: normal;
+  margin-left: 0.5rem;
+  color: #000;
+}
+
+.category-description {
+  color: #4b5563;
+  padding-left: 3rem;
+  margin-top: 0.25rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.975rem;
+}
+
+.vote-count {
+  text-align: right;
+  padding-left: 1rem;
+  font-weight: normal;
+}
+
+.game-name {
+  font-weight: normal;
+}
+
+.game-category {
+  color: #4b5563;
+}
+
+.category-explanation {
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+/* Main layout styling */
+main {
+  padding-top: 1rem;
+  margin: 0 auto;
+}
+
+/* Tufte-style border */
+.border-t {
+  border-top-width: 1px;
+  border-color: #d1d5db;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+/* Column spacing */
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gap-8 {
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

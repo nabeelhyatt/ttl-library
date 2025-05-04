@@ -6,6 +6,7 @@ import { queryClient } from "./lib/queryClient";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import MyVotes from "@/pages/my-votes";
+import Rankings from "@/pages/rankings";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { useState, useEffect } from "react";
@@ -58,6 +59,7 @@ function Router() {
         <Switch>
           <Route path="/" component={() => <Home user={user} onLogin={login} />} />
           <Route path="/my-votes" component={() => <MyVotes user={user} />} />
+          <Route path="/rankings" component={Rankings} />
           <Route component={NotFound} />
         </Switch>
       )}
