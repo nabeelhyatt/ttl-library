@@ -100,8 +100,33 @@ main {
   gap: 2rem;
 }
 
+/* Mobile-specific styles */
 @media (max-width: 768px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+  }
+  
+  .section-number {
+    font-size: 0.75rem;
+  }
+  
+  .column-header {
+    font-size: 0.85rem;
+  }
+  
+  .game-name, .category-name {
+    font-size: 0.95rem;
+  }
+  
+  .game-category, .category-description {
+    font-size: 0.85rem;
+  }
+  
+  .category-description {
+    padding-left: 2rem;
   }
 }
