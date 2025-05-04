@@ -317,6 +317,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoint to verify Airtable votes for the current user
+  app.get("/api/airtable/my-votes", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "You must be logged in to view your votes in Airtable" });
+      }
+      
+      // Get user details
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
+        return res.status(500).json({ message: "Airtable configuration is incomplete" });
+      }
+      
+      // Find the member in Airtable
+      const encodedFormula = encodeURIComponent(`{Email}="${user.email}"`);
+      const url = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/Members?filterByFormula=${encodedFormula}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        return res.status(response.status).json({
+          message: "Error connecting to Airtable",
+          error: errorData
+        });
+      }
+      
+      const data = await response.json();
+      
+      if (!data.records || data.records.length === 0) {
+        return res.status(404).json({ message: "Member not found in Airtable" });
+      }
+      
+      const memberId = data.records[0].id;
+      
+      // Get votes for this member
+      const votesUrl = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/Votes?filterByFormula=${encodeURIComponent(`{Member}="${memberId}"`)}`;
+      
+      const votesResponse = await fetch(votesUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`
+        }
+      });
+      
+      if (!votesResponse.ok) {
+        const errorData = await votesResponse.json();
+        return res.status(votesResponse.status).json({
+          message: "Error retrieving votes from Airtable",
+          error: errorData
+        });
+      }
+      
+      const votesData = await votesResponse.json();
+      
+      return res.status(200).json({
+        member: {
+          id: memberId,
+          email: user.email
+        },
+        votes: votesData.records || []
+      });
+    } catch (error) {
+      console.error(`Error in Airtable my-votes endpoint:`, error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve votes from Airtable",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Debug endpoint for specific game with Airtable data
   app.get("/api/airtable/test-game", async (req, res) => {
     try {
