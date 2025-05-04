@@ -110,6 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BoardGameGeek API routes
   app.get("/api/bgg/hot", async (req, res) => {
     try {
+      console.log("🔍 GET /api/bgg/hot - Fetching hot games (will use cache if available)");
       // Get basic hot games list
       const hotGames = await boardGameGeekService.getHotGames();
       
@@ -149,9 +150,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
+      console.log(`✅ GET /api/bgg/hot - Successfully returned ${enrichedGames.length} hot games`);
       return res.status(200).json(enrichedGames);
     } catch (error) {
-      console.error("Error fetching hot games:", error);
+      console.error("❌ Error fetching hot games:", error);
       return res.status(500).json({ message: "Failed to fetch hot games" });
     }
   });
