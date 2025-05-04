@@ -58,8 +58,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         user = await storage.createUser({ email, name });
       } else {
-        // Update last login
-        user = await storage.updateUserLastLogin(user.id);
+        // Existing users might not have a name yet, update it if it's missing
+        if (!user.name) {
+          // Update the user with the name field
+          user = await storage.updateUserNameAndLogin(user.id, name);
+        } else {
+          // Just update last login
+          user = await storage.updateUserLastLogin(user.id);
+        }
       }
       
       // Set user in session

@@ -80,6 +80,22 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
   
+  async updateUserNameAndLogin(id: number, name: string): Promise<User> {
+    const user = await this.getUser(id);
+    if (!user) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+    
+    const updatedUser = {
+      ...user,
+      name,
+      lastLogin: new Date()
+    };
+    
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
   // Game methods
   async getGame(id: number): Promise<Game | undefined> {
     return this.games.get(id);
