@@ -43,20 +43,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
-      // Validate the email
+      // Validate the email and name
       const result = insertUserSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ message: "Invalid email format" });
+        return res.status(400).json({ message: "Invalid format for name or email" });
       }
       
-      const { email } = result.data;
+      const { email, name } = result.data;
       
       // Check if user exists
       let user = await storage.getUserByEmail(email);
       
       // If not, create a new user
       if (!user) {
-        user = await storage.createUser({ email });
+        user = await storage.createUser({ email, name });
       } else {
         // Update last login
         user = await storage.updateUserLastLogin(user.id);

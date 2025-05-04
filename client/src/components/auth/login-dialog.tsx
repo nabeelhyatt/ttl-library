@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
 });
 
@@ -16,7 +17,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface LoginDialogProps {
   onClose: () => void;
-  onSubmit?: (email: string) => Promise<void>;
+  onSubmit?: (email: string, name: string) => Promise<void>;
 }
 
 export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) => {
@@ -25,6 +26,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       email: '',
     },
   });
@@ -34,14 +36,14 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
     
     setIsSubmitting(true);
     try {
-      await onSubmit(values.email);
+      await onSubmit(values.email, values.name);
     } finally {
       setIsSubmitting(false);
     }
   };
   
   return (
-    <DialogContent className="bg-secondary rounded-lg p-8 max-w-md w-full mx-4">
+    <DialogContent className="bg-[#f5f5dc] rounded-lg p-8 max-w-md w-full mx-4 shadow-lg">
       <DialogHeader>
         <div className="flex justify-between items-center mb-2">
           <DialogTitle className="font-tufte text-xl text-foreground">Log In / Register</DialogTitle>
@@ -53,12 +55,33 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
           </button>
         </div>
         <DialogDescription className="text-muted-foreground">
-          Use your email to log in or create a new account. No password needed!
+          Enter your name and email to log in or create a new account. No password needed!
         </DialogDescription>
       </DialogHeader>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="block text-muted-foreground mb-2">Full Name</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="text" 
+                    {...field}
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
+                    required
+                    disabled={isSubmitting}
+                    placeholder="Enter your full name"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="email"
@@ -69,9 +92,10 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
                   <Input 
                     type="email" 
                     {...field}
-                    className="w-full px-4 py-3 bg-background border border-gray-700 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
                     required
                     disabled={isSubmitting}
+                    placeholder="your.email@example.com"
                   />
                 </FormControl>
                 <FormMessage />

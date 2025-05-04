@@ -493,8 +493,7 @@ export class AirtableDirectService {
     try {
       console.log(`Creating new game record in Airtable for ${game.name} (BGG ID: ${game.bggId})`);
       
-      // Prepare the game data for Airtable using the correct field names we observed
-      // Handle all possible null/undefined fields with defaults
+      // Use only the most essential fields that we know are safe
       const payload = {
         fields: {
           "Title": game.name || "",
@@ -505,9 +504,7 @@ export class AirtableDirectService {
           "Play Time": game.playingTime || null,
           "BGG Rating": parseFloat(game.bggRating || '0'),
           "Complexity": parseFloat(game.weightRating || '0'),
-          "Thumbnail": game.thumbnail || "",
-          // Default values for availability flags
-          "to Order": false
+          "Thumbnail": game.thumbnail || ""
         }
       };
       

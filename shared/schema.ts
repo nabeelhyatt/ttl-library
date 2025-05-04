@@ -5,11 +5,13 @@ import { z } from "zod";
 // User model
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  name: text("name").notNull(),
   email: text("email").notNull().unique(),
   lastLogin: timestamp("last_login"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  name: true,
   email: true,
 });
 
