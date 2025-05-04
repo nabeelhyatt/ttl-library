@@ -318,6 +318,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Endpoint to verify Airtable votes for the current user
+  // Debug endpoint to check if a game exists in Airtable by BGG ID
+  app.get("/api/airtable/game-by-bgg-id/:bggId", async (req, res) => {
+    try {
+      const bggId = parseInt(req.params.bggId);
+      if (isNaN(bggId)) {
+        return res.status(400).json({ message: 'Invalid BGG ID' });
+      }
+      
+      const baseId = process.env.AIRTABLE_BASE_ID;
+      const apiKey = process.env.AIRTABLE_API_KEY;
+      
+      if (!baseId || !apiKey) {
+        return res.status(500).json({ message: 'Airtable credentials not configured' });
+      }
+
+      const encodedFormula = encodeURIComponent(`{BGG ID}=${bggId}`);
+      const url = `https://api.airtable.com/v0/${baseId}/Games?filterByFormula=${encodedFormula}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
+      
+      if (!response.ok) {
+        return res.status(response.status).json({
+          message: `Airtable error: ${response.statusText}`
+        });
+      }
+      
+      const data = await response.json();
+      
+      if (!data.records || data.records.length === 0) {
+        return res.status(404).json({ message: `Game with BGG ID ${bggId} not found in Airtable` });
+      }
+      
+      // Return the first game's record
+      const gameRecord = data.records[0];
+      
+      return res.json({
+        bggId,
+        id: gameRecord.id,
+        fields: gameRecord.fields
+      });
+    } catch (error) {
+      console.error('Error checking game by BGG ID:', error instanceof Error ? error.message : String(error));
+      return res.status(500).json({ message: 'Error checking game by BGG ID', error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   app.get("/api/airtable/my-votes", async (req, res) => {
     try {
       // Check if user is authenticated
@@ -563,6 +614,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching game:", error);
       return res.status(500).json({ message: "Failed to fetch game details" });
+    }
+  });
+
+  // Debug endpoint to check Airtable game fields
+  app.get("/api/airtable/game-fields", async (req, res) => {
+    try {
+      const game = req.query.game as string || "Spirit Island"; // Use provided game name or default
+      const baseId = process.env.AIRTABLE_BASE_ID;
+      const apiKey = process.env.AIRTABLE_API_KEY;
+      
+      if (!baseId || !apiKey) {
+        return res.status(500).json({ message: 'Airtable credentials not configured' });
+      }
+
+      const encodedFormula = encodeURIComponent(`{Title}="${game}"`);
+      const url = `https://api.airtable.com/v0/${baseId}/Games?filterByFormula=${encodedFormula}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
+      
+      if (!response.ok) {
+        return res.status(response.status).json({
+          message: `Airtable error: ${response.statusText}`
+        });
+      }
+      
+      const data = await response.json();
+      
+      if (!data.records || data.records.length === 0) {
+        return res.status(404).json({ message: `Game '${game}' not found in Airtable` });
+      }
+      
+      // Return the first game's record to examine its fields
+      const gameRecord = data.records[0];
+      
+      // Return all field names available in the record
+      const fieldNames = Object.keys(gameRecord.fields);
+      
+      return res.json({
+        game,
+        id: gameRecord.id,
+        fieldNames,
+        fields: gameRecord.fields
+      });
+    } catch (error) {
+      console.error('Error checking game fields:', error instanceof Error ? error.message : String(error));
+      return res.status(500).json({ message: 'Error checking game fields', error: error instanceof Error ? error.message : String(error) });
     }
   });
 
