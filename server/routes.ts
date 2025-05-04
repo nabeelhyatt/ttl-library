@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { boardGameGeekService } from "./services/bgg-service";
 import { airtableService } from "./services/airtable-service";
+import { airtableDirectService } from "./services/airtable-direct";
 import { debugAirtableBase, testAirtableWrite } from "./services/airtable-debug";
 import { testAirtableMCP } from "./services/airtable-mcp-test";
 import * as z from "zod";
@@ -403,8 +404,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update the existing vote
         const updatedVote = await storage.updateVote(existingVote.id, { voteType });
         
-        // Update in Airtable
-        await airtableService.updateVote(updatedVote);
+        // Update in Airtable using the direct service that works
+        try {
+          await airtableDirectService.updateVote(updatedVote);
+        } catch (airtableError) {
+          console.error("Airtable update error:", airtableError);
+          // Continue even if Airtable fails - local storage is our source of truth
+        }
         
         return res.status(200).json(updatedVote);
       }
@@ -416,8 +422,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         voteType
       });
       
-      // Save to Airtable
-      await airtableService.createVote(vote);
+      // Save to Airtable using the direct service that works
+      try {
+        await airtableDirectService.createVote(vote);
+      } catch (airtableError) {
+        console.error("Airtable create error:", airtableError);
+        // Continue even if Airtable fails - local storage is our source of truth
+      }
       
       return res.status(201).json(vote);
     } catch (error) {
@@ -486,8 +497,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete from storage
       await storage.deleteVote(voteId);
       
-      // Delete from Airtable
-      await airtableService.deleteVote(voteId);
+      // Delete from Airtable using the direct service that works
+      try {
+        await airtableDirectService.deleteVote(voteId);
+      } catch (airtableError) {
+        console.error("Airtable delete error:", airtableError);
+        // Continue even if Airtable fails - local storage is our source of truth
+      }
       
       return res.status(200).json({ message: "Vote deleted successfully" });
     } catch (error) {
