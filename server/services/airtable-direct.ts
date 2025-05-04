@@ -434,8 +434,8 @@ export class AirtableDirectService {
       const createPayload = {
         fields: {
           "Email": user.email,
-          "Full Name": user.name || "",
-          "Member ID": user.id
+          "Full Name": user.name || ""
+          // Removed "Member ID" field as it's computed in Airtable
         }
       };
       
