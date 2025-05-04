@@ -15,6 +15,13 @@ export interface GameWithVotes {
   voteCount: number;
 }
 
+export interface CategoryWithVotes {
+  id: number;
+  name: string;
+  description: string;
+  voteCount: number;
+}
+
 export class AirtableDirectService {
   private apiKey: string;
   private baseId: string;
