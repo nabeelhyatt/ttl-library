@@ -6,6 +6,7 @@ import { GameFilters } from '@/components/game/game-filters';
 import { GameCard } from '@/components/game/game-card';
 import { fetchHotGames, searchGames, getBGGtoTLCSWeight, getPrimaryGenre } from '@/lib/bgg-api';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 interface HomeProps {
   user: User | null;
@@ -21,8 +22,9 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
   const [weightFilter, setWeightFilter] = useState('all');
   const [genreFilter, setGenreFilter] = useState('all');
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
-  // Fetch hot games on component mount
+  // Fetch hot games on component mount and check for search parameter
   useEffect(() => {
     const loadHotGames = async () => {
       try {
@@ -44,7 +46,17 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
       }
     };
     
-    loadHotGames();
+    // Check if we have a search parameter in the URL
+    const params = new URLSearchParams(window.location.search);
+    const searchQuery = params.get('search');
+    
+    if (searchQuery) {
+      // If we have a search query, perform search instead of loading hot games
+      handleSearch(searchQuery);
+    } else {
+      // Otherwise load hot games as usual
+      loadHotGames();
+    }
   }, []);
   
   // Apply filters to games
@@ -76,6 +88,8 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
     if (!query.trim()) {
       setSearchMode(false);
       applyFilters(games, weightFilter, genreFilter);
+      // Clear search parameter from URL
+      setLocation('/');
       return;
     }
     
@@ -87,6 +101,9 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
     try {
       setIsSearching(true);
       setSearchMode(true);
+      
+      // Update URL with search parameter (without page reload)
+      setLocation(`/?search=${encodeURIComponent(query)}`, { replace: true });
       
       const searchResults = await searchGames(query);
       setFilteredGames(searchResults);
@@ -113,6 +130,8 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
       if (games.length > 0) {
         setSearchMode(false);
         applyFilters(games, weightFilter, genreFilter);
+        // Clear search parameter from URL
+        setLocation('/');
       }
     } finally {
       setIsSearching(false);
