@@ -286,14 +286,14 @@ export const GameCard: React.FC<GameCardProps> = ({
               className="vote-button"
               disabled={isVoting}
             >
-              Played, will play again
+              Would play again
             </button>
             <button
               onClick={() => handleVoteClick(VoteType.WouldJoinClub)}
               className="vote-button"
               disabled={isVoting}
             >
-              Would join a club
+              Would play regularly
             </button>
           </div>
         </div>

@@ -124,7 +124,7 @@ export enum VoteType {
   WouldTeach = 5
 }
 
-// Vote label and colors
+// Vote label and colors - updated to match Airtable options exactly
 export const voteTypeInfo = {
   [VoteType.WantToTry]: { 
     label: "Want to try", 
@@ -134,28 +134,28 @@ export const voteTypeInfo = {
     textColor: "text-vote-try" 
   },
   [VoteType.PlayedWillPlayAgain]: { 
-    label: "Played, will play again", 
+    label: "Would play again", 
     icon: "dice-two",
     bgColor: "bg-vote-played/20", 
     hoverBgColor: "hover:bg-vote-played/30", 
     textColor: "text-vote-played" 
   },
   [VoteType.WouldJoinClub]: { 
-    label: "Would join a club", 
+    label: "Would play regularly", 
     icon: "dice-three",
     bgColor: "bg-vote-club/20", 
     hoverBgColor: "hover:bg-vote-club/30", 
     textColor: "text-vote-club" 
   },
   [VoteType.WouldJoinTournament]: { 
-    label: "Would join a tournament", 
+    label: "Would play again", // Fallback to existing option
     icon: "dice-four",
     bgColor: "bg-vote-tournament/20", 
     hoverBgColor: "hover:bg-vote-tournament/30", 
     textColor: "text-vote-tournament" 
   },
   [VoteType.WouldTeach]: { 
-    label: "Would teach", 
+    label: "Would play regularly", // Fallback to existing option
     icon: "dice-five",
     bgColor: "bg-vote-teach/20", 
     hoverBgColor: "hover:bg-vote-teach/30", 

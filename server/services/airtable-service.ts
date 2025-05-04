@@ -237,18 +237,18 @@ class AirtableService {
   // Based on the attached content, Airtable expects specific string values
   private getVoteTypeString(voteType: number): string {
     // Maps the VoteType enum to the string values expected by Airtable
-    // as mentioned in the attached content
+    // based on the actual options from the Airtable screenshot
     switch (voteType) {
       case 1: // WantToTry
         return "Want to try";
       case 2: // PlayedWillPlayAgain
-        return "Played, will play again";
+        return "Would play again";
       case 3: // WouldJoinClub
-        return "Would join a club";
+        return "Would play regularly";
       case 4: // WouldJoinTournament
-        return "Would join a tournament";
+        return "Would play again"; // Fallback to existing option
       case 5: // WouldTeach
-        return "Would teach";
+        return "Would play regularly"; // Fallback to existing option
       default:
         return "Want to try"; // Default value
     }
