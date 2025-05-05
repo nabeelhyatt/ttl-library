@@ -197,9 +197,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
               }
               
-              // Return enriched game with Airtable data
-              return {
-                ...game,
+              // Return enriched game with Airtable data, preserving BGG game name
+              const enrichedGame = {
+                ...game, // Keep all BGG data including name and description
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
