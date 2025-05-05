@@ -7,8 +7,14 @@ export async function submitVote(gameId: number, voteType: VoteType): Promise<Vo
 }
 
 export async function getUserVotes(): Promise<Vote[]> {
-  const response = await apiRequest("GET", "/api/votes/my-votes");
-  return response.json();
+  try {
+    const response = await apiRequest("GET", "/api/votes/my-votes");
+    return response.json();
+  } catch (error) {
+    console.error("Failed to get user votes:", error);
+    // Rethrow to let the component handle the error
+    throw error;
+  }
 }
 
 export async function deleteVote(voteId: number): Promise<void> {

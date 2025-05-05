@@ -617,16 +617,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/votes/my-votes", async (req, res) => {
     try {
+      // Log Airtable configuration status
+      const airtableConfigured = process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID;
+      console.log(`Airtable configuration status: ${airtableConfigured ? 'Configured' : 'Not configured'}`);
+      
       // Check if user is authenticated
       if (!req.session.userId) {
+        console.log("User not authenticated when trying to view votes");
         return res.status(401).json({ message: "You must be logged in to view your votes" });
       }
       
+      console.log(`Fetching votes for user ID: ${req.session.userId}`);
       const votes = await storage.getUserVotes(req.session.userId);
+      console.log(`Retrieved ${votes.length} votes for user`);
       return res.status(200).json(votes);
     } catch (error) {
       console.error("Error fetching user votes:", error);
-      return res.status(500).json({ message: "Failed to fetch your votes" });
+      return res.status(500).json({ 
+        message: "Failed to fetch your votes", 
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined 
+      });
     }
   });
   
