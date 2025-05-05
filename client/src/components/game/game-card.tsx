@@ -61,10 +61,23 @@ export const GameCard: React.FC<GameCardProps> = ({
   };
 
   const handleLoginSuccess = async (email: string, name: string) => {
+    console.log("Game card received login attempt:", { email, name });
+    toast({
+      title: "Login Attempt",
+      description: "Attempting to log in...",
+    });
+    
     try {
       setIsVoting(true);
+      console.log("Calling onLogin function with:", { email, name });
       const loggedInUser = await onLogin(email, name);
+      console.log("Login successful:", loggedInUser);
+      
       setIsLoginOpen(false);
+      toast({
+        title: "Login Successful",
+        description: `Welcome ${name}!`,
+      });
 
       if (votingType && loggedInUser) {
         toast({
@@ -89,6 +102,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         }
       }
     } catch (error) {
+      console.error("Login failed in game card:", error);
       toast({
         title: "Login Failed",
         description: "Could not log in with this information. Please try again.",

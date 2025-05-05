@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
@@ -22,6 +23,7 @@ interface LoginDialogProps {
 
 export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -31,8 +33,61 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
     },
   });
   
+  // This is a direct submit handler that bypasses the form validation if needed
+  const handleDirectSubmit = () => {
+    const values = form.getValues();
+    console.log("Direct submit with values:", values);
+    
+    if (values.email && values.name && onSubmit) {
+      toast({
+        title: "Direct Login",
+        description: "Attempting direct login...",
+      });
+      
+      setIsSubmitting(true);
+      onSubmit(values.email, values.name)
+        .then(() => {
+          console.log("Direct login successful");
+          toast({
+            title: "Success",
+            description: "Login successful!",
+          });
+        })
+        .catch(error => {
+          console.error("Direct login failed:", error);
+          toast({
+            title: "Login Failed",
+            description: "Could not log in with the provided information.",
+            variant: "destructive",
+          });
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+        });
+    } else {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both email and name.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const handleSubmit = async (values: FormValues) => {
-    if (!onSubmit) return;
+    if (!onSubmit) {
+      console.error("No onSubmit handler provided to LoginDialog");
+      toast({
+        title: "Configuration Error",
+        description: "The login form is not properly configured. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Processing",
+      description: "Logging in...",
+    });
     
     setIsSubmitting(true);
     try {
@@ -40,6 +95,10 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       await onSubmit(values.email, values.name);
       // Add a success state indication
       console.log("Login successful");
+      toast({
+        title: "Success",
+        description: "Login successful!",
+      });
     } catch (error) {
       console.error("Login failed:", error);
       // Set specific field errors for better visibility
@@ -55,6 +114,12 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       // Also set root error for general visibility
       form.setError("root", { 
         message: "Login failed. Please make sure both email and name are provided."
+      });
+      
+      toast({
+        title: "Login Failed",
+        description: "Could not log in with the provided information.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -123,13 +188,24 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
             </div>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full bg-accent text-background py-3 rounded-lg hover:bg-accent/90 transition duration-200 font-medium"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Processing...' : 'Continue'}
-          </Button>
+          <div className="flex flex-col space-y-2">
+            <Button 
+              type="submit" 
+              className="w-full bg-accent text-background py-3 rounded-lg hover:bg-accent/90 transition duration-200 font-medium"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Processing...' : 'Continue'}
+            </Button>
+            
+            <Button 
+              type="button"
+              onClick={handleDirectSubmit}
+              className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg hover:bg-gray-300 transition duration-200 font-medium"
+              disabled={isSubmitting}
+            >
+              Try Direct Login
+            </Button>
+          </div>
         </form>
       </Form>
       
