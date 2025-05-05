@@ -146,22 +146,15 @@ class BoardGameGeekService {
           .filter((id: number) => !exactIds.includes(id)) // Remove duplicates
           .slice(0, 10);
         
-        // Combine IDs
-        const allIds = [...exactIds, ...generalIds];
+        // Combine IDs and remove any undefined/null values
+        const allIds = [...exactIds, ...generalIds].filter(id => id);
         
-        const response = await axios.get(url);
-        const result = await parseStringPromise(response.data, { explicitArray: false });
-        
-        // Check if there are results
-        if (!result.items.item) {
+        if (allIds.length === 0) {
           return [];
         }
         
-        // Ensure items.item is an array
-        const items = Array.isArray(result.items.item) ? result.items.item : [result.items.item];
-        
-        // Extract game IDs from search results
-        const gameIds = items.map((item: any) => parseInt(item.$.id)).slice(0, options.limit || 10);
+        // Get full details and sort by BGG rank
+        const games = await this.getGamesDetails(allIds);
         
         // Get full details and sort by BGG rank
         const games = await this.getGamesDetails(allIds);
