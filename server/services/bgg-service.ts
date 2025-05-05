@@ -121,7 +121,17 @@ class BoardGameGeekService {
       try {
         await this.rateLimit();
         const searchQuery = options.exact ? `"${query}"` : query;
-        const response = await axios.get(`${this.API_BASE}search?query=${encodeURIComponent(searchQuery)}&type=boardgame`);
+        let url = `${this.API_BASE}search?type=boardgame`;
+        
+        // Add search parameters
+        if (options.exact) {
+          url += `&exact=1&query=${encodeURIComponent(searchQuery)}`;
+        } else {
+          // Try to match start of name for better results
+          url += `&query=${encodeURIComponent(searchQuery)}`;
+        }
+        
+        const response = await axios.get(url);
         const result = await parseStringPromise(response.data, { explicitArray: false });
         
         // Check if there are results
