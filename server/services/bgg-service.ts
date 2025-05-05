@@ -214,8 +214,9 @@ class BoardGameGeekService {
       const combinedResults = [...exactMatches, ...uniquePartialMatches];
       
       return combinedResults;
-    } catch (error) {
-      console.error('Error in combined search:', error);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error in combined search:', error.message);
       throw error;
     }
   }
@@ -259,7 +260,8 @@ class BoardGameGeekService {
       };
       
       return game;
-    } catch (error) {
+    } catch (err) {
+      const error = err as any;
       if (error.response && error.response.status === 429) {
         // BGG rate limit - wait and retry
         if (retries >= this.MAX_RETRIES) {

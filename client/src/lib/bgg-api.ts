@@ -14,13 +14,26 @@ export async function searchGames(
     sort?: 'rank' | 'rating' | 'year' 
   }
 ): Promise<BGGGame[]> {
+  console.log(`🔍 Searching for games matching: "${query}"`);
+  const startTime = Date.now();
+
   const params = new URLSearchParams({ query });
   if (options?.exact) params.append('exact', 'true');
   if (options?.limit) params.append('limit', options.limit.toString());
   if (options?.sort) params.append('sort', options.sort);
   
-  const response = await apiRequest("GET", `/api/bgg/search?${params}`);
-  return response.json();
+  try {
+    const response = await apiRequest("GET", `/api/bgg/search?${params}`);
+    const games = await response.json();
+    
+    const endTime = Date.now();
+    console.log(`🔍 Search completed in ${endTime - startTime}ms, found ${games.length} results`);
+    
+    return games;
+  } catch (error) {
+    console.error('🔍 Search failed:', error);
+    throw error;
+  }
 }
 
 export async function getGameDetails(gameId: number): Promise<BGGGame> {

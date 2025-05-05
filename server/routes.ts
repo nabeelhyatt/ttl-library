@@ -171,8 +171,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Search query is required" });
       }
       
-      // Get basic search results
-      const results = await boardGameGeekService.searchGames(query);
+      console.log(`📚 Search request received for: "${query}"`);
+      const startTime = Date.now();
+      
+      // Use combined search for better results (exact + partial with deduplication)
+      const results = await boardGameGeekService.searchGamesCombined(query);
+      
+      console.log(`📚 Combined search returned ${results.length} results for "${query}"`);
       
       // Enrich with Airtable data (in parallel)
       const enrichedResults = await Promise.all(
@@ -222,6 +227,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If neither has a rank, sort alphabetically by name
         return a.name.localeCompare(b.name);
       });
+      
+      const executionTime = Date.now() - startTime;
+      console.log(`📚 Search completed in ${executionTime}ms - returning ${sortedResults.length} results`);
       
       return res.status(200).json(sortedResults);
     } catch (error) {
