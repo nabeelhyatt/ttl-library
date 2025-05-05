@@ -156,7 +156,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               // Make sure we preserve all important BGG data while adding Airtable data
-              return {
+              // Use Airtable title when available for BGG placeholder games
+              const isPlaceholderBGGName = game.name.startsWith('Game ') && /^Game \d+$/.test(game.name);
+              const enrichedGame = {
                 ...game, // Keep all original BGG data
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
@@ -165,6 +167,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 toOrder: airtableGameInfo.toOrder || false,
                 categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
               };
+
+              // If we have a title from Airtable and the BGG name is a placeholder, use the Airtable title
+              if (isPlaceholderBGGName && airtableGameInfo.title) {
+                console.log(`Using Airtable title "${airtableGameInfo.title}" for BGG placeholder name "${game.name}"`);
+                enrichedGame.name = airtableGameInfo.title;
+              }
+              
+              return enrichedGame;
             }
             
             return game;
@@ -260,7 +270,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               // Return enriched game with Airtable data while preserving all BGG data
-              return {
+              // Use Airtable title when available for BGG placeholder games
+              const isPlaceholderBGGName = game.name.startsWith('Game ') && /^Game \d+$/.test(game.name);
+              const enrichedGame = {
                 ...game, // Keep all original BGG data
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
@@ -269,6 +281,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 toOrder: airtableGameInfo.toOrder || false,
                 categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
               };
+              
+              // If we have a title from Airtable and the BGG name is a placeholder, use the Airtable title
+              if (isPlaceholderBGGName && airtableGameInfo.title) {
+                console.log(`Using Airtable title "${airtableGameInfo.title}" for search result with BGG placeholder name "${game.name}"`);
+                enrichedGame.name = airtableGameInfo.title;
+              }
+              
+              return enrichedGame;
             }
             
             return game;
@@ -341,6 +361,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Merge Airtable data with BGG data, making sure to preserve all BGG data
+      // Use Airtable title when available for BGG placeholder games
+      const isPlaceholderBGGName = game.name.startsWith('Game ') && /^Game \d+$/.test(game.name);
       const enrichedGame = {
         ...game, // Preserve all original BGG data
         tlcsCode: airtableGameInfo?.tlcsCode || null,
@@ -351,6 +373,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Use Airtable categories only if they're not record IDs
         categories: useAirtableCategories && airtableGameInfo?.categories ? airtableGameInfo.categories : game.categories
       };
+      
+      // If we have a title from Airtable and the BGG name is a placeholder, use the Airtable title
+      if (isPlaceholderBGGName && airtableGameInfo?.title) {
+        console.log(`Using Airtable title "${airtableGameInfo.title}" for individual game with BGG placeholder name "${game.name}"`);
+        enrichedGame.name = airtableGameInfo.title;
+      }
       
       return res.status(200).json(enrichedGame);
     } catch (error) {
