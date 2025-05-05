@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Footer } from '../components/layout/footer';
+import { searchGames } from '@/lib/bgg-api';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { GameSearch } from '../components/game/game-search';
@@ -80,8 +81,6 @@ export default function Rankings() {
     // Navigate to home page with search query
     handleSearch(gameName);
   };
-
-  import { searchGames } from '@/lib/bgg-api';
 
   // Handle search directly like Home page
   const handleSearch = async (query: string) => {
