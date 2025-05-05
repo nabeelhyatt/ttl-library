@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
+  name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
+  email: z.string().email("Please enter a valid email address").min(5, "Email is too short").max(100, "Email is too long"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -36,7 +36,13 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
     
     setIsSubmitting(true);
     try {
+      console.log("Submitting login with:", values);
       await onSubmit(values.email, values.name);
+    } catch (error) {
+      console.error("Login failed:", error);
+      form.setError("root", { 
+        message: "Login failed. Please make sure both email and name are provided."
+      });
     } finally {
       setIsSubmitting(false);
     }
