@@ -4,9 +4,9 @@ import { BGGGame, User, VoteType, voteTypeInfo } from "@shared/schema";
 import { getBGGtoTLCSWeight, getPrimaryGenre } from "@/lib/bgg-api";
 import { Dialog } from "@/components/ui/dialog";
 import { LoginDialog } from "@/components/auth/login-dialog";
-import { VoteSuccessDialog } from "@/components/auth/vote-success-dialog";
 import { submitVote } from "@/lib/airtable-api";
 import { useToast } from "@/hooks/use-toast";
+import { CheckIcon } from "lucide-react";
 
 interface GameCardProps {
   game: BGGGame;
@@ -22,7 +22,6 @@ export const GameCard: React.FC<GameCardProps> = ({
   onVoteSuccess,
 }) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isVoteSuccessOpen, setIsVoteSuccessOpen] = useState(false);
   const [votingType, setVotingType] = useState<VoteType | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const { toast } = useToast();
@@ -44,7 +43,19 @@ export const GameCard: React.FC<GameCardProps> = ({
     setIsVoting(true);
     try {
       await submitVote(game.gameId, voteType);
-      setIsVoteSuccessOpen(true);
+      
+      // Show toast notification instead of dialog
+      toast({
+        title: "Vote Registered!",
+        description: "Your vote has been successfully recorded. Thank you for your contribution!",
+        variant: "default",
+        action: (
+          <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
+            <CheckIcon className="text-green-600 h-4 w-4" />
+          </div>
+        )
+      });
+      
       if (onVoteSuccess) {
         onVoteSuccess();
       }
@@ -88,7 +99,19 @@ export const GameCard: React.FC<GameCardProps> = ({
         try {
           // Submit vote immediately after confirmed login
           await submitVote(game.gameId, votingType);
-          setIsVoteSuccessOpen(true);
+          
+          // Show toast notification instead of dialog
+          toast({
+            title: "Vote Registered!",
+            description: "Your vote has been successfully recorded. Thank you for your contribution!",
+            variant: "default",
+            action: (
+              <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                <CheckIcon className="text-green-600 h-4 w-4" />
+              </div>
+            )
+          });
+          
           if (onVoteSuccess) {
             onVoteSuccess();
           }
