@@ -82,7 +82,7 @@ export default function Rankings() {
     handleSearch(gameName);
   };
 
-  // Handle search directly like Home page
+  // Handle search by redirecting to home page with search parameter
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
       setLocation('/');
@@ -96,9 +96,9 @@ export default function Rankings() {
 
     try {
       setIsSearching(true);
-      const searchResults = await searchGames(query);
       
-      // Navigate to home with search parameter
+      // Simple redirect to home page with search parameter
+      // Let the home page handle the actual search process
       setLocation(`/?search=${encodeURIComponent(query)}`);
       
     } catch (error) {
