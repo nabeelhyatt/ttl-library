@@ -236,8 +236,7 @@ class AirtableService {
   // Helper method to convert numeric vote types to string values expected by Airtable
   // Based on the attached content, Airtable expects specific string values
   private getVoteTypeString(voteType: number): string {
-    // Maps the VoteType enum to the string values expected by Airtable
-    // based on the actual options from the Airtable screenshot
+    // Maps the VoteType enum to exact Airtable values
     switch (voteType) {
       case 1: // WantToTry
         return "Want to try";
@@ -246,11 +245,11 @@ class AirtableService {
       case 3: // WouldJoinClub
         return "Would play regularly";
       case 4: // WouldJoinTournament
-        return "Would play again"; // Fallback to existing option
+        return "Would join tournament";
       case 5: // WouldTeach
-        return "Would play regularly"; // Fallback to existing option
+        return "Would teach";
       default:
-        return "Want to try"; // Default value
+        throw new Error(`Invalid vote type: ${voteType}`);
     }
   }
   
