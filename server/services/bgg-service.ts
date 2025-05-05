@@ -288,14 +288,14 @@ class BoardGameGeekService {
       const batch = gameIds.slice(i, i + batchSize);
       const batchPromises = batch.map(id => this.getGameDetails(id).catch(error => {
         console.error(`Error fetching details for game ${id}:`, error.message);
-        // Return a minimal game object on error
+        // Return a minimal game object on error with a better fallback name
         return {
           gameId: id,
-          name: `Game ${id}`,
-          description: '',
+          name: `Untitled Game (ID: ${id})`,
+          description: 'Information temporarily unavailable. Please check back later.',
           image: '',
           thumbnail: '',
-          categories: [],
+          categories: ['Strategy'],  // Add a default category
           mechanics: [],
           designers: [],
           publishers: []
