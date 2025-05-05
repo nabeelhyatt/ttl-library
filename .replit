@@ -9,7 +9,7 @@ packages = ["jq"]
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+run = ["sh", "-c", "NODE_ENV=production AIRTABLE_API_KEY=$AIRTABLE_API_KEY AIRTABLE_BASE_ID=$AIRTABLE_BASE_ID npm run start"]
 
 [workflows]
 runButton = "Project"
