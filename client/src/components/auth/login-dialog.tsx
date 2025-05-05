@@ -183,7 +183,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
           
           {/* Display form-level errors */}
           {form.formState.errors.root && (
-            <div className="text-red-500 text-sm border border-red-300 bg-red-50 p-3 rounded-md">
+            <div className="text-red-700 text-sm border border-red-300 bg-[#f5f5dc] p-3 rounded-md shadow-sm">
               {form.formState.errors.root.message}
             </div>
           )}
