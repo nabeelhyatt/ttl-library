@@ -81,6 +81,8 @@ export default function Rankings() {
     handleSearch(gameName);
   };
 
+  import { searchGames } from '@/lib/bgg-api';
+
   // Handle search directly like Home page
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
@@ -95,25 +97,16 @@ export default function Rankings() {
 
     try {
       setIsSearching(true);
-
-      // Update URL without page reload
-      setLocation(`/rankings?search=${encodeURIComponent(query)}`, { replace: true });
-
       const searchResults = await searchGames(query);
-      // Handle search results here if needed
-
-      if (searchResults.length === 0) {
-        toast({
-          title: "No results found",
-          description: `We couldn't find any games matching "${query}". BGG API may be rate-limited, please try again in a moment.`,
-          variant: "default"
-        });
-      }
+      
+      // Navigate to home with search parameter
+      setLocation(`/?search=${encodeURIComponent(query)}`);
+      
     } catch (error) {
       console.error('Search error:', error);
       toast({
-        title: "Search failed",
-        description: "We couldn't complete your search. BGG API may be rate-limited, please try again in a moment.",
+        title: "Search failed", 
+        description: "We couldn't complete your search. Please try again.",
         variant: "destructive"
       });
     } finally {
