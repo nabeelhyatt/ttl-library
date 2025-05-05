@@ -130,6 +130,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
             
             if (airtableGameInfo) {
+              // Log the game data for debugging
+              console.log(`Game "${game.name}" (BGG ID: ${game.gameId}) found in Airtable:`, { 
+                bggData: {
+                  name: game.name,
+                  description: game.description?.substring(0, 50) + '...' || 'No description',
+                  hasImage: !!game.image,
+                  hasCategories: (game.categories || []).length > 0
+                },
+                airtableData: {
+                  tlcsCode: airtableGameInfo.tlcsCode,
+                  subcategoryName: airtableGameInfo.subcategoryName,
+                  forRent: airtableGameInfo.forRent,
+                  forSale: airtableGameInfo.forSale,
+                  toOrder: airtableGameInfo.toOrder
+                }
+              });
+              
               // Determine if Airtable categories are record IDs
               let useAirtableCategories = false;
               if (airtableGameInfo.categories?.length) {
@@ -138,9 +155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
               }
               
-              // Return enriched game with Airtable data
+              // Make sure we preserve all important BGG data while adding Airtable data
               return {
-                ...game,
+                ...game, // Keep all original BGG data
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
@@ -217,6 +234,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
             
             if (airtableGameInfo) {
+              // Log the game data for debugging
+              console.log(`Search result "${game.name}" (BGG ID: ${game.gameId}) found in Airtable:`, { 
+                bggData: {
+                  name: game.name,
+                  description: game.description?.substring(0, 50) + '...' || 'No description',
+                  hasImage: !!game.image,
+                  hasCategories: (game.categories || []).length > 0
+                },
+                airtableData: {
+                  tlcsCode: airtableGameInfo.tlcsCode,
+                  subcategoryName: airtableGameInfo.subcategoryName,
+                  forRent: airtableGameInfo.forRent,
+                  forSale: airtableGameInfo.forSale,
+                  toOrder: airtableGameInfo.toOrder
+                }
+              });
+              
               // Determine if Airtable categories are record IDs
               let useAirtableCategories = false;
               if (airtableGameInfo.categories?.length) {
@@ -225,9 +259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
               }
               
-              // Return enriched game with Airtable data
+              // Return enriched game with Airtable data while preserving all BGG data
               return {
-                ...game,
+                ...game, // Keep all original BGG data
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
@@ -280,6 +314,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if game exists in Airtable and get additional information
       const airtableGameInfo = await airtableService.getGameByBGGId(gameId);
       
+      if (airtableGameInfo) {
+        // Log the game data for debugging
+        console.log(`Individual game "${game.name}" (BGG ID: ${game.gameId}) found in Airtable:`, { 
+          bggData: {
+            name: game.name,
+            description: game.description?.substring(0, 50) + '...' || 'No description',
+            hasImage: !!game.image,
+            hasCategories: (game.categories || []).length > 0
+          },
+          airtableData: {
+            tlcsCode: airtableGameInfo.tlcsCode,
+            subcategoryName: airtableGameInfo.subcategoryName,
+            forRent: airtableGameInfo.forRent,
+            forSale: airtableGameInfo.forSale,
+            toOrder: airtableGameInfo.toOrder
+          }
+        });
+      }
+      
       // Determine if Airtable categories are record IDs (they start with "rec")
       let useAirtableCategories = false;
       if (airtableGameInfo?.categories?.length) {
@@ -287,16 +340,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         useAirtableCategories = airtableGameInfo.categories.some(cat => typeof cat === 'string' && !cat.startsWith('rec'));
       }
       
-      // Merge Airtable data with BGG data
+      // Merge Airtable data with BGG data, making sure to preserve all BGG data
       const enrichedGame = {
-        ...game,
+        ...game, // Preserve all original BGG data
         tlcsCode: airtableGameInfo?.tlcsCode || null,
         subcategoryName: airtableGameInfo?.subcategoryName || null,
         forRent: airtableGameInfo?.forRent || false,
         forSale: airtableGameInfo?.forSale || false,
         toOrder: airtableGameInfo?.toOrder || false,
         // Use Airtable categories only if they're not record IDs
-        categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
+        categories: useAirtableCategories && airtableGameInfo?.categories ? airtableGameInfo.categories : game.categories
       };
       
       return res.status(200).json(enrichedGame);
