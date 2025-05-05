@@ -197,15 +197,6 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
             >
               {isSubmitting ? 'Processing...' : 'Continue'}
             </Button>
-            
-            <Button 
-              type="button"
-              onClick={handleDirectSubmit}
-              className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg hover:bg-gray-300 transition duration-200 font-medium"
-              disabled={isSubmitting}
-            >
-              Try Direct Login
-            </Button>
           </div>
         </form>
       </Form>
