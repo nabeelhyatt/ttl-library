@@ -8,171 +8,167 @@ class BoardGameGeekService {
   private MAX_RETRIES = 5; // Increase retry attempts
   private lastRequestTime = 0; // Track last request time for rate limiting
   
-  // Cache for hot games data
+  // Cache for hot games
   private hotGamesCache: BGGGame[] | null = null;
   private hotGamesCacheTimestamp: number = 0;
   private CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
   private CACHE_HITS: number = 0; // Counter for cache hits
   
-  // Apply rate limiting to requests
+  // Add rate limiting to avoid 429 errors from BGG
   private async rateLimit(): Promise<void> {
     const now = Date.now();
-    const timeSinceLastRequest = now - this.lastRequestTime;
+    const elapsed = now - this.lastRequestTime;
+    const minDelay = 1000; // 1 second minimum between requests
     
-    // Ensure at least 1 second between requests
-    if (this.lastRequestTime > 0 && timeSinceLastRequest < 1000) {
-      await new Promise(resolve => setTimeout(resolve, 1000 - timeSinceLastRequest));
+    if (elapsed < minDelay) {
+      const delay = minDelay - elapsed;
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
     
     this.lastRequestTime = Date.now();
   }
   
-  // Handle rate limit errors
+  // Handle rate limiting errors with exponential backoff
   private async handleRateLimitError(error: any, retryFn: () => Promise<any>, retries = 0): Promise<any> {
+    console.error('Rate limit error from BGG API, retrying with backoff...');
+    
     if (retries >= this.MAX_RETRIES) {
-      console.error(`Max retries (${this.MAX_RETRIES}) exceeded:`, error);
-      throw new Error(`Failed after ${this.MAX_RETRIES} retries: ${error.message || 'Unknown error'}`);
+      throw new Error(`Failed after ${this.MAX_RETRIES} retry attempts due to rate limits`);
     }
     
-    if (error.response && error.response.status === 429) {
-      console.log(`BGG rate limit hit, waiting to retry (attempt ${retries + 1}/${this.MAX_RETRIES})`);
-      await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY * Math.pow(2, retries)));
-      return retryFn();
-    }
+    const delay = this.RETRY_DELAY * Math.pow(2, retries);
+    await new Promise(resolve => setTimeout(resolve, delay));
     
-    if (error.message && error.message.includes('Rate limit')) {
-      console.log(`BGG rate limit hit for game ${error.gameId}, waiting to retry (attempt ${retries + 1}/${this.MAX_RETRIES})`);
-      await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY * Math.pow(2, retries)));
-      return retryFn();
-    }
-    
-    // Other errors - just throw
-    throw error;
+    return retryFn();
   }
   
-  // Get the current hot games list
+  // Get hot games from BGG API or cache
   async getHotGames(): Promise<BGGGame[]> {
-    // Check if we have a valid cache
+    console.log('🚀 PERFORMANCE: GET /api/bgg/hot - Fetching hot games (will use cache if available)');
+    console.log('*********************************************');
+    
     const now = Date.now();
+    
+    // Check if cache is valid
     if (this.hotGamesCache && (now - this.hotGamesCacheTimestamp < this.CACHE_TTL)) {
       this.CACHE_HITS++;
-      const minutesRemaining = Math.floor((this.CACHE_TTL - (now - this.hotGamesCacheTimestamp)) / 60000);
-      console.log('*********************************************');
-      console.log(`🔄 CACHE HIT #${this.CACHE_HITS}: Using cached hot games (expires in ${minutesRemaining} minutes)`);
-      console.log(`🔄 Cache created: ${new Date(this.hotGamesCacheTimestamp).toLocaleTimeString()}`);
-      console.log(`🔄 Cache expires: ${new Date(this.hotGamesCacheTimestamp + this.CACHE_TTL).toLocaleTimeString()}`);
-      console.log(`🔄 Cache hits since server start: ${this.CACHE_HITS}`);
+      console.log(`✅ CACHE HIT (${this.CACHE_HITS}): Returning cached hot games`);
+      console.log(`✅ Cache age: ${Math.round((now - this.hotGamesCacheTimestamp) / 1000 / 60)} minutes old`);
       console.log('*********************************************');
       return this.hotGamesCache;
     }
     
-    console.log('*********************************************');
     console.log('❌ CACHE MISS: Fetching hot games from BGG API...');
     console.log(`❌ Current time: ${new Date().toLocaleTimeString()}`);
     console.log('*********************************************');
     
-    const fetchHotGames = async (retries = 0): Promise<BGGGame[]> => {
-      try {
-        await this.rateLimit();
-        const response = await axios.get(`${this.API_BASE}hot?type=boardgame`);
-        const result = await parseStringPromise(response.data, { explicitArray: false });
-        
-        // Extract game IDs from the hot list
-        const gameIds = result.items.item.map((item: any) => parseInt(item.$.id)).slice(0, 20); // Reduce to 20 games
-        
-        // Fetch details for each game
-        const gamesWithDetails = await this.getGamesDetails(gameIds);
-        
-        return gamesWithDetails;
-      } catch (error) {
-        return this.handleRateLimitError(
-          error, 
-          () => fetchHotGames(retries + 1),
-          retries
-        );
-      }
-    };
-    
     try {
-      // Fetch fresh data from BGG
-      const hotGames = await fetchHotGames();
+      await this.rateLimit();
+      const response = await axios.get(`${this.API_BASE}hot?type=boardgame`);
+      const result = await parseStringPromise(response.data, { explicitArray: false });
       
-      // Update cache with new data and timestamp
+      const hotGameIds = result.items.item.map((item: any) => parseInt(item.id));
+      
+      // Fetch details for each hot game
+      const hotGames = await this.getGamesDetails(hotGameIds);
+      
+      // Sort by BGG rank if available
+      hotGames.sort((a, b) => {
+        if (a.bggRank && b.bggRank) return a.bggRank - b.bggRank;
+        if (a.bggRank) return -1;
+        if (b.bggRank) return 1;
+        return 0;
+      });
+      
+      // Update cache
       this.hotGamesCache = hotGames;
-      this.hotGamesCacheTimestamp = Date.now();
-      console.log('*********************************************');
-      console.log(`✅ CACHE UPDATED: Stored ${hotGames.length} hot games in cache (valid for 1 hour)`);
-      console.log(`✅ Cache created at: ${new Date(this.hotGamesCacheTimestamp).toLocaleTimeString()}`);
-      console.log(`✅ Cache expires at: ${new Date(this.hotGamesCacheTimestamp + this.CACHE_TTL).toLocaleTimeString()}`);
-      console.log('*********************************************');
+      this.hotGamesCacheTimestamp = now;
       
       return hotGames;
     } catch (error) {
-      console.error('Error fetching hot games from BGG:', error);
+      console.error('Error fetching hot games:', error);
       
-      // If we have an expired cache, return it as a fallback
+      // If we have cached data (even if outdated), return it as fallback
       if (this.hotGamesCache) {
-        console.log('Returning expired cache as fallback due to BGG API error');
+        console.log('❌ Error fetching fresh data, using outdated cache as fallback');
         return this.hotGamesCache;
       }
       
-      throw new Error('Failed to fetch hot games from BoardGameGeek');
+      throw error;
     }
   }
   
-  // Search games by name
+  // Search for games matching a query
   async searchGames(query: string, options: { exact?: boolean; limit?: number; sort?: 'rank' | 'rating' | 'year' } = {}): Promise<BGGGame[]> {
-    const searchGamesImpl = async (retries = 0): Promise<BGGGame[]> => {
+    const searchGamesImpl = async () => {
+      await this.rateLimit();
+      
+      // Build search parameters
+      const params = new URLSearchParams();
+      params.append('query', query);
+      params.append('type', 'boardgame');
+      
+      if (options.exact) {
+        params.append('exact', '1');
+      }
+      
       try {
-        await this.rateLimit();
-        const searchQuery = options.exact ? `"${query}"` : query;
-        let url = `${this.API_BASE}search?type=boardgame`;
-        
-        // Add search parameters
-        if (options.exact) {
-          url += `&exact=1&query=${encodeURIComponent(searchQuery)}`;
-        } else {
-          // Try to match start of name for better results
-          url += `&query=${encodeURIComponent(searchQuery)}`;
-        }
-        
-        const response = await axios.get(url);
+        const response = await axios.get(`${this.API_BASE}search?${params.toString()}`);
         const result = await parseStringPromise(response.data, { explicitArray: false });
         
-        // Check if there are results
+        // Handle no results
         if (!result.items.item) {
           return [];
         }
         
-        // Ensure items.item is an array
-        const items = Array.isArray(result.items.item) ? result.items.item : [result.items.item];
+        // Ensure item is always an array
+        const items = Array.isArray(result.items.item) 
+          ? result.items.item 
+          : [result.items.item];
         
-        // Extract game IDs from search results
-        const gameIds = items.map((item: any) => parseInt(item.$.id)).slice(0, options.limit || 10);
+        // Apply limit to search results if specified
+        const limitedItems = options.limit 
+          ? items.slice(0, options.limit) 
+          : items;
         
-        // Get full details for games
+        // Extract game IDs and fetch full details
+        const gameIds = limitedItems.map((item: any) => parseInt(item.id));
         let games = await this.getGamesDetails(gameIds);
         
-        // Sort by chosen field
-        if (options.sort === 'rank') {
-          games = games.sort((a, b) => (a.bggRank || 9999) - (b.bggRank || 9999));
-        } else if (options.sort === 'rating') {
-          games = games.sort((a, b) => {
-            const ratingA = a.bggRating ? parseFloat(a.bggRating) : 0;
-            const ratingB = b.bggRating ? parseFloat(b.bggRating) : 0;
-            return ratingB - ratingA; // Higher rating first
-          });
-        } else if (options.sort === 'year') {
-          games = games.sort((a, b) => (b.yearPublished || 0) - (a.yearPublished || 0)); // Newer first
+        // Sort results based on options
+        if (options.sort) {
+          switch (options.sort) {
+            case 'rank':
+              games = games.sort((a, b) => {
+                if (a.bggRank && b.bggRank) return a.bggRank - b.bggRank;
+                if (a.bggRank) return -1;
+                if (b.bggRank) return 1;
+                return 0;
+              });
+              break;
+            case 'rating':
+              games = games.sort((a, b) => {
+                const ratingA = a.bggRating ? parseFloat(a.bggRating) : 0;
+                const ratingB = b.bggRating ? parseFloat(b.bggRating) : 0;
+                return ratingB - ratingA;
+              });
+              break;
+            case 'year':
+              games = games.sort((a, b) => {
+                const yearA = a.yearPublished || 0;
+                const yearB = b.yearPublished || 0;
+                return yearB - yearA;
+              });
+              break;
+          }
         }
         
         return games;
-      } catch (error) {
-        return this.handleRateLimitError(
-          error, 
-          () => searchGamesImpl(retries + 1),
-          retries
-        );
+      } catch (error: any) {
+        if (error.response && error.response.status === 429) {
+          return this.handleRateLimitError(error, searchGamesImpl);
+        }
+        throw error;
       }
     };
     
@@ -214,9 +210,8 @@ class BoardGameGeekService {
       const combinedResults = [...exactMatches, ...uniquePartialMatches];
       
       return combinedResults;
-    } catch (err) {
-      const error = err as Error;
-      console.error('Error in combined search:', error.message);
+    } catch (error) {
+      console.error('Error in combined search:', error);
       throw error;
     }
   }
@@ -234,23 +229,46 @@ class BoardGameGeekService {
       
       const gameData = result.items.item;
       
+      // For handling name which might be an array
+      let name = '';
+      if (typeof gameData.name === 'string') {
+        name = gameData.name;
+      } else if (Array.isArray(gameData.name)) {
+        name = gameData.name[0].$.value;
+      } else if (gameData.name && gameData.name.$) {
+        name = gameData.name.$.value;
+      } else {
+        name = `Game ${gameId}`;
+      }
+      
       // Extract game details
       const game: BGGGame = {
         gameId,
-        name: gameData.name.$.value || 'Unknown Game',
+        name: name,
         description: gameData.description || '',
         image: gameData.image || '',
         thumbnail: gameData.thumbnail || '',
-        yearPublished: gameData.yearpublished ? parseInt(gameData.yearpublished.$.value) : undefined,
-        minPlayers: gameData.minplayers ? parseInt(gameData.minplayers.$.value) : undefined,
-        maxPlayers: gameData.maxplayers ? parseInt(gameData.maxplayers.$.value) : undefined,
-        playingTime: gameData.playingtime ? parseInt(gameData.playingtime.$.value) : undefined,
-        minPlayTime: gameData.minplaytime ? parseInt(gameData.minplaytime.$.value) : undefined,
-        maxPlayTime: gameData.maxplaytime ? parseInt(gameData.maxplaytime.$.value) : undefined,
-        minAge: gameData.minage ? parseInt(gameData.minage.$.value) : undefined,
-        bggRating: gameData.statistics?.ratings?.average?.$?.value || undefined,
+        yearPublished: gameData.yearpublished && gameData.yearpublished.$ ? 
+                       parseInt(gameData.yearpublished.$.value) : undefined,
+        minPlayers: gameData.minplayers && gameData.minplayers.$ ? 
+                    parseInt(gameData.minplayers.$.value) : undefined,
+        maxPlayers: gameData.maxplayers && gameData.maxplayers.$ ? 
+                    parseInt(gameData.maxplayers.$.value) : undefined,
+        playingTime: gameData.playingtime && gameData.playingtime.$ ? 
+                     parseInt(gameData.playingtime.$.value) : undefined,
+        minPlayTime: gameData.minplaytime && gameData.minplaytime.$ ? 
+                     parseInt(gameData.minplaytime.$.value) : undefined,
+        maxPlayTime: gameData.maxplaytime && gameData.maxplaytime.$ ? 
+                     parseInt(gameData.maxplaytime.$.value) : undefined,
+        minAge: gameData.minage && gameData.minage.$ ? 
+                parseInt(gameData.minage.$.value) : undefined,
+        bggRating: gameData.statistics && gameData.statistics.ratings && 
+                  gameData.statistics.ratings.average && gameData.statistics.ratings.average.$ ? 
+                  gameData.statistics.ratings.average.$.value : undefined,
         bggRank: this.extractBGGRank(gameData),
-        weightRating: gameData.statistics?.ratings?.averageweight?.$?.value || undefined,
+        weightRating: gameData.statistics && gameData.statistics.ratings && 
+                      gameData.statistics.ratings.averageweight && gameData.statistics.ratings.averageweight.$ ? 
+                      gameData.statistics.ratings.averageweight.$.value : undefined,
         
         // Extract categories, mechanics, designers, publishers
         categories: this.extractLinkedItems(gameData, 'boardgamecategory'),
@@ -260,8 +278,7 @@ class BoardGameGeekService {
       };
       
       return game;
-    } catch (err) {
-      const error = err as any;
+    } catch (error) {
       if (error.response && error.response.status === 429) {
         // BGG rate limit - wait and retry
         if (retries >= this.MAX_RETRIES) {
@@ -287,19 +304,19 @@ class BoardGameGeekService {
     for (let i = 0; i < gameIds.length; i += batchSize) {
       const batch = gameIds.slice(i, i + batchSize);
       const batchPromises = batch.map(id => this.getGameDetails(id).catch(error => {
-        console.error(`Error fetching details for game ${id}:`, error.message);
-        // Return a minimal game object on error with a better fallback name
+        console.error(`Error fetching details for game ${id}:`, error);
+        // Return a minimal game object on error
         return {
           gameId: id,
-          name: `Untitled Game (ID: ${id})`,
-          description: 'Information temporarily unavailable. Please check back later.',
+          name: `Game ${id}`,
+          description: '',
           image: '',
           thumbnail: '',
-          categories: ['Strategy'],  // Add a default category
+          categories: [],
           mechanics: [],
           designers: [],
           publishers: []
-        };
+        } as BGGGame;
       }));
       
       const batchResults = await Promise.all(batchPromises);
@@ -320,24 +337,28 @@ class BoardGameGeekService {
     
     // Filter links by type and extract values
     return links
-      .filter((link: any) => link.$.type === type)
+      .filter((link: any) => link.$ && link.$.type === type)
       .map((link: any) => link.$.value);
   }
   
   // Helper function to extract BGG rank
   private extractBGGRank(gameData: any): number | undefined {
     try {
-      const ranks = gameData.statistics?.ratings?.ranks?.rank;
+      if (!gameData.statistics || !gameData.statistics.ratings || !gameData.statistics.ratings.ranks) {
+        return undefined;
+      }
+      
+      const ranks = gameData.statistics.ratings.ranks.rank;
       if (!ranks) return undefined;
       
       // Ensure ranks is an array
       const ranksArray = Array.isArray(ranks) ? ranks : [ranks];
       
       // Find the BGG rank (type = 'boardgame')
-      const bggRank = ranksArray.find((rank: any) => rank.$.type === 'subtype' && rank.$.name === 'boardgame');
+      const bggRank = ranksArray.find((rank: any) => rank.$ && rank.$.type === 'subtype' && rank.$.name === 'boardgame');
       
       // Return the rank value, or undefined if no rank or not ranked
-      return bggRank && bggRank.$.value !== 'Not Ranked' ? parseInt(bggRank.$.value) : undefined;
+      return bggRank && bggRank.$ && bggRank.$.value !== 'Not Ranked' ? parseInt(bggRank.$.value) : undefined;
     } catch (error) {
       console.error('Error extracting BGG rank:', error);
       return undefined;

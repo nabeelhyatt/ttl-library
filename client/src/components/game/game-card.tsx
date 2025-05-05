@@ -217,7 +217,12 @@ export const GameCard: React.FC<GameCardProps> = ({
         {/* Game Header */}
         <div className="game-header">
           <div>
-            <h2 className="game-title">{game.name}</h2>
+            <h2 className="game-title">{
+              // Make sure even game names that contain "Game [id]" are displayed properly
+              game.name.startsWith('Game ') && /Game \d+/.test(game.name) 
+                ? `Untitled Game #${game.gameId}` 
+                : game.name
+            }</h2>
             <div className="game-genre">{displayCategory || "Board Game"}</div>
           </div>
 

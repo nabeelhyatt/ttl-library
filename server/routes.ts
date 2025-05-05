@@ -133,17 +133,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
               }
               
-              // Return enriched game with Airtable data, ensuring BGG game data is preserved
+              // Return enriched game with Airtable data
               return {
-                ...game, // Preserve all BGG data first
+                ...game,
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
                 forSale: airtableGameInfo.forSale || false,
                 toOrder: airtableGameInfo.toOrder || false,
-                categories: useAirtableCategories ? airtableGameInfo.categories : game.categories,
-                // Explicitly ensure BGG name is preserved
-                name: game.name
+                categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
               };
             }
             
@@ -197,9 +195,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
               }
               
-              // Return enriched game with Airtable data, preserving BGG game name
-              const enrichedGame = {
-                ...game, // Keep all BGG data including name and description
+              // Return enriched game with Airtable data
+              return {
+                ...game,
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
