@@ -111,16 +111,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bgg/hot", async (req, res) => {
     try {
       console.log("==============================================");
-      console.log("🚀 PERFORMANCE: GET /api/bgg/hot - Fetching hot games from cache or BGG");
+      console.log("🚀 PERFORMANCE: GET /api/bgg/hot - Fetching hot games (will use cache if available)");
       const startTime = Date.now();
       
-      // Import the cache module dynamically to avoid circular dependencies
-      const { getHotGames } = await import('./services/bgg-cache');
-      
-      // Get hot games from cache or BGG
-      const hotGames = await getHotGames();
-      
-      console.log(`Retrieved ${hotGames.length} hot games, now enriching with Airtable data...`);
+      // Get basic hot games list
+      const hotGames = await boardGameGeekService.getHotGames();
       
       // Enrich with Airtable data (in parallel)
       const enrichedGames = await Promise.all(
@@ -130,23 +125,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
             
             if (airtableGameInfo) {
-              // Log the game data for debugging
-              console.log(`Game "${game.name}" (BGG ID: ${game.gameId}) found in Airtable:`, { 
-                bggData: {
-                  name: game.name,
-                  description: game.description?.substring(0, 50) + '...' || 'No description',
-                  hasImage: !!game.image,
-                  hasCategories: (game.categories || []).length > 0
-                },
-                airtableData: {
-                  tlcsCode: airtableGameInfo.tlcsCode,
-                  subcategoryName: airtableGameInfo.subcategoryName,
-                  forRent: airtableGameInfo.forRent,
-                  forSale: airtableGameInfo.forSale,
-                  toOrder: airtableGameInfo.toOrder
-                }
-              });
-              
               // Determine if Airtable categories are record IDs
               let useAirtableCategories = false;
               if (airtableGameInfo.categories?.length) {
@@ -155,11 +133,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
               }
               
-              // Make sure we preserve all important BGG data while adding Airtable data
-              // Use Airtable title when available for BGG placeholder games
-              const isPlaceholderBGGName = game.name.startsWith('Game ') && /^Game \d+$/.test(game.name);
-              const enrichedGame = {
-                ...game, // Keep all original BGG data
+              // Return enriched game with Airtable data
+              return {
+                ...game,
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
@@ -167,14 +143,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 toOrder: airtableGameInfo.toOrder || false,
                 categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
               };
-
-              // If we have a title from Airtable and the BGG name is a placeholder, use the Airtable title
-              if (isPlaceholderBGGName && airtableGameInfo.title) {
-                console.log(`Using Airtable title "${airtableGameInfo.title}" for BGG placeholder name "${game.name}"`);
-                enrichedGame.name = airtableGameInfo.title;
-              }
-              
-              return enrichedGame;
             }
             
             return game;
@@ -193,31 +161,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("❌ Error fetching hot games:", error);
       return res.status(500).json({ message: "Failed to fetch hot games" });
-    }
-  });
-  
-  // Endpoint to manually refresh the hot games cache
-  app.post("/api/bgg/hot/refresh", async (req, res) => {
-    try {
-      console.log("==============================================");
-      console.log("🔄 ADMIN: Manual refresh of hot games cache requested");
-      
-      // Import the cache module dynamically to avoid circular dependencies
-      const { refreshHotGamesCache } = await import('./services/bgg-cache');
-      
-      // Force refresh of hot games cache
-      const hotGames = await refreshHotGamesCache();
-      
-      console.log(`✅ Hot games cache refreshed with ${hotGames.length} games`);
-      console.log("==============================================");
-      
-      return res.status(200).json({ 
-        message: "Hot games cache refreshed successfully",
-        count: hotGames.length
-      });
-    } catch (error) {
-      console.error("❌ Error refreshing hot games cache:", error);
-      return res.status(500).json({ message: "Failed to refresh hot games cache" });
     }
   });
   
@@ -244,23 +187,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
             
             if (airtableGameInfo) {
-              // Log the game data for debugging
-              console.log(`Search result "${game.name}" (BGG ID: ${game.gameId}) found in Airtable:`, { 
-                bggData: {
-                  name: game.name,
-                  description: game.description?.substring(0, 50) + '...' || 'No description',
-                  hasImage: !!game.image,
-                  hasCategories: (game.categories || []).length > 0
-                },
-                airtableData: {
-                  tlcsCode: airtableGameInfo.tlcsCode,
-                  subcategoryName: airtableGameInfo.subcategoryName,
-                  forRent: airtableGameInfo.forRent,
-                  forSale: airtableGameInfo.forSale,
-                  toOrder: airtableGameInfo.toOrder
-                }
-              });
-              
               // Determine if Airtable categories are record IDs
               let useAirtableCategories = false;
               if (airtableGameInfo.categories?.length) {
@@ -269,11 +195,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
               }
               
-              // Return enriched game with Airtable data while preserving all BGG data
-              // Use Airtable title when available for BGG placeholder games
-              const isPlaceholderBGGName = game.name.startsWith('Game ') && /^Game \d+$/.test(game.name);
-              const enrichedGame = {
-                ...game, // Keep all original BGG data
+              // Return enriched game with Airtable data
+              return {
+                ...game,
                 tlcsCode: airtableGameInfo.tlcsCode || null,
                 subcategoryName: airtableGameInfo.subcategoryName || null,
                 forRent: airtableGameInfo.forRent || false,
@@ -281,14 +205,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 toOrder: airtableGameInfo.toOrder || false,
                 categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
               };
-              
-              // If we have a title from Airtable and the BGG name is a placeholder, use the Airtable title
-              if (isPlaceholderBGGName && airtableGameInfo.title) {
-                console.log(`Using Airtable title "${airtableGameInfo.title}" for search result with BGG placeholder name "${game.name}"`);
-                enrichedGame.name = airtableGameInfo.title;
-              }
-              
-              return enrichedGame;
             }
             
             return game;
@@ -334,25 +250,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if game exists in Airtable and get additional information
       const airtableGameInfo = await airtableService.getGameByBGGId(gameId);
       
-      if (airtableGameInfo) {
-        // Log the game data for debugging
-        console.log(`Individual game "${game.name}" (BGG ID: ${game.gameId}) found in Airtable:`, { 
-          bggData: {
-            name: game.name,
-            description: game.description?.substring(0, 50) + '...' || 'No description',
-            hasImage: !!game.image,
-            hasCategories: (game.categories || []).length > 0
-          },
-          airtableData: {
-            tlcsCode: airtableGameInfo.tlcsCode,
-            subcategoryName: airtableGameInfo.subcategoryName,
-            forRent: airtableGameInfo.forRent,
-            forSale: airtableGameInfo.forSale,
-            toOrder: airtableGameInfo.toOrder
-          }
-        });
-      }
-      
       // Determine if Airtable categories are record IDs (they start with "rec")
       let useAirtableCategories = false;
       if (airtableGameInfo?.categories?.length) {
@@ -360,25 +257,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         useAirtableCategories = airtableGameInfo.categories.some(cat => typeof cat === 'string' && !cat.startsWith('rec'));
       }
       
-      // Merge Airtable data with BGG data, making sure to preserve all BGG data
-      // Use Airtable title when available for BGG placeholder games
-      const isPlaceholderBGGName = game.name.startsWith('Game ') && /^Game \d+$/.test(game.name);
+      // Merge Airtable data with BGG data
       const enrichedGame = {
-        ...game, // Preserve all original BGG data
+        ...game,
         tlcsCode: airtableGameInfo?.tlcsCode || null,
         subcategoryName: airtableGameInfo?.subcategoryName || null,
         forRent: airtableGameInfo?.forRent || false,
         forSale: airtableGameInfo?.forSale || false,
         toOrder: airtableGameInfo?.toOrder || false,
         // Use Airtable categories only if they're not record IDs
-        categories: useAirtableCategories && airtableGameInfo?.categories ? airtableGameInfo.categories : game.categories
+        categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
       };
-      
-      // If we have a title from Airtable and the BGG name is a placeholder, use the Airtable title
-      if (isPlaceholderBGGName && airtableGameInfo?.title) {
-        console.log(`Using Airtable title "${airtableGameInfo.title}" for individual game with BGG placeholder name "${game.name}"`);
-        enrichedGame.name = airtableGameInfo.title;
-      }
       
       return res.status(200).json(enrichedGame);
     } catch (error) {

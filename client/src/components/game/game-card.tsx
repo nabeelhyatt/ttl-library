@@ -147,18 +147,6 @@ export const GameCard: React.FC<GameCardProps> = ({
     toOrder: game.toOrder,
   });
 
-  // Fix for games that have placeholder names from BGG API errors but are in Airtable
-  // If the name is in the format "Game 123456" and we have TLCS data, the game exists in Airtable
-  const hasPlaceholderName = game.name.startsWith('Game ') && /^Game \d+$/.test(game.name);
-  const isInAirtable = game.tlcsCode || game.subcategoryName;
-  
-  // Use Airtable data where available for games with placeholder names
-  let displayName = game.name;
-  if (hasPlaceholderName && game.subcategoryName) {
-    // If we have a subcategory in Airtable, use a better name format
-    displayName = `${game.subcategoryName} Game`;
-  }
-  
   // Determine genre/category to display
   const displayCategory = game.subcategoryName || primaryGenre;
 
@@ -197,7 +185,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         <div className="relative">
           <img
             src={game.thumbnail || game.image}
-            alt={`${displayName} board game`}
+            alt={`${game.name} board game`}
             className="game-image"
             onError={(e) => {
               // Fallback image if the thumbnail fails to load
@@ -229,7 +217,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         {/* Game Header */}
         <div className="game-header">
           <div>
-            <h2 className="game-title">{displayName}</h2>
+            <h2 className="game-title">{game.name}</h2>
             <div className="game-genre">{displayCategory || "Board Game"}</div>
           </div>
 

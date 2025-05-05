@@ -274,7 +274,6 @@ export class AirtableDirectService {
    * Retrieves game details from Airtable by BGG ID
    */
   async getGameByBGGId(bggId: number): Promise<{
-    title?: string;
     tlcsCode?: string;
     subcategoryName?: string;
     forRent?: boolean;
@@ -320,7 +319,6 @@ export class AirtableDirectService {
       
       // Create result object
       const result: {
-        title?: string;
         tlcsCode?: string;
         subcategoryName?: string;
         forRent?: boolean;
@@ -328,12 +326,6 @@ export class AirtableDirectService {
         toOrder?: boolean;
         categories?: string[];
       } = {};
-      
-      // Add title from Airtable if available
-      if (fields['Title']) {
-        result.title = fields['Title'];
-        console.log('Using Airtable title:', result.title);
-      }
       
       // Add TLCS code if available
       if (fields['TLCS Code']) {
