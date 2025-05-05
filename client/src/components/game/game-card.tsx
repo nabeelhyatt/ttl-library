@@ -62,10 +62,6 @@ export const GameCard: React.FC<GameCardProps> = ({
 
   const handleLoginSuccess = async (email: string, name: string) => {
     console.log("Game card received login attempt:", { email, name });
-    toast({
-      title: "Login Attempt",
-      description: "Attempting to log in...",
-    });
     
     try {
       setIsVoting(true);
@@ -73,10 +69,14 @@ export const GameCard: React.FC<GameCardProps> = ({
       const loggedInUser = await onLogin(email, name);
       console.log("Login successful:", loggedInUser);
       
+      // Close the login dialog immediately
       setIsLoginOpen(false);
+      
+      // Show a toast that auto-dismisses after 2 seconds
       toast({
         title: "Login Successful",
         description: `Welcome ${name}!`,
+        duration: 2000, // 2 seconds
       });
 
       if (votingType && loggedInUser) {

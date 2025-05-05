@@ -48,9 +48,14 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       onSubmit(values.email, values.name)
         .then(() => {
           console.log("Direct login successful");
+          // Close the dialog immediately
+          onClose();
+          
+          // Show a toast that automatically dismisses
           toast({
             title: "Success",
             description: "Login successful!",
+            duration: 2000,
           });
         })
         .catch(error => {
@@ -82,12 +87,18 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
     setIsSubmitting(true);
     try {
       console.log("Submitting login with:", values);
-      await onSubmit(values.email, values.name);
+      const result = await onSubmit(values.email, values.name);
       // Add a success state indication
       console.log("Login successful");
+      
+      // Auto-close the dialog by calling onClose after successful login
+      onClose();
+      
+      // Show a toast that will auto-dismiss after 2 seconds
       toast({
         title: "Success",
         description: "Login successful!",
+        duration: 2000,
       });
     } catch (error) {
       console.error("Login failed:", error);

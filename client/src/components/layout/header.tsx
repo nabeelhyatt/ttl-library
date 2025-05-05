@@ -17,7 +17,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const handleLogin = async (email: string, name: string) => {
     try {
       const res = await apiRequest("POST", "/api/auth/login", { email, name });
-      return await res.json();
+      const userData = await res.json();
+      // Close the login dialog immediately after successful login
+      setIsLoginOpen(false);
+      return userData;
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
