@@ -75,9 +75,14 @@ export const GameCard: React.FC<GameCardProps> = ({
       // Show a toast that auto-dismisses after 2 seconds
       toast({
         title: "Login Successful",
-        description: `Welcome ${name}!`,
-        duration: 2000, // 2 seconds
+        description: "Refreshing page...",
+        duration: 1000,
       });
+      
+      // Force page reload after a brief delay to allow the toast to be seen
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
 
       if (votingType && loggedInUser) {
         toast({

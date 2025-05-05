@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { LoginDialog } from "@/components/auth/login-dialog";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   user: User | null;
@@ -13,13 +14,27 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const [location] = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const { toast } = useToast();
   
   const handleLogin = async (email: string, name: string) => {
     try {
       const res = await apiRequest("POST", "/api/auth/login", { email, name });
       const userData = await res.json();
-      // Close the login dialog immediately after successful login
+      // Close the login dialog
       setIsLoginOpen(false);
+      
+      // Show a brief message before reload
+      toast({
+        title: "Login Successful",
+        description: "Refreshing page...",
+        duration: 1000,
+      });
+      
+      // Force page reload after a brief delay to let the toast show
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
       return userData;
     } catch (error) {
       console.error("Login failed:", error);
