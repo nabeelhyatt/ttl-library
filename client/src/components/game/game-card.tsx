@@ -62,37 +62,31 @@ export const GameCard: React.FC<GameCardProps> = ({
 
   const handleLoginSuccess = async (email: string, name: string) => {
     try {
+      setIsVoting(true);
       const loggedInUser = await onLogin(email, name);
       setIsLoginOpen(false);
 
-      // Increase the delay to ensure the session is properly set up on the server
       if (votingType && loggedInUser) {
-        // Show a toast indicating the vote is being processed
         toast({
           title: "Processing Vote",
           description: "Please wait while we submit your vote...",
         });
         
-        // Set a longer delay to ensure session is established
-        setTimeout(async () => {
-          try {
-            setIsVoting(true);
-            await submitVote(game.gameId, votingType);
-            setIsVoteSuccessOpen(true);
-            if (onVoteSuccess) {
-              onVoteSuccess();
-            }
-          } catch (err) {
-            console.error("Vote error after login:", err);
-            toast({
-              title: "Vote Failed",
-              description: "We couldn't record your vote. Please try again.",
-              variant: "destructive",
-            });
-          } finally {
-            setIsVoting(false);
+        try {
+          // Submit vote immediately after confirmed login
+          await submitVote(game.gameId, votingType);
+          setIsVoteSuccessOpen(true);
+          if (onVoteSuccess) {
+            onVoteSuccess();
           }
-        }, 1500); // Increased to 1.5 seconds
+        } catch (err) {
+          console.error("Vote error after login:", err);
+          toast({
+            title: "Vote Failed", 
+            description: "We couldn't record your vote. Please try again.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       toast({
@@ -100,6 +94,8 @@ export const GameCard: React.FC<GameCardProps> = ({
         description: "Could not log in with this information. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsVoting(false);
     }
   };
 
