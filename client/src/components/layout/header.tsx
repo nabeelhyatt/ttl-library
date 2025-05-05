@@ -3,6 +3,7 @@ import { User } from "@shared/schema";
 import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { LoginDialog } from "@/components/auth/login-dialog";
+import { apiRequest } from "@/lib/queryClient";
 
 interface HeaderProps {
   user: User | null;
@@ -12,6 +13,16 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const [location] = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  
+  const handleLogin = async (email: string, name: string) => {
+    try {
+      const res = await apiRequest("POST", "/api/auth/login", { email, name });
+      return await res.json();
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    }
+  };
 
   return (
     <header>
@@ -58,7 +69,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
       </div>
 
       <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-        <LoginDialog onClose={() => setIsLoginOpen(false)} />
+        <LoginDialog 
+          onClose={() => setIsLoginOpen(false)} 
+          onSubmit={handleLogin}
+        />
       </Dialog>
     </header>
   );

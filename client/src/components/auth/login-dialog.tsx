@@ -18,7 +18,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface LoginDialogProps {
   onClose: () => void;
-  onSubmit?: (email: string, name: string) => Promise<void>;
+  onSubmit: (email: string, name: string) => Promise<any>;
 }
 
 export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) => {
@@ -74,16 +74,6 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
   };
   
   const handleSubmit = async (values: FormValues) => {
-    if (!onSubmit) {
-      console.error("No onSubmit handler provided to LoginDialog");
-      toast({
-        title: "Configuration Error",
-        description: "The login form is not properly configured. Please contact support.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     toast({
       title: "Processing",
       description: "Logging in...",
