@@ -3,15 +3,39 @@ import { User } from "@shared/schema";
 import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { LoginDialog } from "@/components/auth/login-dialog";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   user: User | null;
   onLogout: () => Promise<void>;
+  onLogin: (email: string, name: string) => Promise<any>;
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
+export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLogin }) => {
   const [location] = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const { toast } = useToast();
+  
+  const handleLogin = async (email: string, name: string) => {
+    try {
+      const loggedInUser = await onLogin(email, name);
+      setIsLoginOpen(false);
+      toast({
+        title: "Success",
+        description: `Welcome, ${name}!`,
+      });
+      return loggedInUser;
+    } catch (error) {
+      console.error("Login error in header:", error);
+      toast({
+        title: "Login Failed",
+        description: "Unable to log in with those credentials.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
 
   return (
     <header>
@@ -58,7 +82,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
       </div>
 
       <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-        <LoginDialog onClose={() => setIsLoginOpen(false)} />
+        <LoginDialog 
+          onClose={() => setIsLoginOpen(false)} 
+          onSubmit={handleLogin}
+        />
       </Dialog>
     </header>
   );
