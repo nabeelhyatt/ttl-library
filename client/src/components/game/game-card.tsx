@@ -338,6 +338,10 @@ export const GameCard: React.FC<GameCardProps> = ({
           onSubmit={handleLoginSuccess}
         />
       </Dialog>
+
+      <Dialog open={isVoteSuccessOpen} onOpenChange={setIsVoteSuccessOpen}>
+        <VoteSuccessDialog onClose={() => setIsVoteSuccessOpen(false)} />
+      </Dialog>
     </>
   );
 };
