@@ -48,7 +48,7 @@ function Router() {
 
   return (
     <div className="app-wrapper">
-      <Header user={user} onLogout={logout} onLogin={login} />
+      <Header user={user} onLogout={logout} />
       {isLoading ? (
         <main>
           <div className="container">

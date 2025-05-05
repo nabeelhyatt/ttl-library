@@ -18,7 +18,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface LoginDialogProps {
   onClose: () => void;
-  onSubmit?: (email: string, name: string) => Promise<any>;
+  onSubmit?: (email: string, name: string) => Promise<void>;
 }
 
 export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) => {
