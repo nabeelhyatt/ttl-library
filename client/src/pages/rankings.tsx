@@ -81,8 +81,8 @@ export default function Rankings() {
     handleSearch(gameName);
   };
 
-  // Handle search by redirecting to the home page with the search query
-  const handleSearch = (query: string) => {
+  // Handle search directly in Rankings page
+  const handleSearch = async (query: string) => {
     console.log('Rankings handleSearch called with query:', query);
     
     if (!query.trim()) {
@@ -91,16 +91,21 @@ export default function Rankings() {
     }
     
     try {
-      // Use wouter's setLocation for client-side navigation
-      setLocation(`/?search=${encodeURIComponent(query)}`);
-    } catch (error) {
-      console.error('Navigation error:', error);
+      setIsSearching(true);
+      const searchResults = await searchGames(query);
       
+      // Navigate to home with search results
+      setLocation(`/?search=${encodeURIComponent(query)}`);
+      
+    } catch (error) {
+      console.error('Search error:', error);
       toast({
-        title: "Navigation failed",
-        description: "We couldn't navigate to the search results. Please try again.",
+        title: "Search failed",
+        description: "We couldn't complete your search. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsSearching(false);
     }
   };
 
