@@ -61,7 +61,7 @@ export default function Rankings() {
     queryKey: ['/api/rankings/most-voted'],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-  
+
   // Fetch category votes from API
   const {
     data: categoryData,
@@ -74,34 +74,46 @@ export default function Rankings() {
 
   // Get wouter location hook for navigation
   const [, setLocation] = useLocation();
-  
+
   // Handle game link click - redirects to home page with search query
   const handleGameClick = (bggId: number, gameName: string) => {
     // Navigate to home page with search query
     handleSearch(gameName);
   };
 
-  // Handle search directly in Rankings page
+  // Handle search directly like Home page
   const handleSearch = async (query: string) => {
-    console.log('Rankings handleSearch called with query:', query);
-    
     if (!query.trim()) {
-      console.log('Empty query, not searching');
+      setLocation('/');
       return;
     }
-    
+
+    // Prevent multiple concurrent searches
+    if (isSearching) {
+      return;
+    }
+
     try {
       setIsSearching(true);
+
+      // Update URL without page reload
+      setLocation(`/rankings?search=${encodeURIComponent(query)}`, { replace: true });
+
       const searchResults = await searchGames(query);
-      
-      // Navigate to home with search results
-      setLocation(`/?search=${encodeURIComponent(query)}`);
-      
+      // Handle search results here if needed
+
+      if (searchResults.length === 0) {
+        toast({
+          title: "No results found",
+          description: `We couldn't find any games matching "${query}". BGG API may be rate-limited, please try again in a moment.`,
+          variant: "default"
+        });
+      }
     } catch (error) {
       console.error('Search error:', error);
       toast({
         title: "Search failed",
-        description: "We couldn't complete your search. Please try again.",
+        description: "We couldn't complete your search. BGG API may be rate-limited, please try again in a moment.",
         variant: "destructive"
       });
     } finally {
@@ -116,7 +128,7 @@ export default function Rankings() {
         <div className="mb-8">
           <GameSearch onSearch={handleSearch} isSearching={isSearching} />
         </div>
-        
+
         {/* Main Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* Left Column - Most Voted Games */}
@@ -125,14 +137,14 @@ export default function Rankings() {
               <span className="section-number">(01.1)</span>
               <h2 className="section-title">Most Voted Games</h2>
             </div>
-            
+
             <div className="border-t border-[#d1d5db] pt-4">
               {/* Table Header */}
               <div className="flex justify-between mb-2">
                 <div className="column-header">Name - Secondary Category</div>
                 <div className="column-header">Votes</div>
               </div>
-              
+
               {/* Games List */}
               <div className="space-y-2">
                 {isLoadingGames ? (
@@ -166,20 +178,20 @@ export default function Rankings() {
               </div>
             </div>
           </div>
-          
+
           {/* Right Column - Categories */}
           <div className="border border-[#d1d5db] p-6">
             <div className="flex items-baseline mb-4">
               <span className="section-number">(01.2)</span>
               <h2 className="section-title">Categories</h2>
             </div>
-            
+
             <div className="border-t border-[#d1d5db] pt-4">
               <p className="category-explanation">
                 We organize games by category to encourage your curiosity in browsing 
                 games. These are the current votes by game category.
               </p>
-              
+
               {/* Categories List */}
               <div className="space-y-4">
                 {isLoadingCategories ? (
