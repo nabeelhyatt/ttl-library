@@ -38,8 +38,21 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
     try {
       console.log("Submitting login with:", values);
       await onSubmit(values.email, values.name);
+      // Add a success state indication
+      console.log("Login successful");
     } catch (error) {
       console.error("Login failed:", error);
+      // Set specific field errors for better visibility
+      if (error instanceof Error) {
+        console.log("Error details:", error.message);
+      }
+      
+      // Set more visible field errors
+      form.setError("email", { 
+        message: "There was a problem with your login. Please try again."
+      });
+      
+      // Also set root error for general visibility
       form.setError("root", { 
         message: "Login failed. Please make sure both email and name are provided."
       });
@@ -103,6 +116,13 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
             )}
           />
           
+          {/* Display form-level errors */}
+          {form.formState.errors.root && (
+            <div className="text-red-500 text-sm border border-red-300 bg-red-50 p-3 rounded-md">
+              {form.formState.errors.root.message}
+            </div>
+          )}
+
           <Button 
             type="submit" 
             className="w-full bg-accent text-background py-3 rounded-lg hover:bg-accent/90 transition duration-200 font-medium"
