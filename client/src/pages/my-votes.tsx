@@ -55,9 +55,10 @@ const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
         setVotesWithGames(votesWithGameDetails);
       } catch (error) {
         console.error('Failed to fetch votes:', error);
+        // More detailed error message to help diagnose connection issues
         toast({
           title: "Error loading votes",
-          description: "We couldn't load your votes. Please try again later.",
+          description: "We couldn't load your votes. This could be due to an issue connecting to our database. Please try again later.",
           variant: "destructive"
         });
       } finally {
