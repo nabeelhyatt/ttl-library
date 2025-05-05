@@ -32,10 +32,17 @@ export class AirtableDirectService {
     
     if (!this.apiKey) {
       console.error('AIRTABLE_API_KEY environment variable is not set');
+      console.error('Airtable integration will not work in deployment. Please set the environment variable in the Deployment settings.');
     }
     
     if (!this.baseId) {
       console.error('AIRTABLE_BASE_ID environment variable is not set');
+      console.error('Airtable integration will not work in deployment. Please set the environment variable in the Deployment settings.');
+    }
+    
+    // Log a success message if both are configured
+    if (this.apiKey && this.baseId) {
+      console.log('Airtable credentials configured successfully');
     }
   }
 
