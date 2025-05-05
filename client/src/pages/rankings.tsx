@@ -90,25 +90,9 @@ export default function Rankings() {
       return;
     }
     
-    // Prevent multiple concurrent searches
-    if (isSearching) {
-      console.log('Already searching, ignoring request');
-      return;
-    }
-    
     try {
-      setIsSearching(true);
-      
-      // Navigate to the home page with the search query as a parameter
-      const searchUrl = `/?search=${encodeURIComponent(query)}`;
-      console.log('Attempting to navigate to:', searchUrl);
-      
-      // Use window.location.href for direct navigation instead of wouter
-      window.location.href = searchUrl;
-      
-      // The code below doesn't run if we use window.location.href
-      // setLocation(searchUrl);
-      console.log('Navigation request sent');
+      // Use wouter's setLocation for client-side navigation
+      setLocation(`/?search=${encodeURIComponent(query)}`);
     } catch (error) {
       console.error('Navigation error:', error);
       
@@ -117,8 +101,6 @@ export default function Rankings() {
         description: "We couldn't navigate to the search results. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsSearching(false);
     }
   };
 
