@@ -4,7 +4,6 @@ import { BGGGame, User, VoteType, voteTypeInfo } from "@shared/schema";
 import { getBGGtoTLCSWeight, getPrimaryGenre } from "@/lib/bgg-api";
 import { Dialog } from "@/components/ui/dialog";
 import { LoginDialog } from "@/components/auth/login-dialog";
-import { VoteSuccessDialog } from "@/components/auth/vote-success-dialog";
 import { submitVote } from "@/lib/airtable-api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,7 +21,6 @@ export const GameCard: React.FC<GameCardProps> = ({
   onVoteSuccess,
 }) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isVoteSuccessOpen, setIsVoteSuccessOpen] = useState(false);
   const [votingType, setVotingType] = useState<VoteType | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const { toast } = useToast();
@@ -44,7 +42,15 @@ export const GameCard: React.FC<GameCardProps> = ({
     setIsVoting(true);
     try {
       await submitVote(game.gameId, voteType);
-      setIsVoteSuccessOpen(true);
+      
+      // Show toast notification instead of opening dialog
+      toast({
+        title: "Vote Registered!",
+        description: "Your vote has been recorded successfully.",
+        duration: 3000,
+        className: "bg-[#f5f5dc]", // Beige background to match design
+      });
+      
       if (onVoteSuccess) {
         onVoteSuccess();
       }
@@ -93,7 +99,15 @@ export const GameCard: React.FC<GameCardProps> = ({
         try {
           // Submit vote immediately after confirmed login
           await submitVote(game.gameId, votingType);
-          setIsVoteSuccessOpen(true);
+          
+          // Show toast notification instead of opening dialog
+          toast({
+            title: "Vote Registered!",
+            description: "Your vote has been recorded successfully.",
+            duration: 3000,
+            className: "bg-[#f5f5dc]", // Beige background to match design
+          });
+          
           if (onVoteSuccess) {
             onVoteSuccess();
           }
@@ -319,10 +333,6 @@ export const GameCard: React.FC<GameCardProps> = ({
           onClose={() => setIsLoginOpen(false)}
           onSubmit={handleLoginSuccess}
         />
-      </Dialog>
-
-      <Dialog open={isVoteSuccessOpen} onOpenChange={setIsVoteSuccessOpen}>
-        <VoteSuccessDialog onClose={() => setIsVoteSuccessOpen(false)} />
       </Dialog>
     </>
   );
