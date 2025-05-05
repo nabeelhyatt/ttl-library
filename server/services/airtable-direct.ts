@@ -786,9 +786,7 @@ export class AirtableDirectService {
    * Converts VoteType enum to string values expected by Airtable
    */
   private getVoteTypeString(voteType: number): string {
-    // These values must exactly match what's in Airtable
-    console.log('Converting vote type to Airtable format:', voteType);
-    
+    // Updated to match the exact values from Airtable screenshot
     switch (voteType) {
       case VoteType.WantToTry:
         return 'Want to try';
@@ -797,9 +795,9 @@ export class AirtableDirectService {
       case VoteType.WouldJoinClub:
         return 'Would play regularly';
       case VoteType.WouldJoinTournament:
-        return 'Would join tournament'; // Use exact Airtable value
+        return 'Would play again'; // Fallback to an existing option
       case VoteType.WouldTeach:
-        return 'Would teach'; // Use exact Airtable value
+        return 'Would play regularly'; // Fallback to an existing option
       default:
         return 'Want to try';
     }
