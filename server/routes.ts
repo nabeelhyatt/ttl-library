@@ -111,11 +111,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bgg/hot", async (req, res) => {
     try {
       console.log("==============================================");
-      console.log("🚀 PERFORMANCE: GET /api/bgg/hot - Fetching hot games (will use cache if available)");
+      console.log("🚀 PERFORMANCE: GET /api/bgg/hot - Fetching hot games from cache or BGG");
       const startTime = Date.now();
       
-      // Get basic hot games list
-      const hotGames = await boardGameGeekService.getHotGames();
+      // Import the cache module dynamically to avoid circular dependencies
+      const { getHotGames } = await import('./services/bgg-cache');
+      
+      // Get hot games from cache or BGG
+      const hotGames = await getHotGames();
+      
+      console.log(`Retrieved ${hotGames.length} hot games, now enriching with Airtable data...`);
       
       // Enrich with Airtable data (in parallel)
       const enrichedGames = await Promise.all(
@@ -161,6 +166,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("❌ Error fetching hot games:", error);
       return res.status(500).json({ message: "Failed to fetch hot games" });
+    }
+  });
+  
+  // Endpoint to manually refresh the hot games cache
+  app.post("/api/bgg/hot/refresh", async (req, res) => {
+    try {
+      console.log("==============================================");
+      console.log("🔄 ADMIN: Manual refresh of hot games cache requested");
+      
+      // Import the cache module dynamically to avoid circular dependencies
+      const { refreshHotGamesCache } = await import('./services/bgg-cache');
+      
+      // Force refresh of hot games cache
+      const hotGames = await refreshHotGamesCache();
+      
+      console.log(`✅ Hot games cache refreshed with ${hotGames.length} games`);
+      console.log("==============================================");
+      
+      return res.status(200).json({ 
+        message: "Hot games cache refreshed successfully",
+        count: hotGames.length
+      });
+    } catch (error) {
+      console.error("❌ Error refreshing hot games cache:", error);
+      return res.status(500).json({ message: "Failed to refresh hot games cache" });
     }
   });
   
