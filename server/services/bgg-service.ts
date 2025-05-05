@@ -120,16 +120,34 @@ class BoardGameGeekService {
     const searchGamesImpl = async (retries = 0): Promise<BGGGame[]> => {
       try {
         await this.rateLimit();
-        const searchQuery = options.exact ? `"${query}"` : query;
-        let url = `${this.API_BASE}search?type=boardgame`;
         
-        // Add search parameters
-        if (options.exact) {
-          url += `&exact=1&query=${encodeURIComponent(searchQuery)}`;
-        } else {
-          // Try to match start of name for better results
-          url += `&query=${encodeURIComponent(searchQuery)}`;
-        }
+        // First get exact matches
+        const exactUrl = `${this.API_BASE}search?type=boardgame&exact=1&query=${encodeURIComponent(`"${query}"`)}`; 
+        const exactResponse = await axios.get(exactUrl);
+        const exactResult = await parseStringPromise(exactResponse.data, { explicitArray: false });
+        
+        // Then get general matches
+        const generalUrl = `${this.API_BASE}search?type=boardgame&query=${encodeURIComponent(query)}`;
+        const generalResponse = await axios.get(generalUrl);
+        const generalResult = await parseStringPromise(generalResponse.data, { explicitArray: false });
+        
+        // Process exact matches
+        const exactItems = exactResult.items.item ? 
+          (Array.isArray(exactResult.items.item) ? exactResult.items.item : [exactResult.items.item]) : 
+          [];
+        const exactIds = exactItems.slice(0, 3).map((item: any) => parseInt(item.$.id));
+        
+        // Process general matches
+        const generalItems = generalResult.items.item ? 
+          (Array.isArray(generalResult.items.item) ? generalResult.items.item : [generalResult.items.item]) : 
+          [];
+        const generalIds = generalItems
+          .map((item: any) => parseInt(item.$.id))
+          .filter((id: number) => !exactIds.includes(id)) // Remove duplicates
+          .slice(0, 10);
+        
+        // Combine IDs
+        const allIds = [...exactIds, ...generalIds];
         
         const response = await axios.get(url);
         const result = await parseStringPromise(response.data, { explicitArray: false });
@@ -145,29 +163,15 @@ class BoardGameGeekService {
         // Extract game IDs from search results
         const gameIds = items.map((item: any) => parseInt(item.$.id)).slice(0, options.limit || 10);
         
-        // Get full details for games
-        let games = await this.getGamesDetails(gameIds);
+        // Get full details and sort by BGG rank
+        const games = await this.getGamesDetails(allIds);
+        games.sort((a, b) => {
+          const rankA = a.bggRank || 999999;
+          const rankB = b.bggRank || 999999;
+          return rankA - rankB;
+        });
         
-        // Sort results if requested
-        if (options.sort) {
-          games.sort((a, b) => {
-            switch (options.sort) {
-              case 'rank':
-                return (a.bggRank || 999999) - (b.bggRank || 999999);
-              case 'rating':
-                return (parseFloat(b.bggRating || '0') - parseFloat(a.bggRating || '0'));
-              case 'year':
-                return (b.yearPublished || 0) - (a.yearPublished || 0);
-              default:
-                return 0;
-            }
-          });
-        }
-        
-        // Fetch details for each game
-        const gamesWithDetails = await this.getGamesDetails(gameIds);
-        
-        return gamesWithDetails;
+        return games;
       } catch (error) {
         return this.handleRateLimitError(
           error, 
