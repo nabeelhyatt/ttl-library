@@ -27,15 +27,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || "tabletop-library-secret",
+      secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
       resave: false,
       saveUninitialized: false,
+      rolling: true,
       cookie: {
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
         secure: process.env.NODE_ENV === "production",
+        sameSite: 'lax'
       },
       store: new MemoryStoreSession({
-        checkPeriod: 86400000, // prune expired entries every 24h
+        checkPeriod: 3600000, // prune expired entries every hour
+        stale: false
       }),
     })
   );
