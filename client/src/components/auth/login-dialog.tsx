@@ -24,7 +24,7 @@ interface LoginDialogProps {
 export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -32,25 +32,25 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       email: '',
     },
   });
-  
+
   // This is a direct submit handler that bypasses the form validation if needed
   const handleDirectSubmit = () => {
     const values = form.getValues();
     console.log("Direct submit with values:", values);
-    
+
     if (values.email && values.name && onSubmit) {
       toast({
         title: "Direct Login",
         description: "Attempting direct login...",
       });
-      
+
       setIsSubmitting(true);
       onSubmit(values.email, values.name)
         .then(() => {
           console.log("Direct login successful");
           // Close the dialog immediately
           onClose();
-          
+
           // Show a toast that automatically dismisses
           toast({
             title: "Success",
@@ -77,27 +77,25 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       });
     }
   };
-  
+
   const handleSubmit = async (values: FormValues) => {
-    toast({
-      title: "Processing",
-      description: "Logging in...",
-    });
-    
     setIsSubmitting(true);
     try {
       console.log("Submitting login with:", values);
       const result = await onSubmit(values.email, values.name);
-      // Add a success state indication
-      console.log("Login successful");
-      
-      // Auto-close the dialog by calling onClose after successful login
-      onClose();
-      
-      // Show a toast that will auto-dismiss after 2 seconds
+
+      // Store login timestamp
+      localStorage.setItem('lastLoginTime', Date.now().toString());
+
+      // Close dialog after short delay to show success state
+      setTimeout(() => {
+        onClose();
+        window.location.reload(); // Force clean reload
+      }, 1000);
+
       toast({
         title: "Success",
-        description: "Login successful!",
+        description: "Login successful! Refreshing page...",
         duration: 2000,
       });
     } catch (error) {
@@ -106,17 +104,17 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       if (error instanceof Error) {
         console.log("Error details:", error.message);
       }
-      
+
       // Set more visible field errors
       form.setError("email", { 
         message: "There was a problem with your login. Please try again."
       });
-      
+
       // Also set root error for general visibility
       form.setError("root", { 
         message: "Login failed. Please make sure both email and name are provided."
       });
-      
+
       toast({
         title: "Login Failed",
         description: "Could not log in with the provided information.",
@@ -126,7 +124,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <DialogContent className="bg-[#f5f5dc] rounded-lg p-8 max-w-md w-full mx-4 shadow-lg">
       <DialogHeader>
@@ -137,7 +135,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
           Enter your name and email to log in or create a new account. No password needed!
         </DialogDescription>
       </DialogHeader>
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-4">
           <FormField
@@ -181,7 +179,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
               </FormItem>
             )}
           />
-          
+
           {/* Display form-level errors */}
           {form.formState.errors.root && (
             <div className="text-red-700 text-sm border border-red-300 bg-[#f5f5dc] p-3 rounded-md shadow-sm">
@@ -200,7 +198,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
           </div>
         </form>
       </Form>
-      
+
       <div className="text-muted-foreground text-xs mt-6">
         By continuing, you agree to our terms and conditions and privacy policy.
       </div>

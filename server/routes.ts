@@ -51,12 +51,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid format for name or email" });
       }
-      
+
       const { email, name } = result.data;
-      
+
       // Check if user exists
       let user = await storage.getUserByEmail(email);
-      
+
       // If not, create a new user
       if (!user) {
         user = await storage.createUser({ email, name });
@@ -70,63 +70,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user = await storage.updateUserLastLogin(user.id);
         }
       }
-      
+
       // Set user in session
       req.session.userId = user.id;
-      
+
       return res.status(200).json(user);
     } catch (error) {
       console.error("Login error:", error);
       return res.status(500).json({ message: "Failed to log in" });
     }
   });
-  
+
   app.post("/api/auth/logout", (req, res) => {
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({ message: "Failed to log out" });
       }
-      
+
       res.clearCookie("connect.sid");
       return res.status(200).json({ message: "Logged out successfully" });
     });
   });
-  
+
   app.get("/api/auth/me", async (req, res) => {
     try {
       if (!req.session.userId) {
+        // Try to recover session from storage
+        const sessionToken = req.headers['x-session-token'];
+        if (sessionToken) {
+          const user = await storage.getUserBySessionToken(sessionToken);
+          if (user) {
+            req.session.userId = user.id;
+            return res.status(200).json(user);
+          }
+        }
         return res.status(401).json({ message: "Not authenticated" });
       }
-      
+
       const user = await storage.getUser(req.session.userId);
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       return res.status(200).json(user);
     } catch (error) {
       console.error("Auth check error:", error);
       return res.status(500).json({ message: "Failed to check authentication status" });
     }
   });
-  
+
   // BoardGameGeek API routes
   app.get("/api/bgg/hot", async (req, res) => {
     try {
       console.log("==============================================");
       console.log("🚀 PERFORMANCE: GET /api/bgg/hot - Fetching hot games (will use cache if available)");
       const startTime = Date.now();
-      
+
       // Get basic hot games list
       const hotGames = await boardGameGeekService.getHotGames();
-      
+
       // Enrich with Airtable data (in parallel)
       const enrichedGames = await Promise.all(
         hotGames.map(async (game) => {
           try {
             // Check if game exists in Airtable
             const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
-            
+
             if (airtableGameInfo) {
               // Determine if Airtable categories are record IDs
               let useAirtableCategories = false;
@@ -135,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   cat => typeof cat === 'string' && !cat.startsWith('rec')
                 );
               }
-              
+
               // Return enriched game with Airtable data
               return {
                 ...game,
@@ -147,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
               };
             }
-            
+
             return game;
           } catch (error) {
             console.error(`Error enriching game ${game.gameId} with Airtable data:`, error);
@@ -155,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         })
       );
-      
+
       const endTime = Date.now();
       const executionTime = endTime - startTime;
       console.log(`✅ GET /api/bgg/hot - Successfully returned ${enrichedGames.length} hot games in ${executionTime}ms`);
@@ -166,29 +175,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to fetch hot games" });
     }
   });
-  
+
   app.get("/api/bgg/search", async (req, res) => {
     try {
       const query = req.query.query as string;
       if (!query) {
         return res.status(400).json({ message: "Search query is required" });
       }
-      
+
       console.log(`📚 Search request received for: "${query}"`);
       const startTime = Date.now();
-      
+
       // Use combined search for better results (exact + partial with deduplication)
       const results = await boardGameGeekService.searchGamesCombined(query);
-      
+
       console.log(`📚 Combined search returned ${results.length} results for "${query}"`);
-      
+
       // Enrich with Airtable data (in parallel)
       const enrichedResults = await Promise.all(
         results.map(async (game) => {
           try {
             // Check if game exists in Airtable
             const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
-            
+
             if (airtableGameInfo) {
               // Determine if Airtable categories are record IDs
               let useAirtableCategories = false;
@@ -197,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   cat => typeof cat === 'string' && !cat.startsWith('rec')
                 );
               }
-              
+
               // Return enriched game with Airtable data
               return {
                 ...game,
@@ -209,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
               };
             }
-            
+
             return game;
           } catch (error) {
             console.error(`Error enriching game ${game.gameId} with Airtable data:`, error);
@@ -217,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         })
       );
-      
+
       // Sort results by BGG rank if available (games with ranks come first, sorted by rank)
       const sortedResults = enrichedResults.sort((a, b) => {
         // If both games have a rank, sort by rank (lower rank is better)
@@ -230,36 +239,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If neither has a rank, sort alphabetically by name
         return a.name.localeCompare(b.name);
       });
-      
+
       const executionTime = Date.now() - startTime;
       console.log(`📚 Search completed in ${executionTime}ms - returning ${sortedResults.length} results`);
-      
+
       return res.status(200).json(sortedResults);
     } catch (error) {
       console.error("Error searching games:", error);
       return res.status(500).json({ message: "Failed to search games" });
     }
   });
-  
+
   app.get("/api/bgg/game/:id", async (req, res) => {
     try {
       const gameId = parseInt(req.params.id);
       if (isNaN(gameId)) {
         return res.status(400).json({ message: "Invalid game ID" });
       }
-      
+
       const game = await boardGameGeekService.getGameDetails(gameId);
-      
+
       // Check if game exists in Airtable and get additional information
       const airtableGameInfo = await airtableService.getGameByBGGId(gameId);
-      
+
       // Determine if Airtable categories are record IDs (they start with "rec")
       let useAirtableCategories = false;
       if (airtableGameInfo?.categories?.length) {
         // Check if any categories don't start with "rec" (indicating they're not record IDs)
         useAirtableCategories = airtableGameInfo.categories.some(cat => typeof cat === 'string' && !cat.startsWith('rec'));
       }
-      
+
       // Merge Airtable data with BGG data
       const enrichedGame = {
         ...game,
@@ -271,14 +280,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Use Airtable categories only if they're not record IDs
         categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
       };
-      
+
       return res.status(200).json(enrichedGame);
     } catch (error) {
       console.error(`Error fetching game details:`, error);
       return res.status(500).json({ message: "Failed to fetch game details" });
     }
   });
-  
+
   // New endpoint to check if a game exists in Airtable by BGG ID
   app.get("/api/airtable/game/:bggId", async (req, res) => {
     try {
@@ -286,20 +295,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(bggId)) {
         return res.status(400).json({ message: "Invalid BGG ID" });
       }
-      
+
       const airtableGameInfo = await airtableService.getGameByBGGId(bggId);
-      
+
       if (!airtableGameInfo) {
         return res.status(404).json({ message: "Game not found in Airtable" });
       }
-      
+
       return res.status(200).json(airtableGameInfo);
     } catch (error) {
       console.error(`Error fetching game from Airtable:`, error);
       return res.status(500).json({ message: "Failed to fetch game from Airtable" });
     }
   });
-  
+
   // Debug endpoint for Airtable integration
   app.get("/api/airtable/debug", async (req, res) => {
     try {
@@ -311,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to debug Airtable connection" });
     }
   });
-  
+
   // Debug endpoint for testing Airtable write operations
   app.post("/api/airtable/test-write", async (req, res) => {
     try {
@@ -326,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Debug endpoint for testing Airtable with MCP approach
   app.post("/api/airtable/test-mcp", async (req, res) => {
     try {
@@ -341,16 +350,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Endpoint to get most voted games from Airtable for Rankings page
   app.get("/api/rankings/most-voted", async (req, res) => {
     try {
       // Get limit parameter from query string or default to 15
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 15;
-      
+
       console.log(`Fetching most voted games (limit: ${limit})...`);
       const games = await airtableDirectService.getMostVotedGames(limit);
-      
+
       return res.status(200).json(games);
     } catch (error) {
       console.error(`Error fetching most voted games:`, error);
@@ -360,7 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Endpoint to verify Airtable votes for the current user
   // Debug endpoint to check if a game exists in Airtable by BGG ID
   app.get("/api/airtable/game-by-bgg-id/:bggId", async (req, res) => {
@@ -369,39 +378,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(bggId)) {
         return res.status(400).json({ message: 'Invalid BGG ID' });
       }
-      
+
       const baseId = process.env.AIRTABLE_BASE_ID;
       const apiKey = process.env.AIRTABLE_API_KEY;
-      
+
       if (!baseId || !apiKey) {
         return res.status(500).json({ message: 'Airtable credentials not configured' });
       }
 
       const encodedFormula = encodeURIComponent(`{BGG ID}=${bggId}`);
       const url = `https://api.airtable.com/v0/${baseId}/Games?filterByFormula=${encodedFormula}`;
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`
         }
       });
-      
+
       if (!response.ok) {
         return res.status(response.status).json({
           message: `Airtable error: ${response.statusText}`
         });
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.records || data.records.length === 0) {
         return res.status(404).json({ message: `Game with BGG ID ${bggId} not found in Airtable` });
       }
-      
+
       // Return the first game's record
       const gameRecord = data.records[0];
-      
+
       return res.json({
         bggId,
         id: gameRecord.id,
@@ -419,28 +428,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session.userId) {
         return res.status(401).json({ message: "You must be logged in to view your votes in Airtable" });
       }
-      
+
       // Get user details
       const user = await storage.getUser(req.session.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
         return res.status(500).json({ message: "Airtable configuration is incomplete" });
       }
-      
+
       // Find the member in Airtable
       const encodedFormula = encodeURIComponent(`{Email}="${user.email}"`);
       const url = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/Members?filterByFormula=${encodedFormula}`;
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`
         }
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         return res.status(response.status).json({
@@ -448,27 +457,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: errorData
         });
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.records || data.records.length === 0) {
         return res.status(404).json({ message: "Member not found in Airtable" });
       }
-      
+
       const memberId = data.records[0].id;
-      
+
       // Get all votes for debugging purposes
       const votesUrl = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/Votes`;
-      
+
       console.log(`Checking for votes in Airtable for member: ${memberId}`);
-      
+
       const votesResponse = await fetch(votesUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`
         }
       });
-      
+
       if (!votesResponse.ok) {
         const errorData = await votesResponse.json();
         return res.status(votesResponse.status).json({
@@ -476,9 +485,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: errorData
         });
       }
-      
+
       const votesData = await votesResponse.json();
-      
+
       // Filter votes for this member for more clarity
       const memberVotes = votesData.records?.filter(record => {
         // Check if the record has Member field and if it's an array containing memberId
@@ -486,9 +495,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                Array.isArray(record.fields.Member) && 
                record.fields.Member.includes(memberId);
       }) || [];
-      
+
       console.log(`Found ${memberVotes.length} votes for member ${memberId} out of ${votesData.records?.length || 0} total votes`);
-      
+
       return res.status(200).json({
         member: {
           id: memberId,
@@ -505,19 +514,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Debug endpoint for specific game with Airtable data
   app.get("/api/airtable/test-game", async (req, res) => {
     try {
       // Use Ark Nova as a test case since it has subcategory data in Airtable
       const bggId = 342942;
-      
+
       // Get full game details from BGG
       const game = await boardGameGeekService.getGameDetails(bggId);
-      
+
       // Get Airtable-specific data
       const airtableData = await airtableService.getGameByBGGId(bggId);
-      
+
       // Create a combined object for debugging
       const debugData = {
         game: game,
@@ -531,14 +540,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           toOrder: airtableData?.toOrder || false
         }
       };
-      
+
       return res.status(200).json(debugData);
     } catch (error) {
       console.error(`Error in test-game endpoint:`, error);
       return res.status(500).json({ message: "Test game endpoint failed", error: error.message });
     }
   });
-  
+
   // Votes routes
   app.post("/api/votes", async (req, res) => {
     try {
@@ -546,20 +555,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session.userId) {
         return res.status(401).json({ message: "You must be logged in to vote" });
       }
-      
+
       // Validate vote data
       const voteSchema = z.object({
         bggId: z.number(),
         voteType: z.nativeEnum(VoteType)
       });
-      
+
       const result = voteSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid vote data", errors: result.error.errors });
       }
-      
+
       const { bggId, voteType } = result.data;
-      
+
       // Check if game exists in our database, if not, fetch it from BGG and save it
       let game = await storage.getGameByBGGId(bggId);
       if (!game) {
@@ -586,13 +595,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           publishers: gameDetails.publishers
         });
       }
-      
+
       // Check if user already voted for this game
       const existingVote = await storage.getUserVoteForGame(req.session.userId, game.id);
       if (existingVote) {
         // Update the existing vote
         const updatedVote = await storage.updateVote(existingVote.id, { voteType });
-        
+
         // Update in Airtable using the direct service that works
         try {
           await airtableDirectService.updateVote(updatedVote);
@@ -600,17 +609,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Airtable update error:", airtableError);
           // Continue even if Airtable fails - local storage is our source of truth
         }
-        
+
         return res.status(200).json(updatedVote);
       }
-      
+
       // Create new vote
       const vote = await storage.createVote({
         userId: req.session.userId,
         gameId: game.id,
         voteType
       });
-      
+
       // Save to Airtable using the direct service that works
       try {
         await airtableDirectService.createVote(vote);
@@ -618,26 +627,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Airtable create error:", airtableError);
         // Continue even if Airtable fails - local storage is our source of truth
       }
-      
+
       return res.status(201).json(vote);
     } catch (error) {
       console.error("Vote submission error:", error);
       return res.status(500).json({ message: "Failed to submit vote" });
     }
   });
-  
+
   app.get("/api/votes/my-votes", async (req, res) => {
     try {
       // Log Airtable configuration status
       const airtableConfigured = process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID;
       console.log(`Airtable configuration status: ${airtableConfigured ? 'Configured' : 'Not configured'}`);
-      
+
       // Check if user is authenticated
       if (!req.session.userId) {
         console.log("User not authenticated when trying to view votes");
         return res.status(401).json({ message: "You must be logged in to view your votes" });
       }
-      
+
       console.log(`Fetching votes for user ID: ${req.session.userId}`);
       const votes = await storage.getUserVotes(req.session.userId);
       console.log(`Retrieved ${votes.length} votes for user`);
@@ -650,20 +659,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   app.get("/api/games/:id", async (req, res) => {
     try {
       const gameId = parseInt(req.params.id);
       if (isNaN(gameId)) {
         return res.status(400).json({ message: "Invalid game ID" });
       }
-      
+
       // Get game from storage
       const game = await storage.getGame(gameId);
       if (!game) {
         return res.status(404).json({ message: "Game not found" });
       }
-      
+
       return res.status(200).json(game);
     } catch (error) {
       console.error("Error fetching game:", error);
@@ -677,39 +686,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const game = req.query.game as string || "Spirit Island"; // Use provided game name or default
       const baseId = process.env.AIRTABLE_BASE_ID;
       const apiKey = process.env.AIRTABLE_API_KEY;
-      
+
       if (!baseId || !apiKey) {
         return res.status(500).json({ message: 'Airtable credentials not configured' });
       }
 
       const encodedFormula = encodeURIComponent(`{Title}="${game}"`);
       const url = `https://api.airtable.com/v0/${baseId}/Games?filterByFormula=${encodedFormula}`;
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`
         }
       });
-      
+
       if (!response.ok) {
         return res.status(response.status).json({
           message: `Airtable error: ${response.statusText}`
         });
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.records || data.records.length === 0) {
         return res.status(404).json({ message: `Game '${game}' not found in Airtable` });
       }
-      
+
       // Return the first game's record to examine its fields
       const gameRecord = data.records[0];
-      
+
       // Return all field names available in the record
       const fieldNames = Object.keys(gameRecord.fields);
-      
+
       return res.json({
         game,
         id: gameRecord.id,
@@ -728,25 +737,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session.userId) {
         return res.status(401).json({ message: "You must be logged in to delete votes" });
       }
-      
+
       const voteId = parseInt(req.params.id);
       if (isNaN(voteId)) {
         return res.status(400).json({ message: "Invalid vote ID" });
       }
-      
+
       // Check if vote exists and belongs to the user
       const vote = await storage.getVote(voteId);
       if (!vote) {
         return res.status(404).json({ message: "Vote not found" });
       }
-      
+
       if (vote.userId !== req.session.userId) {
         return res.status(403).json({ message: "You can only delete your own votes" });
       }
-      
+
       // Delete from storage
       await storage.deleteVote(voteId);
-      
+
       // Delete from Airtable using the direct service that works
       try {
         await airtableDirectService.deleteVote(voteId);
@@ -754,7 +763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Airtable delete error:", airtableError);
         // Continue even if Airtable fails - local storage is our source of truth
       }
-      
+
       return res.status(200).json({ message: "Vote deleted successfully" });
     } catch (error) {
       console.error("Vote deletion error:", error);
@@ -767,7 +776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Fetching category votes...");
       const categories = await airtableDirectService.getCategoryVotes();
-      
+
       return res.status(200).json(categories);
     } catch (error) {
       console.error(`Error fetching category votes:`, error);
