@@ -10,7 +10,7 @@ class NewBoardGameGeekService {
   // Constants
   private readonly API_BASE = 'https://boardgamegeek.com/xmlapi2/';
   private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour cache
-  private readonly RATE_LIMIT_DELAY = 2000; // 2 seconds between requests
+  private readonly RATE_LIMIT_DELAY = 100; // 100ms between requests (reduced from 2000ms)
   private readonly MAX_RETRIES = 3;
   
   // Cache structures
@@ -311,24 +311,6 @@ class NewBoardGameGeekService {
       // Always use non-exact search to get a broader set of results
       let searchResults = await this.performBGGSearch(normalizedQuery, false);
       
-      // Special handling for Catan - if we have very few results or this is the 'catan' special case, 
-      // also search for 'settlers of catan' to get more related games
-      if ((normalizedQuery === 'catan' || searchResults.length < 3) && 
-          (normalizedQuery === 'catan' || normalizedQuery.includes('catan'))) {
-        console.log(`🔍 Special case for Catan: Also searching for "settlers of catan" to get more related games`);
-        const catanResults = await this.performBGGSearch('settlers of catan', false);
-        
-        // Combine with existing results, avoiding duplicates
-        const existingIds = new Set(searchResults.map(game => game.gameId));
-        for (const game of catanResults) {
-          if (!existingIds.has(game.gameId)) {
-            searchResults.push(game);
-            existingIds.add(game.gameId);
-          }
-        }
-        console.log(`🔍 Added ${catanResults.length} additional Catan-related results`);
-      }
-      
       // If still no results and query contains spaces, try first word
       if (searchResults.length === 0 && normalizedQuery.includes(' ')) {
         const firstWord = normalizedQuery.split(' ')[0];
@@ -500,9 +482,8 @@ class NewBoardGameGeekService {
     
     console.log(`🔍 [DEBUG] Found ${items.length} items for "${query}" with exact=${exact}`);
     
-    // Get more results for a more comprehensive search experience
-    // For Catan specifically, get even more results (up to 25)
-    const limit = query.toLowerCase().includes('catan') ? 25 : 20;
+    // Limit results to improve search performance
+    const limit = 10; // Reduced from 20-25 to improve performance
     console.log(`🔍 [DEBUG] Limiting to top ${limit} results from ${items.length} total items`);
     const topItems = items.slice(0, limit);
     
