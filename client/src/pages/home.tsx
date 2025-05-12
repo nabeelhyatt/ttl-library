@@ -4,6 +4,7 @@ import { HexagonIcon } from '@/components/ui/hexagon-icon';
 import { GameSearch } from '@/components/game/game-search';
 import { GameFilters } from '@/components/game/game-filters';
 import { GameCard } from '@/components/game/game-card';
+import { GamesOnOrderProgress } from '@/components/progress/games-on-order-progress';
 import { fetchHotGames, searchGames, getBGGtoTLCSWeight, getPrimaryGenre } from '@/lib/new-bgg-api';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
@@ -182,6 +183,9 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
   return (
     <main>
       <div className="container">
+        {/* Game Collection Progress */}
+        <GamesOnOrderProgress />
+        
         {/* Search Section */}
         <GameSearch 
           onSearch={handleSearch} 
