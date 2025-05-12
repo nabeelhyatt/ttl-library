@@ -2,6 +2,10 @@
 
 This document outlines the upcoming features and improvements for the Tabletop Library Game Voting application.
 
+If I tell you one of these is complete you should delete it, and then add details of the implementation to readme.md
+
+You should prioritize the first take, and only do one task at a time. When you start a project do not assume you know how it should be implemented or what I mean by it. Instead, write up a PRD of what you want to do and how, asking questions on areas that might be open to interpretation and lead to bugs. In general we want clean, isolated code. 
+
 ## Priority Tasks
 
 1. **Add "Games on Order" Progress Graphic**
