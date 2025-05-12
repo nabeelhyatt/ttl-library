@@ -54,11 +54,11 @@ router.get('/hot', async (req, res) => {
     console.log('==============================================');
     
     return res.status(200).json(enrichedGames);
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error fetching hot games:', error);
     return res.status(500).json({ 
       message: 'Failed to fetch hot games',
-      error: error.message
+      error: error.message || 'Unknown error'
     });
   }
 });
@@ -124,11 +124,11 @@ router.get('/search', async (req, res) => {
     console.log(`📚 Search completed in ${executionTime}ms - returning ${enrichedResults.length} results`);
     
     return res.status(200).json(enrichedResults);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error searching games:', error);
     return res.status(500).json({ 
       message: 'Failed to search games',
-      error: error.message 
+      error: error.message || 'Unknown error'
     });
   }
 });
@@ -171,11 +171,11 @@ router.get('/game/:id', async (req, res) => {
     console.log(`🎲 Game details fetched in ${executionTime}ms`);
     
     return res.status(200).json(enrichedGame);
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error fetching game details:`, error);
     return res.status(500).json({ 
       message: 'Failed to fetch game details',
-      error: error.message
+      error: error.message || 'Unknown error'
     });
   }
 });

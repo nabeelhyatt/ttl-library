@@ -96,6 +96,36 @@
     @apply relative inline-block;
   }
   
+  /* Search container styling */
+  .search-container {
+    @apply flex flex-col sm:flex-row gap-2 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100 shadow-sm;
+  }
+  
+  .search-container input {
+    @apply flex-grow;
+  }
+  
+  .search-container button {
+    @apply bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 rounded-md transition-colors;
+  }
+  
+  /* Loading indicator for search */
+  .loading-indicator {
+    @apply flex flex-col items-center justify-center p-8 text-center;
+  }
+  
+  .loading-spinner {
+    @apply w-8 h-8 border-4 border-gray-300 border-t-orange-500 rounded-full animate-spin my-4;
+  }
+  
+  .loading-message {
+    @apply text-lg font-medium mb-2;
+  }
+  
+  .loading-note {
+    @apply text-sm text-gray-500;
+  }
+  
   /* Removed underline from section titles */
   /* 
   .section-title:after {
