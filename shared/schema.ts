@@ -1,18 +1,38 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User model
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User model updated for Replit Auth
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
+  id: varchar("id").primaryKey().notNull(), // Replit user ID from OpenID
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  name: text("name"), // Display name (can be set separately from firstName/lastName)
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
   lastLogin: timestamp("last_login"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  name: true,
+  id: true,
   email: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
+  name: true,
 });
 
 // Game model
@@ -64,14 +84,31 @@ export const insertGameSchema = createInsertSchema(games).pick({
 // Vote model
 export const votes = pgTable("votes", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: varchar("user_id").notNull(), // Updated to varchar to match new user ID type
   gameId: integer("game_id").notNull(),
   voteType: integer("vote_type").notNull(), // 1-5 vote types
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  airtableId: varchar("airtable_id"), // To track votes synced with Airtable
+});
+
+// Pending votes for users that are not yet logged in
+export const pendingVotes = pgTable("pending_votes", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("session_id").notNull(), // Track by session before login
+  gameId: integer("game_id").notNull(),
+  voteType: integer("vote_type").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertVoteSchema = createInsertSchema(votes).pick({
   userId: true,
+  gameId: true,
+  voteType: true,
+});
+
+export const insertPendingVoteSchema = createInsertSchema(pendingVotes).pick({
+  sessionId: true,
   gameId: true,
   voteType: true,
 });
@@ -85,6 +122,15 @@ export type InsertGame = z.infer<typeof insertGameSchema>;
 
 export type Vote = typeof votes.$inferSelect;
 export type InsertVote = z.infer<typeof insertVoteSchema>;
+
+export type PendingVote = typeof pendingVotes.$inferSelect;
+export type InsertPendingVote = z.infer<typeof insertPendingVoteSchema>;
+
+// Type for storing a temporary vote while logging in
+export interface TempVote {
+  gameId: number;
+  voteType: VoteType;
+}
 
 // Type for BoardGameGeek API responses
 export interface BGGGame {
