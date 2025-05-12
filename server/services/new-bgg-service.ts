@@ -29,6 +29,9 @@ class NewBoardGameGeekService {
     timestamp: number 
   }> = new Map();
   
+  // Flag to temporarily disable cache for testing/debugging
+  private cacheEnabled: boolean = true;
+  
   // Timestamps for rate limiting
   private lastRequestTime = 0;
   
@@ -265,13 +268,22 @@ class NewBoardGameGeekService {
     const normalizedQuery = query.trim().toLowerCase();
     const cacheKey = `search_${normalizedQuery}`;
     
-    // Check cache first
+    // Check cache first, but only if cache is enabled
     const now = Date.now();
     const cachedResult = this.searchCache.get(cacheKey);
     
-    if (cachedResult && now - cachedResult.timestamp < this.CACHE_TTL) {
+    // For now, we'll disable the cache during development/testing
+    this.cacheEnabled = false;
+    
+    if (this.cacheEnabled && cachedResult && now - cachedResult.timestamp < this.CACHE_TTL) {
       console.log(`🔍 Returning search results for "${query}" from cache (${cachedResult.data.length} results)`);
       return cachedResult.data;
+    }
+    
+    // During development/testing, let's clear all caches to get fresh results
+    if (!this.cacheEnabled) {
+      this.clearCaches();
+      console.log(`🔍 Cache disabled for testing - cleared all caches`);
     }
     
     return this.retryWithBackoff(async () => {
@@ -292,14 +304,16 @@ class NewBoardGameGeekService {
       }
       
       // Now get regular search results
-      console.log(`🔍 Performing regular search for "${normalizedQuery}"`);
+      console.log(`🔍 Performing regular search for "${normalizedQuery}" to find related games`);
       
-      // Try exact search first
-      let searchResults = await this.performBGGSearch(normalizedQuery, true);
+      // Always force a regular search (exact=false) to get related games
+      // This ensures we get a broader set of results
+      let searchResults = await this.performBGGSearch(normalizedQuery, false);
       
-      // If no exact results, try non-exact search
+      // If no results from regular search, try exact search as a fallback
       if (searchResults.length === 0) {
-        searchResults = await this.performBGGSearch(normalizedQuery, false);
+        console.log(`🔍 No results from regular search, trying exact match as fallback`);
+        searchResults = await this.performBGGSearch(normalizedQuery, true);
       }
       
       // If still no results and query contains spaces, try first word
