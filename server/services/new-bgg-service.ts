@@ -291,29 +291,42 @@ class NewBoardGameGeekService {
 
       // Start with an empty results array
       let results: BGGGame[] = [];
+      let specialCaseId: number | null = null;
       
-      // Get special case game first if applicable
+      // STEP 1: Get special case game first if applicable
       if (this.isSpecialCaseQuery(normalizedQuery)) {
         console.log(`🔍 Processing special case for "${normalizedQuery}" - getting definitive version first`);
         const specialCaseResults = await this.handleSpecialCaseSearch(normalizedQuery);
         if (specialCaseResults.length > 0) {
           // Add special case to top of results
           results = [...specialCaseResults];
-          console.log(`🔍 Added special case game as first result`);
+          specialCaseId = specialCaseResults[0].gameId;
+          console.log(`🔍 Added special case game as first result (ID: ${specialCaseId})`);
         }
       }
       
-      // Now get regular search results
+      // STEP 2: Always perform a regular search for related games
       console.log(`🔍 Performing regular search for "${normalizedQuery}" to find related games`);
       
-      // Always force a regular search (exact=false) to get related games
-      // This ensures we get a broader set of results
+      // Always use non-exact search to get a broader set of results
       let searchResults = await this.performBGGSearch(normalizedQuery, false);
       
-      // If no results from regular search, try exact search as a fallback
-      if (searchResults.length === 0) {
-        console.log(`🔍 No results from regular search, trying exact match as fallback`);
-        searchResults = await this.performBGGSearch(normalizedQuery, true);
+      // Special handling for Catan - if we have very few results or this is the 'catan' special case, 
+      // also search for 'settlers of catan' to get more related games
+      if ((normalizedQuery === 'catan' || searchResults.length < 3) && 
+          (normalizedQuery === 'catan' || normalizedQuery.includes('catan'))) {
+        console.log(`🔍 Special case for Catan: Also searching for "settlers of catan" to get more related games`);
+        const catanResults = await this.performBGGSearch('settlers of catan', false);
+        
+        // Combine with existing results, avoiding duplicates
+        const existingIds = new Set(searchResults.map(game => game.gameId));
+        for (const game of catanResults) {
+          if (!existingIds.has(game.gameId)) {
+            searchResults.push(game);
+            existingIds.add(game.gameId);
+          }
+        }
+        console.log(`🔍 Added ${catanResults.length} additional Catan-related results`);
       }
       
       // If still no results and query contains spaces, try first word
@@ -329,20 +342,30 @@ class NewBoardGameGeekService {
         searchResults = await this.performBGGSearch(`${normalizedQuery}*`, false);
       }
       
-      // Make sure we don't have duplicate games (in case the special game is also in the search results)
-      if (results.length > 0) {
-        // Get the ID of the special case game
-        const specialCaseId = results[0].gameId;
-        
+      // STEP 3: If we have a special case game and regular search results, remove duplicates and combine
+      console.log(`🔍 Combining results: ${results.length} special case + ${searchResults.length} search results`);
+      
+      if (results.length > 0 && specialCaseId !== null) {
         // Filter out any search results that have the same ID as the special case
-        searchResults = searchResults.filter(game => game.gameId !== specialCaseId);
+        const filteredResults = searchResults.filter(game => game.gameId !== specialCaseId);
         
-        // Combine the special case with the search results
-        results = [...results, ...searchResults];
-        console.log(`🔍 Combined special case with ${searchResults.length} search results`);
+        if (filteredResults.length < searchResults.length) {
+          console.log(`🔍 Removed duplicate special case game from search results`);
+        }
+        
+        // Combine the special case with the filtered search results
+        results = [...results, ...filteredResults];
+        console.log(`🔍 Final combined results: ${results.length} games (1 special case + ${filteredResults.length} regular results)`);
       } else {
         // If no special case, just use the search results
         results = searchResults;
+        console.log(`🔍 Using only regular search results: ${results.length} games`);
+      }
+      
+      if (results.length === 0) {
+        console.log(`🔍 WARNING: No results found for "${query}" after all search attempts!`);
+      } else if (results.length === 1) {
+        console.log(`🔍 NOTE: Only found 1 result for "${query}" (ID: ${results[0].gameId})`);
       }
       
       // Cache the combined results
@@ -457,6 +480,8 @@ class NewBoardGameGeekService {
     // Add path for exact search if needed
     const exactParam = exact ? '&exact=1' : '';
     
+    console.log(`🔍 [DEBUG] Performing BGG ${exact ? 'exact' : 'regular'} search for "${query}"`);
+    
     // Make BGG search API call
     const response = await axios.get(
       `${this.API_BASE}search?query=${encodeURIComponent(query)}${exactParam}&type=boardgame`
@@ -465,6 +490,7 @@ class NewBoardGameGeekService {
     const result = await parseStringPromise(response.data, { explicitArray: false });
     
     if (!result.items || !result.items.item) {
+      console.log(`🔍 [DEBUG] No items found for "${query}" with exact=${exact}`);
       return [];
     }
     
@@ -472,8 +498,13 @@ class NewBoardGameGeekService {
     const items = Array.isArray(result.items.item) ? 
       result.items.item : [result.items.item];
     
-    // Limit to top results
-    const topItems = items.slice(0, 10);
+    console.log(`🔍 [DEBUG] Found ${items.length} items for "${query}" with exact=${exact}`);
+    
+    // Get more results for a more comprehensive search experience
+    // For Catan specifically, get even more results (up to 25)
+    const limit = query.toLowerCase().includes('catan') ? 25 : 20;
+    console.log(`🔍 [DEBUG] Limiting to top ${limit} results from ${items.length} total items`);
+    const topItems = items.slice(0, limit);
     
     // Get full details for each game
     const games: BGGGame[] = [];
@@ -483,12 +514,22 @@ class NewBoardGameGeekService {
         const id = parseInt(item.$.id);
         if (isNaN(id) || id <= 0) continue;
         
+        // If this is not a special case search, check if game is already in the games array
+        // to prevent duplicates (especially for common games like Catan)
+        if (games.some(game => game.gameId === id)) {
+          console.log(`🔍 [DEBUG] Skipping duplicate game with ID ${id}`);
+          continue;
+        }
+        
+        console.log(`🔍 [DEBUG] Getting details for game ID ${id}`);
         const details = await this.getGameDetails(id);
         games.push(details);
       } catch (error) {
         console.error(`❌ Error getting details for search result ${item.$.id}:`, error);
       }
     }
+    
+    console.log(`🔍 [DEBUG] Returning ${games.length} search results for "${query}"`);
     
     // Sort by BGG rank
     return this.sortByRank(games);
