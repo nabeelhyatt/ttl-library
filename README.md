@@ -76,12 +76,19 @@ The application implements an advanced search system with several layers of func
    - Responsive game cards with detailed information
    - Automatic enrichment with Airtable metadata when available
 
-2. **Voting System**
+2. **Game Collection Progress Tracking**
+   - Visual progress bar showing games in stock, on order, and voted for
+   - Live data from Airtable TLCS Categories table
+   - Progress tracking toward collection goals
+   - Color-coded segments showing collection status
+   - Real-time updates when new games are added
+
+3. **Voting System**
    - User authentication
    - Vote tracking
    - Integration with Airtable for persistent storage
 
-3. **Rankings**
+4. **Rankings**
    - Aggregated game rankings
    - Filtering and sorting capabilities
    - Real-time updates
