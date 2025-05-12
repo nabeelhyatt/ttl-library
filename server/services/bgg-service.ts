@@ -4,7 +4,7 @@ import { BGGGame } from '@shared/schema';
 
 class BoardGameGeekService {
   private API_BASE = 'https://boardgamegeek.com/xmlapi2/';
-  private RETRY_DELAY = 2000; // 2 seconds
+  private RETRY_DELAY = 125; // 125 milliseconds
   private MAX_RETRIES = 5; // Increase retry attempts
   private lastRequestTime = 0; // Track last request time for rate limiting
   
@@ -18,7 +18,7 @@ class BoardGameGeekService {
   private async rateLimit(): Promise<void> {
     const now = Date.now();
     const elapsed = now - this.lastRequestTime;
-    const minDelay = 1000; // 1 second minimum between requests
+    const minDelay = 100; // 100 milliseconds minimum between requests
     
     if (elapsed < minDelay) {
       const delay = minDelay - elapsed;
