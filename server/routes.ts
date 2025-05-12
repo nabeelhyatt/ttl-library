@@ -125,6 +125,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Use the new BGG routes
   app.use("/api/bgg", bggRoutes);
+  
+  // Endpoint to get game statistics including games in stock and on order
+  app.get("/api/airtable/game-stats", async (req, res) => {
+    try {
+      console.log("Fetching game statistics from Airtable...");
+      const stats = await airtableDirectService.getGameStats();
+      
+      // Set target for total games (in stock + on order)
+      const target = 200;
+      
+      return res.status(200).json({ 
+        ...stats,
+        target, 
+        // Calculate percentages
+        stockPercentage: Math.min(100, Math.round((stats.gamesInStock / target) * 100)),
+        orderPercentage: Math.min(100, Math.round((stats.gamesOnOrder / target) * 100)),
+        totalPercentage: Math.min(100, Math.round((stats.totalGames / target) * 100))
+      });
+    } catch (error) {
+      console.error(`Error fetching game statistics:`, error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve game statistics from Airtable",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   // New endpoint to check if a game exists in Airtable by BGG ID
   app.get("/api/airtable/game/:bggId", async (req, res) => {

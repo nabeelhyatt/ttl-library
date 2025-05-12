@@ -45,6 +45,122 @@ export class AirtableDirectService {
       console.log('Airtable credentials configured successfully');
     }
   }
+  
+  /**
+   * Get game statistics from TLCS Categories table in Airtable
+   */
+  async getGameStats(): Promise<{
+    totalGames: number;
+    gamesOnOrder: number;
+    gamesInStock: number;
+    votedGames: number;
+    categories: {
+      id: string;
+      name: string; 
+      description: string;
+      totalGames: number;
+      votedGames: number;
+    }[]
+  }> {
+    try {
+      if (!this.apiKey || !this.baseId) {
+        console.error('Airtable configuration is incomplete');
+        return {
+          totalGames: 0,
+          gamesOnOrder: 0,
+          gamesInStock: 0,
+          votedGames: 0,
+          categories: []
+        };
+      }
+      
+      console.log('Fetching game statistics from TLCS Categories in Airtable');
+      
+      // Get all categories from the TLCS Categories table
+      const url = `https://api.airtable.com/v0/${this.baseId}/TLCS%20Categories?fields%5B%5D=Category%20Name&fields%5B%5D=Category%20Description&fields%5B%5D=Total%20Games&fields%5B%5D=Total%20Games%20(Votes)`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      });
+      
+      if (!response.ok) {
+        console.error(`Error retrieving TLCS Categories from Airtable: ${response.status} ${response.statusText}`);
+        return {
+          totalGames: 0,
+          gamesOnOrder: 0,
+          gamesInStock: 0,
+          votedGames: 0,
+          categories: []
+        };
+      }
+      
+      const data = await response.json();
+      
+      // Get categories and sum up the totals
+      let totalGamesInStock = 0;
+      let totalVotedGames = 0;
+      
+      const categories = data.records?.map(record => {
+        const totalGames = record.fields['Total Games'] || 0;
+        const votedGames = record.fields['Total Games (Votes)'] || 0;
+        
+        // Add to totals
+        totalGamesInStock += totalGames;
+        totalVotedGames += votedGames;
+        
+        return {
+          id: record.id,
+          name: record.fields['Category Name'] || 'Unknown',
+          description: record.fields['Category Description'] || '',
+          totalGames: totalGames,
+          votedGames: votedGames
+        };
+      }) || [];
+      
+      // Get count of games explicitly marked as "to Order" from the Games table
+      // This helps us distinguish between games in stock vs on order
+      const encodedFormula = encodeURIComponent('{to Order}=1');
+      const gamesUrl = `https://api.airtable.com/v0/${this.baseId}/Games?filterByFormula=${encodedFormula}&fields%5B%5D=BGG%20ID`;
+      
+      const gamesResponse = await fetch(gamesUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      });
+      
+      let gamesOnOrder = 0;
+      if (gamesResponse.ok) {
+        const gamesData = await gamesResponse.json();
+        gamesOnOrder = gamesData.records?.length || 0;
+      }
+      
+      // Calculate games in stock (total minus those on order)
+      const gamesInStock = totalGamesInStock - gamesOnOrder;
+      
+      console.log(`Total: ${totalGamesInStock}, In Stock: ${gamesInStock}, On Order: ${gamesOnOrder}, Voted For: ${totalVotedGames}`);
+      
+      return {
+        totalGames: totalGamesInStock,
+        gamesInStock: gamesInStock,
+        gamesOnOrder: gamesOnOrder,
+        votedGames: totalVotedGames,
+        categories: categories
+      };
+    } catch (err) {
+      console.error('Error fetching game statistics from Airtable:', err instanceof Error ? err.message : String(err));
+      return {
+        totalGames: 0,
+        gamesOnOrder: 0,
+        gamesInStock: 0,
+        votedGames: 0,
+        categories: []
+      };
+    }
+  }
 
   /**
    * Creates a vote in Airtable using direct API calls with the correct format
