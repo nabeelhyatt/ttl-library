@@ -4,7 +4,7 @@ import { HexagonIcon } from '@/components/ui/hexagon-icon';
 import { GameSearch } from '@/components/game/game-search';
 import { GameFilters } from '@/components/game/game-filters';
 import { GameCard } from '@/components/game/game-card';
-import { fetchHotGames, searchGames, getBGGtoTLCSWeight, getPrimaryGenre } from '@/lib/bgg-api';
+import { fetchHotGames, searchGames, getBGGtoTLCSWeight, getPrimaryGenre } from '@/lib/new-bgg-api';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 
@@ -23,6 +23,9 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
   const [genreFilter, setGenreFilter] = useState('all');
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  
+  // Track the current search query from URL for the search box
+  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('');
   
   // Fetch hot games on component mount and check for search parameter
   useEffect(() => {
@@ -51,6 +54,9 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
     const searchQuery = params.get('search');
     
     if (searchQuery) {
+      // Update the current search query for the search box
+      setCurrentSearchQuery(decodeURIComponent(searchQuery));
+      
       // If we have a search query, perform search instead of loading hot games
       handleSearch(searchQuery);
     } else {
@@ -83,7 +89,7 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
     setFilteredGames(filtered);
   };
   
-  // Handle search
+  // Handle search with improved error handling and user feedback
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
       setSearchMode(false);
@@ -95,6 +101,10 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
     
     // Prevent multiple concurrent searches
     if (isSearching) {
+      toast({
+        title: "Search in progress",
+        description: "A search is already in progress. Please wait a moment.",
+      });
       return;
     }
     
@@ -102,17 +112,31 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
       setIsSearching(true);
       setSearchMode(true);
       
+      // Show search status to user
+      toast({
+        title: "Searching games",
+        description: `Looking for games matching "${query}"...`,
+      });
+      
       // Update URL with search parameter (without page reload)
       setLocation(`/?search=${encodeURIComponent(query)}`, { replace: true });
       
       const searchResults = await searchGames(query);
+      
+      // Update game list
       setFilteredGames(searchResults);
       
+      // Show appropriate message based on results
       if (searchResults.length === 0) {
         toast({
           title: "No results found",
-          description: `We couldn't find any games matching "${query}". BGG API may be rate-limited, please try again in a moment.`,
+          description: `We couldn't find any games matching "${query}". Try a different search term.`,
           variant: "default"
+        });
+      } else {
+        toast({
+          title: `Found ${searchResults.length} games`,
+          description: `Search results for "${query}"`,
         });
       }
     } catch (error) {
@@ -122,7 +146,7 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
       
       toast({
         title: "Search failed",
-        description: "We couldn't complete your search. BGG API may be rate-limited, please try again in a moment.",
+        description: "We couldn't complete your search. Please try again in a moment.",
         variant: "destructive"
       });
       
@@ -159,7 +183,11 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
     <main>
       <div className="container">
         {/* Search Section */}
-        <GameSearch onSearch={handleSearch} isSearching={isSearching} />
+        <GameSearch 
+          onSearch={handleSearch} 
+          isSearching={isSearching} 
+          initialQuery={currentSearchQuery} 
+        />
         
         {/* Games List */}
         {isLoading ? (
