@@ -6,10 +6,14 @@ import { airtableService } from "./services/airtable-service";
 import { airtableDirectService } from "./services/airtable-direct";
 import { debugAirtableBase, testAirtableWrite } from "./services/airtable-debug";
 import { testAirtableMCP } from "./services/airtable-mcp-test";
+import { newBoardGameGeekService } from "./services/new-bgg-service";
 import * as z from "zod";
 import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
 import session from "express-session";
 import MemoryStore from "memorystore";
+
+// Import modular routes
+import bggRoutes from "./routes/bgg-routes";
 
 const MemoryStoreSession = MemoryStore(session);
 
@@ -119,174 +123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // BoardGameGeek API routes
-  app.get("/api/bgg/hot", async (req, res) => {
-    try {
-      console.log("==============================================");
-      console.log("🚀 PERFORMANCE: GET /api/bgg/hot - Fetching hot games (will use cache if available)");
-      const startTime = Date.now();
-
-      // Get basic hot games list
-      const hotGames = await boardGameGeekService.getHotGames();
-
-      // Enrich with Airtable data (in parallel)
-      const enrichedGames = await Promise.all(
-        hotGames.map(async (game) => {
-          try {
-            // Check if game exists in Airtable
-            const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
-
-            if (airtableGameInfo) {
-              // Determine if Airtable categories are record IDs
-              let useAirtableCategories = false;
-              if (airtableGameInfo.categories?.length) {
-                useAirtableCategories = airtableGameInfo.categories.some(
-                  cat => typeof cat === 'string' && !cat.startsWith('rec')
-                );
-              }
-
-              // Return enriched game with Airtable data
-              return {
-                ...game,
-                tlcsCode: airtableGameInfo.tlcsCode || null,
-                subcategoryName: airtableGameInfo.subcategoryName || null,
-                forRent: airtableGameInfo.forRent || false,
-                forSale: airtableGameInfo.forSale || false,
-                toOrder: airtableGameInfo.toOrder || false,
-                categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
-              };
-            }
-
-            return game;
-          } catch (error) {
-            console.error(`Error enriching game ${game.gameId} with Airtable data:`, error);
-            return game;
-          }
-        })
-      );
-
-      const endTime = Date.now();
-      const executionTime = endTime - startTime;
-      console.log(`✅ GET /api/bgg/hot - Successfully returned ${enrichedGames.length} hot games in ${executionTime}ms`);
-      console.log("==============================================");
-      return res.status(200).json(enrichedGames);
-    } catch (error) {
-      console.error("❌ Error fetching hot games:", error);
-      return res.status(500).json({ message: "Failed to fetch hot games" });
-    }
-  });
-
-  app.get("/api/bgg/search", async (req, res) => {
-    try {
-      const query = req.query.query as string;
-      if (!query) {
-        return res.status(400).json({ message: "Search query is required" });
-      }
-
-      console.log(`📚 Search request received for: "${query}"`);
-      const startTime = Date.now();
-
-      // Use combined search for better results (exact + partial with deduplication)
-      const results = await boardGameGeekService.searchGamesCombined(query);
-
-      console.log(`📚 Combined search returned ${results.length} results for "${query}"`);
-
-      // Enrich with Airtable data (in parallel)
-      const enrichedResults = await Promise.all(
-        results.map(async (game) => {
-          try {
-            // Check if game exists in Airtable
-            const airtableGameInfo = await airtableService.getGameByBGGId(game.gameId);
-
-            if (airtableGameInfo) {
-              // Determine if Airtable categories are record IDs
-              let useAirtableCategories = false;
-              if (airtableGameInfo.categories?.length) {
-                useAirtableCategories = airtableGameInfo.categories.some(
-                  cat => typeof cat === 'string' && !cat.startsWith('rec')
-                );
-              }
-
-              // Return enriched game with Airtable data
-              return {
-                ...game,
-                tlcsCode: airtableGameInfo.tlcsCode || null,
-                subcategoryName: airtableGameInfo.subcategoryName || null,
-                forRent: airtableGameInfo.forRent || false,
-                forSale: airtableGameInfo.forSale || false,
-                toOrder: airtableGameInfo.toOrder || false,
-                categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
-              };
-            }
-
-            return game;
-          } catch (error) {
-            console.error(`Error enriching game ${game.gameId} with Airtable data:`, error);
-            return game;
-          }
-        })
-      );
-
-      // Sort results by BGG rank if available (games with ranks come first, sorted by rank)
-      const sortedResults = enrichedResults.sort((a, b) => {
-        // If both games have a rank, sort by rank (lower rank is better)
-        if (a.bggRank && b.bggRank) {
-          return a.bggRank - b.bggRank;
-        }
-        // If only one game has a rank, prioritize the ranked game
-        if (a.bggRank) return -1;
-        if (b.bggRank) return 1;
-        // If neither has a rank, sort alphabetically by name
-        return a.name.localeCompare(b.name);
-      });
-
-      const executionTime = Date.now() - startTime;
-      console.log(`📚 Search completed in ${executionTime}ms - returning ${sortedResults.length} results`);
-
-      return res.status(200).json(sortedResults);
-    } catch (error) {
-      console.error("Error searching games:", error);
-      return res.status(500).json({ message: "Failed to search games" });
-    }
-  });
-
-  app.get("/api/bgg/game/:id", async (req, res) => {
-    try {
-      const gameId = parseInt(req.params.id);
-      if (isNaN(gameId)) {
-        return res.status(400).json({ message: "Invalid game ID" });
-      }
-
-      const game = await boardGameGeekService.getGameDetails(gameId);
-
-      // Check if game exists in Airtable and get additional information
-      const airtableGameInfo = await airtableService.getGameByBGGId(gameId);
-
-      // Determine if Airtable categories are record IDs (they start with "rec")
-      let useAirtableCategories = false;
-      if (airtableGameInfo?.categories?.length) {
-        // Check if any categories don't start with "rec" (indicating they're not record IDs)
-        useAirtableCategories = airtableGameInfo.categories.some(cat => typeof cat === 'string' && !cat.startsWith('rec'));
-      }
-
-      // Merge Airtable data with BGG data
-      const enrichedGame = {
-        ...game,
-        tlcsCode: airtableGameInfo?.tlcsCode || null,
-        subcategoryName: airtableGameInfo?.subcategoryName || null,
-        forRent: airtableGameInfo?.forRent || false,
-        forSale: airtableGameInfo?.forSale || false,
-        toOrder: airtableGameInfo?.toOrder || false,
-        // Use Airtable categories only if they're not record IDs
-        categories: useAirtableCategories ? airtableGameInfo.categories : game.categories
-      };
-
-      return res.status(200).json(enrichedGame);
-    } catch (error) {
-      console.error(`Error fetching game details:`, error);
-      return res.status(500).json({ message: "Failed to fetch game details" });
-    }
-  });
+  // Use the new BGG routes
+  app.use("/api/bgg", bggRoutes);
 
   // New endpoint to check if a game exists in Airtable by BGG ID
   app.get("/api/airtable/game/:bggId", async (req, res) => {
