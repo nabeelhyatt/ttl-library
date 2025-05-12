@@ -190,11 +190,11 @@ router.post('/clear-cache', (req, res) => {
     return res.status(200).json({ 
       message: 'BGG caches cleared successfully' 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error clearing BGG caches:', error);
     return res.status(500).json({ 
       message: 'Failed to clear BGG caches',
-      error: error.message
+      error: error.message || 'Unknown error'
     });
   }
 });

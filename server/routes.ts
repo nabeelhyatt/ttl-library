@@ -31,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+      secret: process.env.SESSION_SECRET || 'tabletoplibrary-secret-key',
       resave: false,
       saveUninitialized: false,
       rolling: true,
