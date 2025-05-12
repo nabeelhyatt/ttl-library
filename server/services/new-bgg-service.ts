@@ -274,45 +274,64 @@ class NewBoardGameGeekService {
       return cachedResult.data;
     }
     
-    // Handle special cases first - games with common/problematic names
-    if (this.isSpecialCaseQuery(normalizedQuery)) {
-      const specialCaseResults = await this.handleSpecialCaseSearch(normalizedQuery);
-      if (specialCaseResults.length > 0) {
-        // Cache the results
-        this.searchCache.set(cacheKey, {
-          data: specialCaseResults,
-          timestamp: now
-        });
-        
-        return specialCaseResults;
-      }
-    }
-    
-    // Regular search logic
     return this.retryWithBackoff(async () => {
       console.log(`🔍 Searching BGG for: "${query}"`);
+
+      // Start with an empty results array
+      let results: BGGGame[] = [];
+      
+      // Get special case game first if applicable
+      if (this.isSpecialCaseQuery(normalizedQuery)) {
+        console.log(`🔍 Processing special case for "${normalizedQuery}" - getting definitive version first`);
+        const specialCaseResults = await this.handleSpecialCaseSearch(normalizedQuery);
+        if (specialCaseResults.length > 0) {
+          // Add special case to top of results
+          results = [...specialCaseResults];
+          console.log(`🔍 Added special case game as first result`);
+        }
+      }
+      
+      // Now get regular search results
+      console.log(`🔍 Performing regular search for "${normalizedQuery}"`);
       
       // Try exact search first
-      const exactResults = await this.performBGGSearch(normalizedQuery, true);
+      let searchResults = await this.performBGGSearch(normalizedQuery, true);
       
       // If no exact results, try non-exact search
-      let results = exactResults.length > 0 ? 
-        exactResults : await this.performBGGSearch(normalizedQuery, false);
+      if (searchResults.length === 0) {
+        searchResults = await this.performBGGSearch(normalizedQuery, false);
+      }
       
       // If still no results and query contains spaces, try first word
-      if (results.length === 0 && normalizedQuery.includes(' ')) {
+      if (searchResults.length === 0 && normalizedQuery.includes(' ')) {
         const firstWord = normalizedQuery.split(' ')[0];
         console.log(`🔍 No results for "${normalizedQuery}", trying first word "${firstWord}"`);
-        results = await this.performBGGSearch(firstWord, false);
+        searchResults = await this.performBGGSearch(firstWord, false);
       }
       
       // If still no results and query is short, try with wildcard
-      if (results.length === 0 && normalizedQuery.length <= 3) {
+      if (searchResults.length === 0 && normalizedQuery.length <= 3) {
         console.log(`🔍 No results for short query "${normalizedQuery}", trying with wildcard`);
-        results = await this.performBGGSearch(`${normalizedQuery}*`, false);
+        searchResults = await this.performBGGSearch(`${normalizedQuery}*`, false);
       }
       
-      // Cache results
+      // Make sure we don't have duplicate games (in case the special game is also in the search results)
+      if (results.length > 0) {
+        // Get the ID of the special case game
+        const specialCaseId = results[0].gameId;
+        
+        // Filter out any search results that have the same ID as the special case
+        searchResults = searchResults.filter(game => game.gameId !== specialCaseId);
+        
+        // Combine the special case with the search results
+        results = [...results, ...searchResults];
+        console.log(`🔍 Combined special case with ${searchResults.length} search results`);
+      } else {
+        // If no special case, just use the search results
+        results = searchResults;
+      }
+      
+      // Cache the combined results
       this.searchCache.set(cacheKey, {
         data: results,
         timestamp: now
@@ -394,6 +413,18 @@ class NewBoardGameGeekService {
     console.log(`🔍 Special case search for "${query}" - using direct lookup of game ID ${gameId}`);
     
     try {
+      // Cache key for special case
+      const cacheKey = `game_${gameId}`;
+      const now = Date.now();
+      
+      // Check if we have this game in the cache already
+      const cachedGame = this.gameDetailsCache.get(gameId);
+      if (cachedGame && now - cachedGame.timestamp < this.CACHE_TTL) {
+        console.log(`🔍 Found special case game ${gameId} in cache`);
+        return [cachedGame.data];
+      }
+      
+      // Not in cache, so fetch it
       const game = await this.getGameDetails(gameId);
       return [game];
     } catch (error) {
