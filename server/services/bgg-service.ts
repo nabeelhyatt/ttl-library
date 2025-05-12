@@ -125,34 +125,24 @@ class BoardGameGeekService {
       
       try {
         const response = await axios.get(`${this.API_BASE}search?${params.toString()}`);
-        const result = await parseStringPromise(response.data, { explicitArray: false });
+        const result = await parseStringPromise(response.data, { explicitArray: true });
         
         // Handle no results
-        if (!result.items.item) {
+        if (!result.items || !result.items.item) {
           return [];
         }
         
-        // Ensure item is always an array
-        const items = Array.isArray(result.items.item) 
-          ? result.items.item 
-          : [result.items.item];
-        
-        // Apply limit to search results if specified
-        const limitedItems = options.limit 
-          ? items.slice(0, options.limit) 
-          : items;
-        
-        // Extract game IDs and fetch full details
-        const gameIds = limitedItems
+        // Convert to array and extract IDs
+        const items = result.items.item;
+        const gameIds = items
           .map((item: any) => {
-            const id: number = parseInt(item.id);
-            if (isNaN(id) || id <= 0) {
-              console.warn(`Invalid item ID in search results: ${item.id}`);
+            if (!item.$ || !item.$.id) {
               return null;
             }
-            return id;
+            const id = parseInt(item.$.id);
+            return isNaN(id) || id <= 0 ? null : id;
           })
-          .filter((id: number | null): id is number => id !== null); // Filter out null values
+          .filter((id: number | null): id is number => id !== null);
           
         if (gameIds.length === 0) {
           console.warn('No valid game IDs found in search results');
