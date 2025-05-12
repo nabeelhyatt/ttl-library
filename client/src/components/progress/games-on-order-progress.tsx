@@ -64,6 +64,13 @@ export function GamesOnOrderProgress() {
     return null;
   }
 
+  // Calculate the voted percentage (but not yet in stock or on order)
+  const votedOnlyCount = statsData.votedGames;
+  const votedOnlyPercentage = Math.min(100, Math.round((votedOnlyCount / statsData.target) * 100));
+  
+  // Calculate remaining percentage
+  const remainingPercentage = 100 - statsData.stockPercentage - statsData.orderPercentage - votedOnlyPercentage;
+  
   return (
     <div className="games-collection-progress p-4 mb-4 bg-white rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-2">
@@ -73,7 +80,7 @@ export function GamesOnOrderProgress() {
         </span>
       </div>
       
-      {/* Custom progress bar with dual-gradient design */}
+      {/* Custom progress bar with four sections */}
       <div className="relative h-5 rounded bg-gray-200 overflow-hidden mb-2">
         {/* In Stock Games (Black) */}
         <div 
@@ -90,12 +97,21 @@ export function GamesOnOrderProgress() {
           }}
         />
         
-        {/* Count labels inside progress bar */}
-        <div className="relative z-10 flex justify-between items-center px-2 h-full">
-          <span className="text-xs font-medium text-white">
+        {/* Voted Only Games (Light Gray) */}
+        <div 
+          className="absolute h-full bg-gray-400" 
+          style={{ 
+            left: `${statsData.stockPercentage + statsData.orderPercentage}%`, 
+            width: `${votedOnlyPercentage}%` 
+          }}
+        />
+        
+        {/* Count labels on the progress bar */}
+        <div className="relative z-10 flex items-center h-full">
+          <span className="text-xs font-medium text-white pl-2">
             In Stock: {statsData.gamesInStock}
           </span>
-          <span className="text-xs font-medium text-white">
+          <span className="text-xs font-medium text-white absolute" style={{ left: `${Math.max(statsData.stockPercentage + 2, 25)}%` }}>
             On Order: {statsData.gamesOnOrder}
           </span>
         </div>
@@ -106,7 +122,7 @@ export function GamesOnOrderProgress() {
         <p>
           We're {statsData.totalPercentage}% of the way to our goal of {statsData.target} games.
         </p>
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-3 text-xs flex-wrap">
           <div className="flex items-center gap-1">
             <span className="inline-block w-3 h-3 bg-black rounded-sm"></span>
             <span>In Stock: {statsData.gamesInStock}</span>
@@ -114,6 +130,10 @@ export function GamesOnOrderProgress() {
           <div className="flex items-center gap-1">
             <span className="inline-block w-3 h-3 bg-gray-600 rounded-sm"></span>
             <span>On Order: {statsData.gamesOnOrder}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm"></span>
+            <span>Voted: {votedOnlyCount}</span>
           </div>
         </div>
         <p className="text-xs italic pt-1">
