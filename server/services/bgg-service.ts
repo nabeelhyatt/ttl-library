@@ -29,7 +29,7 @@ class BoardGameGeekService {
   }
   
   // Handle rate limiting errors with exponential backoff
-  private async handleRateLimitError(error: any, retryFn: () => Promise<any>, retries = 0): Promise<any> {
+  private async handleRateLimitError(error: unknown, retryFn: () => Promise<any>, retries = 0): Promise<any> {
     console.error('Rate limit error from BGG API, retrying with backoff...');
     
     if (retries >= this.MAX_RETRIES) {
@@ -143,7 +143,23 @@ class BoardGameGeekService {
           : items;
         
         // Extract game IDs and fetch full details
-        const gameIds = limitedItems.map((item: any) => parseInt(item.id));
+        const gameIds = limitedItems
+          .map((item: any) => {
+            const id = parseInt(item.id);
+            if (isNaN(id) || id <= 0) {
+              console.warn(`Invalid item ID in search results: ${item.id}`);
+              return null;
+            }
+            return id;
+          })
+          .filter((id): id is number => id !== null); // Filter out null values
+          
+        if (gameIds.length === 0) {
+          console.warn('No valid game IDs found in search results');
+          return [];
+        }
+        
+        console.log(`Processing ${gameIds.length} valid game IDs: ${gameIds.join(', ')}`);
         let games = await this.getGamesDetails(gameIds);
         
         // Sort results based on options
@@ -175,8 +191,15 @@ class BoardGameGeekService {
         }
         
         return games;
-      } catch (error: any) {
-        if (error.response && error.response.status === 429) {
+      } catch (error: unknown) {
+        if (error instanceof Error && 
+            typeof error === 'object' && 
+            error !== null && 
+            'response' in error && 
+            error.response && 
+            typeof error.response === 'object' && 
+            'status' in error.response && 
+            error.response.status === 429) {
           return this.handleRateLimitError(error, searchGamesImpl);
         }
         throw error;
@@ -219,6 +242,37 @@ class BoardGameGeekService {
       
       // Combine both sets
       const combinedResults = [...exactMatches, ...uniquePartialMatches];
+      
+      // Check if we have any valid results
+      if (combinedResults.length === 0) {
+        // If it's a short query (3 chars or less), try to do a more fuzzy search
+        if (query.length <= 3) {
+          console.log(`Short query "${query}" with no results - searching with wildcard pattern`);
+          // This is a more flexible search approach
+          const wildcardMatches = await this.searchGames(`${query}*`, { 
+            exact: false, 
+            limit: 5, 
+            sort: 'rank' 
+          });
+          return wildcardMatches;
+        }
+        
+        // Try searching with just the first word for longer queries
+        if (query.includes(' ')) {
+          const firstWord = query.split(' ')[0];
+          if (firstWord.length > 2) {
+            console.log(`Multi-word query with no results - trying first word: "${firstWord}"`);
+            const firstWordMatches = await this.searchGames(firstWord, { 
+              exact: false, 
+              limit: 5, 
+              sort: 'rank' 
+            });
+            if (firstWordMatches.length > 0) {
+              return firstWordMatches;
+            }
+          }
+        }
+      }
       
       return combinedResults;
     } catch (error) {
