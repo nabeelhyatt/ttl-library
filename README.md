@@ -30,20 +30,51 @@ This application serves as a voting and ranking system for board games, integrat
 │   │   ├── components/     # React components
 │   │   ├── hooks/         # Custom React hooks
 │   │   ├── lib/           # Utility functions and API clients
+│   │   │   └── new-bgg-api.ts  # Client-side BGG API handlers
 │   │   ├── pages/         # Page components
 │   │   └── styles/        # Global styles
 ├── server/                 # Backend Express application
 │   ├── services/          # Business logic and external services
-│   └── routes.ts          # API route definitions
+│   │   ├── new-bgg-service.ts  # Advanced BoardGameGeek service with caching and error handling
+│   │   └── airtable-direct.ts  # Direct Airtable API integration
+│   ├── routes/            # Modular route definitions
+│   │   └── bgg-routes.ts  # BGG-specific API routes
+│   └── routes.ts          # Main API route definitions
 └── shared/                # Shared TypeScript types and schemas
 ```
 
+## Search Architecture
+
+The application implements an advanced search system with several layers of functionality:
+
+1. **Special Case Handling**: Common games like Chess, Catan, etc. are identified by direct ID lookup to improve reliability
+   
+2. **Multi-Mode Search**: The search system supports two modes:
+   - Regular fuzzy search that finds related games
+   - Exact search using quotes for precise matching (e.g., "Catan" for exact match)
+   
+3. **Combined Results Strategy**: For popular games, the definitive version is shown first, followed by related games
+   
+4. **Fallback Mechanisms**:
+   - If exact search fails, fallback to regular search
+   - For multi-word queries with no results, try searching just the first word
+   - For short queries (≤3 chars), add wildcards automatically
+   
+5. **Caching System**: Implements intelligent caching with TTL (Time To Live) to reduce API calls and improve performance
+   
+6. **Rate Limiting**: Respects BoardGameGeek API rate limits to prevent throttling
+   
+7. **Airtable Enrichment**: Game data is automatically enriched with Airtable metadata when available
+
 ## Key Features
 
-1. **Game Search & Display**
-   - Integration with BoardGameGeek API
-   - Real-time search functionality
+1. **Advanced Game Search & Display**
+   - Integration with BoardGameGeek API with robust error handling and rate limiting
+   - Advanced search architecture with special case handling for popular games
+   - Smart search that shows definitive games first, followed by related games
+   - Support for exact match searches using quotes (e.g., "Chess" vs Chess)
    - Responsive game cards with detailed information
+   - Automatic enrichment with Airtable metadata when available
 
 2. **Voting System**
    - User authentication
@@ -77,6 +108,25 @@ The project includes shell scripts for testing various functionalities:
 - `test-vote.sh`: Tests the voting system
 - `test-summary.sh`: Tests vote aggregation
 - `test-delete-vote.sh`: Tests vote deletion
+- `test-create-and-verify.sh`: Tests game creation and verification
+
+## Troubleshooting
+
+### Search Issues
+
+1. **BGG API Rate Limiting**
+   - The BoardGameGeek API has rate limiting that can cause intermittent failures
+   - The application implements retry mechanisms with backoff
+   - If searches consistently fail, wait a few minutes between attempts
+
+2. **Cache-Related Issues**
+   - To clear all search caches, use the `/api/bgg/clear-cache` endpoint
+   - For development, the cache can be disabled in `new-bgg-service.ts`
+
+3. **Search Not Finding Expected Games**
+   - Try using quotes for exact match: `"Game Name"` instead of `Game Name`
+   - For popular games, check if it's in the special cases list in `new-bgg-service.ts`
+   - The search prioritizes games with BGG ranks; unranked games may appear lower
 
 ## Contributing
 
