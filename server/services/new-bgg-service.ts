@@ -272,19 +272,15 @@ class NewBoardGameGeekService {
     const now = Date.now();
     const cachedResult = this.searchCache.get(cacheKey);
     
-    // For now, we'll disable the cache during development/testing
-    this.cacheEnabled = false;
+    // Enable caching to improve performance
+    this.cacheEnabled = true;
     
     if (this.cacheEnabled && cachedResult && now - cachedResult.timestamp < this.CACHE_TTL) {
       console.log(`🔍 Returning search results for "${query}" from cache (${cachedResult.data.length} results)`);
       return cachedResult.data;
     }
     
-    // During development/testing, let's clear all caches to get fresh results
-    if (!this.cacheEnabled) {
-      this.clearCaches();
-      console.log(`🔍 Cache disabled for testing - cleared all caches`);
-    }
+    // Removed cache clearing code to improve performance
     
     return this.retryWithBackoff(async () => {
       console.log(`🔍 Searching BGG for: "${query}"`);
@@ -406,7 +402,8 @@ class NewBoardGameGeekService {
   private isSpecialCaseQuery(query: string): boolean {
     const specialCases = [
       'above', 'go', 'risk', 'uno', 'chess', 'monopoly', 
-      'scrabble', 'catan', 'clue', 'stratego'
+      'scrabble', 'clue', 'stratego'
+      // Removed 'catan' to improve performance
     ];
     return specialCases.includes(query);
   }
@@ -421,7 +418,7 @@ class NewBoardGameGeekService {
       'chess': 171,   // Chess
       'monopoly': 1406, // Monopoly
       'scrabble': 320,  // Scrabble
-      'catan': 13,    // Settlers of Catan
+      // 'catan': 13,    // Removed Settlers of Catan to improve performance
       'clue': 1294,   // Clue
       'stratego': 1917 // Stratego
     };
