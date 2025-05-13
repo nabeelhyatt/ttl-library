@@ -8,14 +8,11 @@ import { debugAirtableBase, testAirtableWrite } from "./services/airtable-debug"
 import { testAirtableMCP } from "./services/airtable-mcp-test";
 import { newBoardGameGeekService } from "./services/new-bgg-service";
 import * as z from "zod";
-import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
-import session from "express-session";
-import MemoryStore from "memorystore";
+import { insertUserSchema, insertVoteSchema, VoteType, TempVote } from "@shared/schema";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 // Import modular routes
 import bggRoutes from "./routes/bgg-routes";
-
-const MemoryStoreSession = MemoryStore(session);
 
 // Define the interface explicitly to include subcategoryName
 interface AirtableGameInfo {
@@ -27,99 +24,37 @@ interface AirtableGameInfo {
   categories?: string[];
 }
 
+// Extend Express.Session interface to include custom properties
+declare module 'express-session' {
+  interface SessionData {
+    userId?: string;
+    pendingVote?: TempVote;
+    returnTo?: string;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup session middleware
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || 'tabletoplibrary-secret-key',
-      resave: false,
-      saveUninitialized: false,
-      rolling: true,
-      cookie: {
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        secure: process.env.NODE_ENV === "production",
-        sameSite: 'lax'
-      },
-      store: new MemoryStoreSession({
-        checkPeriod: 3600000, // prune expired entries every hour
-        stale: false
-      }),
-    })
-  );
+  // Setup Replit auth middleware and session
+  await setupAuth(app);
 
-  // Authentication routes
-  app.post("/api/auth/login", async (req, res) => {
+  // Authentication routes are now handled by replitAuth.ts
+  
+  // User info endpoint - provide authenticated user data
+  app.get("/api/auth/user", isAuthenticated, async (req, res) => {
     try {
-      // Validate the email and name
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid format for name or email" });
-      }
-
-      const { email, name } = result.data;
-
-      // Check if user exists
-      let user = await storage.getUserByEmail(email);
-
-      // If not, create a new user
+      // Get user ID from Replit auth claims
+      const userId = req.user.claims.sub;
+      
+      // Get user from database
+      const user = await storage.getUser(userId);
       if (!user) {
-        user = await storage.createUser({ email, name });
-      } else {
-        // Existing users might not have a name yet, update it if it's missing
-        if (!user.name) {
-          // Update the user with the name field
-          user = await storage.updateUserNameAndLogin(user.id, name);
-        } else {
-          // Just update last login
-          user = await storage.updateUserLastLogin(user.id);
-        }
+        return res.status(404).json({ message: "User not found" });
       }
-
-      // Set user in session
-      req.session.userId = user.id;
-
+      
       return res.status(200).json(user);
     } catch (error) {
-      console.error("Login error:", error);
-      return res.status(500).json({ message: "Failed to log in" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to log out" });
-      }
-
-      res.clearCookie("connect.sid");
-      return res.status(200).json({ message: "Logged out successfully" });
-    });
-  });
-
-  app.get("/api/auth/me", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        // Try to recover session from storage
-        const sessionToken = req.headers['x-session-token'];
-        if (sessionToken) {
-          const user = await storage.getUserBySessionToken(sessionToken);
-          if (user) {
-            req.session.userId = user.id;
-            return res.status(200).json(user);
-          }
-        }
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      return res.status(200).json(user);
-    } catch (error) {
-      console.error("Auth check error:", error);
-      return res.status(500).json({ message: "Failed to check authentication status" });
+      console.error("Error fetching user:", error);
+      return res.status(500).json({ message: "Failed to fetch user data" });
     }
   });
 
@@ -415,11 +350,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Votes routes
   app.post("/api/votes", async (req, res) => {
     try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ message: "You must be logged in to vote" });
-      }
-
       // Validate vote data
       const voteSchema = z.object({
         bggId: z.number(),
@@ -460,8 +390,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Check if user is authenticated
+      if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+        console.log("User not authenticated. Creating pending vote.");
+        // If not authenticated, store as pending vote
+        if (!req.sessionID) {
+          return res.status(400).json({ message: "Session ID not available" });
+        }
+        
+        // Create pending vote
+        const pendingVote = await storage.createPendingVote({
+          sessionId: req.sessionID,
+          gameId: game.id,
+          voteType
+        });
+        
+        // Return status that indicates login required
+        return res.status(202).json({ 
+          message: "Vote stored temporarily", 
+          requiresLogin: true,
+          gameId: game.id,
+          voteType,
+          pendingVoteId: pendingVote.id
+        });
+      }
+
+      // User is authenticated - get the user ID
+      const userId = req.user.claims.sub;
+      
       // Check if user already voted for this game
-      const existingVote = await storage.getUserVoteForGame(req.session.userId, game.id);
+      const existingVote = await storage.getUserVoteForGame(userId, game.id);
       if (existingVote) {
         // Update the existing vote
         const updatedVote = await storage.updateVote(existingVote.id, { voteType });
@@ -479,7 +437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create new vote
       const vote = await storage.createVote({
-        userId: req.session.userId,
+        userId,
         gameId: game.id,
         voteType
       });
@@ -499,20 +457,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/votes/my-votes", async (req, res) => {
+  app.get("/api/votes/my-votes", isAuthenticated, async (req, res) => {
     try {
       // Log Airtable configuration status
       const airtableConfigured = process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID;
       console.log(`Airtable configuration status: ${airtableConfigured ? 'Configured' : 'Not configured'}`);
 
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        console.log("User not authenticated when trying to view votes");
-        return res.status(401).json({ message: "You must be logged in to view your votes" });
-      }
-
-      console.log(`Fetching votes for user ID: ${req.session.userId}`);
-      const votes = await storage.getUserVotes(req.session.userId);
+      // User must be authenticated due to isAuthenticated middleware
+      const userId = req.user.claims.sub;
+      console.log(`Fetching votes for user ID: ${userId}`);
+      
+      const votes = await storage.getUserVotes(userId);
       console.log(`Retrieved ${votes.length} votes for user`);
       return res.status(200).json(votes);
     } catch (error) {
