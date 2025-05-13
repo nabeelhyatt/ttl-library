@@ -87,15 +87,12 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) =
       // Store login timestamp
       localStorage.setItem('lastLoginTime', Date.now().toString());
 
-      // Close dialog after short delay to show success state
-      setTimeout(() => {
-        onClose();
-        window.location.reload(); // Force clean reload
-      }, 1000);
+      // Close dialog immediately
+      onClose();
 
       toast({
         title: "Success",
-        description: "Login successful! Refreshing page...",
+        description: "Login successful!",
         duration: 2000,
       });
     } catch (error) {

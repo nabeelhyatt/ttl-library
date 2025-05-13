@@ -24,6 +24,7 @@ export const GameCard: React.FC<GameCardProps> = ({
   const [votingType, setVotingType] = useState<VoteType | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const { toast } = useToast();
+  const [pendingVote, setPendingVote] = useState<{ gameId: string; voteType: VoteType } | null>(null);
 
   const handleVoteClick = (voteType: VoteType) => {
     setVotingType(voteType);
@@ -42,7 +43,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     setIsVoting(true);
     try {
       await submitVote(game.gameId, voteType);
-      
+
       // Show toast notification instead of opening dialog
       toast({
         title: "Vote Registered!",
@@ -50,7 +51,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         duration: 3000,
         className: "bg-[#f5f5dc]", // Beige background to match design
       });
-      
+
       if (onVoteSuccess) {
         onVoteSuccess();
       }
@@ -68,23 +69,23 @@ export const GameCard: React.FC<GameCardProps> = ({
 
   const handleLoginSuccess = async (email: string, name: string) => {
     console.log("Game card received login attempt:", { email, name });
-    
+
     try {
       setIsVoting(true);
       console.log("Calling onLogin function with:", { email, name });
       const loggedInUser = await onLogin(email, name);
       console.log("Login successful:", loggedInUser);
-      
+
       // Close the login dialog immediately
       setIsLoginOpen(false);
-      
+
       // Show a toast that auto-dismisses after 2 seconds
       toast({
         title: "Login Successful",
         description: "Refreshing page...",
         duration: 1000,
       });
-      
+
       // Force page reload after a brief delay to allow the toast to be seen
       setTimeout(() => {
         window.location.reload();
@@ -95,11 +96,11 @@ export const GameCard: React.FC<GameCardProps> = ({
           title: "Processing Vote",
           description: "Please wait while we submit your vote...",
         });
-        
+
         try {
           // Submit vote immediately after confirmed login
           await submitVote(game.gameId, votingType);
-          
+
           // Show toast notification instead of opening dialog
           toast({
             title: "Vote Registered!",
@@ -107,7 +108,7 @@ export const GameCard: React.FC<GameCardProps> = ({
             duration: 3000,
             className: "bg-[#f5f5dc]", // Beige background to match design
           });
-          
+
           if (onVoteSuccess) {
             onVoteSuccess();
           }
