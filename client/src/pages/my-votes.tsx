@@ -23,9 +23,10 @@ const MyVotes = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    // Redirect if not logged in
+    // Don't fetch votes if not logged in, but don't redirect immediately
+    // This allows the login prompt to show
     if (!user) {
-      setLocation('/');
+      setIsLoading(false);
       return;
     }
     
@@ -121,6 +122,26 @@ const MyVotes = () => {
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-pulse text-lg text-muted-foreground">Loading your votes...</div>
+        </div>
+      ) : !user ? (
+        <div className="bg-secondary rounded-lg p-8 text-center">
+          <h3 className="text-xl font-tufte text-foreground mb-3">Login Required</h3>
+          <p className="text-muted-foreground mb-6">
+            Please log in to view your votes. Your voting history will be available after authentication.
+          </p>
+          <Button 
+            onClick={() => window.location.href = '/api/login'} 
+            className="bg-blue-700 hover:bg-blue-800 text-white font-serif mr-3"
+          >
+            Log In
+          </Button>
+          <Button 
+            onClick={() => setLocation('/')} 
+            variant="outline"
+            className="border-gray-300 hover:bg-gray-100"
+          >
+            Return Home
+          </Button>
         </div>
       ) : votesWithGames.length === 0 ? (
         <div className="bg-secondary rounded-lg p-8 text-center">
