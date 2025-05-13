@@ -1,14 +1,15 @@
 import { 
-  User, InsertUser, Game, InsertGame, Vote, InsertVote, VoteType 
+  User, InsertUser, Game, InsertGame, Vote, InsertVote, 
+  PendingVote, InsertPendingVote, VoteType 
 } from "@shared/schema";
 
 // Storage interface
 export interface IStorage {
   // User methods
-  getUser(id: number): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUserLastLogin(id: number): Promise<User>;
+  upsertUser(user: InsertUser): Promise<User>;
+  updateUserLastLogin(id: string): Promise<User>;
   
   // Game methods
   getGame(id: number): Promise<Game | undefined>;
@@ -17,55 +18,80 @@ export interface IStorage {
   
   // Vote methods
   getVote(id: number): Promise<Vote | undefined>;
-  getUserVotes(userId: number): Promise<Vote[]>;
-  getUserVoteForGame(userId: number, gameId: number): Promise<Vote | undefined>;
+  getUserVotes(userId: string): Promise<Vote[]>;
+  getUserVoteForGame(userId: string, gameId: number): Promise<Vote | undefined>;
   createVote(vote: InsertVote): Promise<Vote>;
   updateVote(id: number, data: Partial<InsertVote>): Promise<Vote>;
   deleteVote(id: number): Promise<void>;
+
+  // Pending vote methods
+  createPendingVote(vote: InsertPendingVote): Promise<PendingVote>;
+  getPendingVotesBySession(sessionId: string): Promise<PendingVote[]>;
+  deletePendingVotesBySession(sessionId: string): Promise<void>;
 }
 
 // In-memory storage implementation
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
+  private users: Map<string, User>;
   private games: Map<number, Game>;
   private votes: Map<number, Vote>;
-  private userIdCounter: number;
+  private pendingVotes: Map<number, PendingVote>;
   private gameIdCounter: number;
   private voteIdCounter: number;
+  private pendingVoteIdCounter: number;
 
   constructor() {
     this.users = new Map();
     this.games = new Map();
     this.votes = new Map();
-    this.userIdCounter = 1;
+    this.pendingVotes = new Map();
     this.gameIdCounter = 1;
     this.voteIdCounter = 1;
+    this.pendingVoteIdCounter = 1;
   }
 
   // User methods
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.email.toLowerCase() === email.toLowerCase()
+      (user) => user.email?.toLowerCase() === email.toLowerCase()
     );
   }
 
-  async createUser(userData: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
+  async upsertUser(userData: InsertUser): Promise<User> {
     const now = new Date();
-    const user: User = { 
-      id, 
-      ...userData,
-      lastLogin: now
-    };
-    this.users.set(id, user);
-    return user;
+    
+    // Check if user exists
+    const existingUser = await this.getUser(userData.id);
+    
+    if (existingUser) {
+      // Update existing user
+      const updatedUser = {
+        ...existingUser,
+        ...userData,
+        updatedAt: now,
+        lastLogin: now
+      };
+      
+      this.users.set(userData.id, updatedUser);
+      return updatedUser;
+    } else {
+      // Create new user
+      const user: User = { 
+        ...userData,
+        createdAt: now,
+        updatedAt: now,
+        lastLogin: now
+      };
+      this.users.set(userData.id, user);
+      return user;
+    }
   }
   
-  async updateUserLastLogin(id: number): Promise<User> {
+  async updateUserLastLogin(id: string): Promise<User> {
     const user = await this.getUser(id);
     if (!user) {
       throw new Error(`User with ID ${id} not found`);
@@ -73,23 +99,8 @@ export class MemStorage implements IStorage {
     
     const updatedUser = {
       ...user,
-      lastLogin: new Date()
-    };
-    
-    this.users.set(id, updatedUser);
-    return updatedUser;
-  }
-  
-  async updateUserNameAndLogin(id: number, name: string): Promise<User> {
-    const user = await this.getUser(id);
-    if (!user) {
-      throw new Error(`User with ID ${id} not found`);
-    }
-    
-    const updatedUser = {
-      ...user,
-      name,
-      lastLogin: new Date()
+      lastLogin: new Date(),
+      updatedAt: new Date()
     };
     
     this.users.set(id, updatedUser);
@@ -119,13 +130,13 @@ export class MemStorage implements IStorage {
     return this.votes.get(id);
   }
   
-  async getUserVotes(userId: number): Promise<Vote[]> {
+  async getUserVotes(userId: string): Promise<Vote[]> {
     return Array.from(this.votes.values()).filter(
       (vote) => vote.userId === userId
     );
   }
   
-  async getUserVoteForGame(userId: number, gameId: number): Promise<Vote | undefined> {
+  async getUserVoteForGame(userId: string, gameId: number): Promise<Vote | undefined> {
     return Array.from(this.votes.values()).find(
       (vote) => vote.userId === userId && vote.gameId === gameId
     );
@@ -137,7 +148,9 @@ export class MemStorage implements IStorage {
     const vote: Vote = { 
       id, 
       ...voteData,
-      createdAt: now
+      createdAt: now,
+      updatedAt: now,
+      airtableId: null
     };
     this.votes.set(id, vote);
     return vote;
@@ -151,7 +164,8 @@ export class MemStorage implements IStorage {
     
     const updatedVote = {
       ...vote,
-      ...data
+      ...data,
+      updatedAt: new Date()
     };
     
     this.votes.set(id, updatedVote);
@@ -160,6 +174,32 @@ export class MemStorage implements IStorage {
   
   async deleteVote(id: number): Promise<void> {
     this.votes.delete(id);
+  }
+  
+  // Pending vote methods
+  async createPendingVote(voteData: InsertPendingVote): Promise<PendingVote> {
+    const id = this.pendingVoteIdCounter++;
+    const now = new Date();
+    const vote: PendingVote = { 
+      id, 
+      ...voteData,
+      createdAt: now
+    };
+    this.pendingVotes.set(id, vote);
+    return vote;
+  }
+  
+  async getPendingVotesBySession(sessionId: string): Promise<PendingVote[]> {
+    return Array.from(this.pendingVotes.values()).filter(
+      (vote) => vote.sessionId === sessionId
+    );
+  }
+  
+  async deletePendingVotesBySession(sessionId: string): Promise<void> {
+    const votesToDelete = await this.getPendingVotesBySession(sessionId);
+    for (const vote of votesToDelete) {
+      this.pendingVotes.delete(vote.id);
+    }
   }
 }
 
