@@ -32,6 +32,11 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  
+  if (!process.env.SESSION_SECRET) {
+    console.warn('SESSION_SECRET environment variable not set. Using insecure default value for development only.');
+  }
+  
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
@@ -39,6 +44,7 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
+  
   return session({
     secret: process.env.SESSION_SECRET || "tabletop-library-secret",
     store: sessionStore,
@@ -46,7 +52,8 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production', // Only use secure in production
+      sameSite: 'lax',
       maxAge: sessionTtl,
     },
   });
@@ -65,13 +72,43 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertReplitUser({
+  // First update our local storage with user info from Replit
+  const user = await storage.upsertReplitUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
+
+  // Now, if the user has an email, we need to also update Airtable
+  // This keeps the Airtable member record in sync with our authentication
+  if (user && user.email) {
+    try {
+      const { airtableDirectService } = await import('./services/airtable-direct');
+      // We use the private method via any type to access it
+      const airtableService = airtableDirectService as any;
+      
+      // Attempt to find or create the member in Airtable
+      // Combine firstName and lastName for the full name
+      const fullName = [user.firstName, user.lastName]
+        .filter(Boolean)
+        .join(' ') || user.name || user.email;
+        
+      // Create a simplified user object for the Airtable service
+      await airtableService.findOrCreateMember({
+        id: user.id,
+        email: user.email,
+        name: fullName
+      });
+      
+      console.log(`Successfully synchronized user ${user.email} with Airtable`);
+    } catch (error) {
+      console.error('Error syncing user with Airtable:', error);
+      // We continue even if Airtable sync fails
+      // The user will still be authenticated in our system
+    }
+  }
 }
 
 export async function setupAuth(app: Express) {
