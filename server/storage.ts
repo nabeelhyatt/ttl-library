@@ -7,6 +7,7 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserBySessionToken(sessionToken: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserLastLogin(id: number): Promise<User>;
   
@@ -51,6 +52,12 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(
       (user) => user.email.toLowerCase() === email.toLowerCase()
     );
+  }
+  
+  async getUserBySessionToken(sessionToken: string): Promise<User | undefined> {
+    // In this simple implementation, we're treating the sessionToken as the user's email
+    // In a real app, you would maintain a separate session tokens table
+    return this.getUserByEmail(sessionToken);
   }
 
   async createUser(userData: InsertUser): Promise<User> {

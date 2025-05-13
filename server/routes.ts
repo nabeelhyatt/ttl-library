@@ -12,6 +12,13 @@ import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
+// Extend the express-session SessionData interface
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+  }
+}
+
 // Import modular routes
 import bggRoutes from "./routes/bgg-routes";
 
@@ -101,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session.userId) {
         // Try to recover session from storage
         const sessionToken = req.headers['x-session-token'];
-        if (sessionToken) {
+        if (sessionToken && typeof sessionToken === 'string') {
           const user = await storage.getUserBySessionToken(sessionToken);
           if (user) {
             req.session.userId = user.id;

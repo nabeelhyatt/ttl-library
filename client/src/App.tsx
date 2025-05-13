@@ -12,38 +12,15 @@ import { Footer } from "@/components/layout/footer";
 import { useState, useEffect } from "react";
 import { apiRequest } from "./lib/queryClient";
 import { User } from "@shared/schema";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 function Router() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, login, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuthStatus = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiRequest("GET", "/api/auth/me");
-      const userData = await res.json();
-      setUser(userData);
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const login = async (email: string, name: string) => {
-    const res = await apiRequest("POST", "/api/auth/login", { email, name });
-    const userData = await res.json();
-    setUser(userData);
-    return userData;
-  };
-
-  const logout = async () => {
-    await apiRequest("POST", "/api/auth/logout");
-    setUser(null);
-  };
-
   useEffect(() => {
-    checkAuthStatus();
+    // We still need to handle loading state, but auth is managed by AuthContext
+    setIsLoading(false);
   }, []);
 
   return (
