@@ -1,46 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { User } from "@shared/schema";
 import { useState } from "react";
-import { Dialog } from "@/components/ui/dialog";
 import { LoginDialog } from "@/components/auth/login-dialog";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface HeaderProps {
-  user: User | null;
-  onLogout: () => Promise<void>;
-}
-
-export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
+export const Header = () => {
+  const { user, logout } = useAuth();
   const [location] = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const { toast } = useToast();
-  
-  const handleLogin = async (email: string, name: string) => {
-    try {
-      const res = await apiRequest("POST", "/api/auth/login", { email, name });
-      const userData = await res.json();
-      // Close the login dialog
-      setIsLoginOpen(false);
-      
-      // Show a brief message before reload
-      toast({
-        title: "Login Successful",
-        description: "Refreshing page...",
-        duration: 1000,
-      });
-      
-      // Force page reload after a brief delay to let the toast show
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-      
-      return userData;
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
-    }
-  };
 
   return (
     <header>
@@ -73,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
                 >
                   My Votes
                 </Link>
-                <button onClick={onLogout} className="btn">
+                <button onClick={logout} className="btn">
                   Log out
                 </button>
               </>
@@ -86,12 +52,13 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
         </div>
       </div>
 
-      <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-        <LoginDialog 
-          onClose={() => setIsLoginOpen(false)} 
-          onSubmit={handleLogin}
-        />
-      </Dialog>
+      <LoginDialog 
+        open={isLoginOpen} 
+        onOpenChange={setIsLoginOpen}
+        onLoginSuccess={() => {
+          // Refresh the page or navigate to a specific location if needed
+        }}
+      />
     </header>
   );
 };
