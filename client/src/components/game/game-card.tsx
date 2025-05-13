@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { BGGGame, VoteType, voteTypeInfo } from "@shared/schema";
-import { getBGGtoTLCSWeight, getPrimaryGenre } from "@/lib/bgg-api";
-import { LoginDialog } from "@/components/auth/login-dialog";
-import { submitVote } from "@/lib/airtable-api";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { getBGGtoTLCSWeight, getPrimaryGenre } from "../../lib/bgg-api";
+import { LoginDialog } from "../auth/login-dialog";
+import { submitVote } from "../../lib/airtable-api";
+import { useToast } from "../../hooks/use-toast";
+import { useAuth } from "../../hooks/useAuth";
+import { Dialog, DialogContent } from "../ui/dialog";
 
 interface GameCardProps {
   game: BGGGame;
@@ -30,7 +30,11 @@ export const GameCard: React.FC<GameCardProps> = ({
 
     if (!user) {
       // Save the pending vote in AuthContext for after login
-      setAuthPendingVote({ gameId: game.gameId, voteType });
+      setAuthPendingVote({ 
+        gameId: game.gameId, 
+        gameName: game.name, 
+        voteType 
+      });
       setIsLoginOpen(true);
       return;
     }
@@ -277,9 +281,10 @@ export const GameCard: React.FC<GameCardProps> = ({
       </div>
 
       <LoginDialog
-        open={isLoginOpen}
-        onOpenChange={setIsLoginOpen}
-        onLoginSuccess={handleLoginSuccess}
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        title="Login Required to Vote"
+        description={`Please log in to vote for ${game.name}. Your vote selection will be applied after you log in.`}
       />
     </>
   );

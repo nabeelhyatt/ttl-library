@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
-import { LoginDialog } from "@/components/auth/login-dialog";
-import { useAuth } from "@/contexts/AuthContext";
+import { LoginDialog } from "../auth/login-dialog";
+import { useAuth } from "../../hooks/useAuth";
 
 export const Header = () => {
   const { user, logout } = useAuth();
@@ -39,13 +39,19 @@ export const Header = () => {
                 >
                   My Votes
                 </Link>
-                <button onClick={logout} className="btn">
-                  Log out
+                <button 
+                  onClick={logout} 
+                  className="font-serif border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 transition-all"
+                >
+                  Log Out
                 </button>
               </>
             ) : (
-              <button onClick={() => setIsLoginOpen(true)} className="login-btn">
-                Login
+              <button 
+                onClick={() => setIsLoginOpen(true)} 
+                className="font-serif border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 transition-all"
+              >
+                Log In
               </button>
             )}
           </nav>
@@ -53,11 +59,10 @@ export const Header = () => {
       </div>
 
       <LoginDialog 
-        open={isLoginOpen} 
-        onOpenChange={setIsLoginOpen}
-        onLoginSuccess={() => {
-          // Refresh the page or navigate to a specific location if needed
-        }}
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)}
+        title="Log In to The Tabletop Library"
+        description="Log in with Replit to vote on games, track your votes, and contribute to our community collection."
       />
     </header>
   );

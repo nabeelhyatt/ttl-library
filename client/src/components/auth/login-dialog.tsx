@@ -1,72 +1,72 @@
-import { Button } from "@/components/ui/button";
+// ABOUTME: Dialog component for login with Replit Auth
+// ABOUTME: Displays login UI with Tufte styling
+
+import React from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { useAuth } from "@/contexts/AuthContext";
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 interface LoginDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onLoginSuccess?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  description?: string;
 }
 
-export function LoginDialog({
-  open,
-  onOpenChange,
-  onLoginSuccess,
-}: LoginDialogProps) {
-  const { login } = useAuth();
+export const LoginDialog: React.FC<LoginDialogProps> = ({
+  isOpen,
+  onClose,
+  title = 'Log In Required',
+  description = 'Please log in to continue. Your vote will be saved and applied after you log in.',
+}) => {
+  const { pendingVote } = useAuth();
 
   const handleLogin = () => {
-    // Use the login function from auth context
-    login();
-    // Notify parent component if needed
-    if (onLoginSuccess) {
-      onLoginSuccess();
-    }
+    // Redirect to the server-side login route
+    window.location.href = '/api/login';
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-[#f5f5dc] border-gray-800 text-gray-800">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-serif">Login Required</DialogTitle>
-          <DialogDescription className="font-serif text-base text-gray-700">
-            You need to be logged in to vote for games in the Tabletop Library.
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px] bg-white border border-gray-300 shadow-md p-6">
+        <DialogTitle className="text-xl font-serif border-b border-gray-200 pb-2 mb-4">
+          {title}
+        </DialogTitle>
         
-        <div className="mt-4 space-y-6">
-          <p className="font-serif text-gray-800">
-            Sign in with your Replit account to track your game votes and preferences.
-          </p>
+        <DialogDescription className="text-base mb-6 font-serif">
+          {description}
           
-          <p className="text-sm text-gray-700 italic">
-            Your votes help us understand which games to add to the Tabletop Library.
-          </p>
-        </div>
-        
-        <div className="flex justify-between mt-6">
+          {pendingVote && (
+            <div className="mt-4 p-3 border border-gray-200 bg-gray-50 rounded">
+              <p className="font-medium">Pending vote:</p>
+              <p className="italic">{pendingVote.gameName}</p>
+            </div>
+          )}
+        </DialogDescription>
+
+        <DialogFooter className="flex gap-4">
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="border-gray-800"
+            onClick={onClose}
+            className="border-gray-300 hover:bg-gray-100"
           >
             Cancel
           </Button>
           
           <Button 
             onClick={handleLogin}
-            className="bg-gray-800 hover:bg-gray-700 text-white"
+            className="bg-blue-700 hover:bg-blue-800 text-white"
           >
             Log In with Replit
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};

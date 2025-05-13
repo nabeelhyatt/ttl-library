@@ -1,63 +1,67 @@
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
+// ABOUTME: Dialog component for displaying vote success confirmation
+// ABOUTME: Shows a success message and options after a vote is submitted
+
+import React from 'react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
   DialogTitle,
-} from "@/components/ui/dialog";
-import { BGGGame, VoteType, voteTypeInfo } from "@shared/schema";
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { VoteType, voteTypeInfo } from '@shared/schema';
+import { Link } from 'wouter';
 
 interface VoteSuccessDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  game: BGGGame | null;
-  voteType: VoteType | null;
+  isOpen: boolean;
+  onClose: () => void;
+  gameName: string;
+  voteType: VoteType;
 }
 
-export function VoteSuccessDialog({
-  open,
-  onOpenChange,
-  game,
-  voteType,
-}: VoteSuccessDialogProps) {
-  if (!game || !voteType) return null;
+export const VoteSuccessDialog: React.FC<VoteSuccessDialogProps> = ({
+  isOpen,
+  onClose,
+  gameName,
+  voteType
+}) => {
+  const voteTypeText = voteTypeInfo[voteType]?.label || 'Unknown vote type';
 
-  const voteTypeText = voteTypeInfo[voteType]?.label || "Unknown vote type";
-  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-[#f5f5dc] border-gray-800 text-gray-800">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px] bg-white border border-gray-300 shadow-md p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-serif">Vote Recorded</DialogTitle>
-          <DialogDescription className="font-serif text-base text-gray-700">
-            Your vote has been successfully added to our database.
-          </DialogDescription>
+          <DialogTitle className="text-xl font-serif border-b border-gray-200 pb-2">
+            Vote Recorded
+          </DialogTitle>
         </DialogHeader>
         
-        <div className="mt-4 space-y-3">
-          <p className="font-serif text-gray-800">
-            <span className="font-semibold">Game:</span> {game.name}
-          </p>
-          
-          <p className="font-serif text-gray-800">
-            <span className="font-semibold">Your vote:</span> {voteTypeText}
-          </p>
-          
-          <p className="text-sm text-gray-700 italic mt-4">
-            Your vote helps us understand which games to prioritize in our collection.
-          </p>
-        </div>
+        <DialogDescription className="py-4 text-base font-serif">
+          <p className="mb-2">Your vote for <strong>{gameName}</strong> has been successfully recorded.</p>
+          <p>Vote type: <em>{voteTypeText}</em></p>
+        </DialogDescription>
         
-        <div className="flex justify-end mt-6">
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button 
-            onClick={() => onOpenChange(false)}
-            className="bg-gray-800 hover:bg-gray-700 text-white"
+            onClick={onClose}
+            className="bg-blue-700 hover:bg-blue-800 text-white"
           >
-            Close
+            Continue Browsing
           </Button>
-        </div>
+          
+          <Link href="/my-votes">
+            <Button 
+              variant="outline"
+              onClick={onClose}
+              className="border-gray-300 hover:bg-gray-100"
+            >
+              View My Votes
+            </Button>
+          </Link>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};

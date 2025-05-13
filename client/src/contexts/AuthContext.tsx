@@ -1,123 +1,111 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { User, VoteType } from '@shared/schema';
-import { submitVote } from '@/lib/airtable-api';
-import { useToast } from '@/hooks/use-toast';
+// ABOUTME: Provides authentication context for the application
+// ABOUTME: Manages user state and login/logout functionality
 
-// Define the shape of our pending vote
-type PendingVote = {
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import axios from 'axios';
+import { useQueryClient } from '@tanstack/react-query';
+
+// Define user type
+export interface User {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+}
+
+// Define pending vote type
+export interface PendingVote {
   gameId: number;
-  voteType: VoteType;
-};
+  gameName: string;
+  voteType: number;
+}
 
-// Define the shape of our auth context
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  isAuthenticated: boolean;
-  login: () => void;
-  logout: () => void;
   pendingVote: PendingVote | null;
   setPendingVote: (vote: PendingVote | null) => void;
+  logout: () => void;
+  getDisplayName: () => string;
 }
 
-// Create the context with default values
+// Create context with default values
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
-  isAuthenticated: false,
-  login: () => {},
-  logout: () => {},
   pendingVote: null,
   setPendingVote: () => {},
+  logout: () => {},
+  getDisplayName: () => 'Guest',
 });
 
-// Hook to use the auth context
-export const useAuth = () => useContext(AuthContext);
-
-// Provider component
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+// Auth provider component
+export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [pendingVote, setPendingVote] = useState<PendingVote | null>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // Fetch the current user using TanStack Query
-  const { data: user = null, isLoading, error } = useQuery<User | null>({
-    queryKey: ['/api/auth/user'],
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
 
-  // Authentication state
-  const isAuthenticated = !!user;
-  
-  // Redirect to Replit auth login
-  const login = () => {
-    window.location.href = '/api/login';
-  };
-  
-  // Redirect to Replit auth logout
-  const logout = () => {
-    window.location.href = '/api/logout';
-  };
-
-  // Process pending vote when user becomes authenticated
+  // Fetch user data on component mount
   useEffect(() => {
-    const processPendingVote = async () => {
-      if (pendingVote && user) {
-        try {
-          // Submit the vote that was pending
-          await submitVote(pendingVote.gameId, pendingVote.voteType);
-          
-          // Show success toast
-          toast({
-            title: 'Vote Registered!',
-            description: 'Your vote has been recorded successfully.',
-            duration: 3000,
-            className: 'bg-[#f5f5dc]', // Beige background to match design
-          });
-          
-          // Clear the pending vote
-          setPendingVote(null);
-          
-          // Invalidate any relevant queries
-          queryClient.invalidateQueries({
-            queryKey: ['/api/votes'],
-          });
-        } catch (error) {
-          console.error('Failed to process pending vote:', error);
-          toast({
-            title: 'Vote Failed',
-            description: 'We couldn\'t record your vote. Please try again.',
-            variant: 'destructive',
-          });
+    const fetchUser = async () => {
+      try {
+        const response = await axios.get('/api/auth/user');
+        if (response.status === 200) {
+          setUser(response.data);
         }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        // If error, user is not authenticated
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
     };
-    
-    processPendingVote();
-  }, [user, pendingVote, toast, queryClient]);
 
-  // If there's an error fetching the user, log it
-  useEffect(() => {
-    if (error) {
-      console.error('Error fetching user:', error);
+    fetchUser();
+  }, []);
+
+  // Handle logout
+  const logout = async () => {
+    try {
+      // Clear pendingVote when logging out
+      setPendingVote(null);
+      
+      // Redirect to logout endpoint
+      window.location.href = '/api/logout';
+    } catch (error) {
+      console.error('Error during logout:', error);
     }
-  }, [error]);
-
-  const value = {
-    user,
-    isLoading,
-    isAuthenticated,
-    login,
-    logout,
-    pendingVote,
-    setPendingVote,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Helper function to get display name
+  const getDisplayName = (): string => {
+    if (!user) return 'Guest';
+    
+    if (user.firstName) {
+      return user.firstName;
+    } else if (user.email) {
+      // Use part before @ in email
+      return user.email.split('@')[0];
+    } else {
+      return `User ${user.id.substring(0, 8)}`;
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        pendingVote,
+        setPendingVote,
+        logout,
+        getDisplayName,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
