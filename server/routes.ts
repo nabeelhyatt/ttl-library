@@ -550,17 +550,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/votes/:id", async (req, res) => {
+  app.delete("/api/votes/:id", isAuthenticated, async (req, res) => {
     try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ message: "You must be logged in to delete votes" });
-      }
-
       const voteId = parseInt(req.params.id);
       if (isNaN(voteId)) {
         return res.status(400).json({ message: "Invalid vote ID" });
       }
+
+      // Get authenticated user ID
+      const userId = req.user.claims.sub;
 
       // Check if vote exists and belongs to the user
       const vote = await storage.getVote(voteId);
@@ -568,7 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Vote not found" });
       }
 
-      if (vote.userId !== req.session.userId) {
+      if (vote.userId !== userId) {
         return res.status(403).json({ message: "You can only delete your own votes" });
       }
 
