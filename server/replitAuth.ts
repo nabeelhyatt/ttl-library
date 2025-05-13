@@ -8,8 +8,16 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
+// Check for REPLIT_DOMAINS in development, but provide a fallback for testing
 if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
+  console.warn("Environment variable REPLIT_DOMAINS not provided, using fallback");
+  process.env.REPLIT_DOMAINS = "localhost:5000";
+}
+
+// Check for REPL_ID in development, but provide a fallback for testing
+if (!process.env.REPL_ID) {
+  console.warn("Environment variable REPL_ID not provided, using fallback");
+  process.env.REPL_ID = "tabletoplibrary";
 }
 
 const getOidcConfig = memoize(

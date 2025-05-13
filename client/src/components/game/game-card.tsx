@@ -5,7 +5,8 @@ import { getBGGtoTLCSWeight, getPrimaryGenre } from "@/lib/bgg-api";
 import { LoginDialog } from "@/components/auth/login-dialog";
 import { submitVote } from "@/lib/airtable-api";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface GameCardProps {
   game: BGGGame;
