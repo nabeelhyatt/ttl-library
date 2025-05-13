@@ -1,75 +1,204 @@
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+
+const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
+  email: z.string().email("Please enter a valid email address").min(5, "Email is too short").max(100, "Email is too long"),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface LoginDialogProps {
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: (email: string, name: string) => Promise<any>;
 }
 
-export function LoginDialog({ onClose, onSubmit }: LoginDialogProps) {
-  const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+    },
+  });
 
+  // This is a direct submit handler that bypasses the form validation if needed
+  const handleDirectSubmit = () => {
+    const values = form.getValues();
+    console.log("Direct submit with values:", values);
+
+    if (values.email && values.name && onSubmit) {
+      toast({
+        title: "Direct Login",
+        description: "Attempting direct login...",
+      });
+
+      setIsSubmitting(true);
+      onSubmit(values.email, values.name)
+        .then(() => {
+          console.log("Direct login successful");
+          // Close the dialog immediately
+          onClose();
+
+          // Show a toast that automatically dismisses
+          toast({
+            title: "Success",
+            description: "Login successful!",
+            duration: 2000,
+          });
+        })
+        .catch(error => {
+          console.error("Direct login failed:", error);
+          toast({
+            title: "Login Failed",
+            description: "Could not log in with the provided information.",
+            variant: "destructive",
+          });
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+        });
+    } else {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both email and name.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSubmit = async (values: FormValues) => {
+    setIsSubmitting(true);
     try {
-      await login(email, name);
-      onSubmit();
+      console.log("Submitting login with:", values);
+      const result = await onSubmit(values.email, values.name);
+
+      // Store login timestamp
+      localStorage.setItem('lastLoginTime', Date.now().toString());
+
+      // Close dialog immediately
       onClose();
-    } catch (err) {
-      setError('Failed to log in. Please try again.');
+
+      toast({
+        title: "Success",
+        description: "Login successful!",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Login failed:", error);
+      // Set specific field errors for better visibility
+      if (error instanceof Error) {
+        console.log("Error details:", error.message);
+      }
+
+      // Set more visible field errors
+      form.setError("email", { 
+        message: "There was a problem with your login. Please try again."
+      });
+
+      // Also set root error for general visibility
+      form.setError("root", { 
+        message: "Login failed. Please make sure both email and name are provided."
+      });
+
+      toast({
+        title: "Login Failed",
+        description: "Could not log in with the provided information.",
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <DialogContent className="sm:max-w-[425px]">
+    <DialogContent className="bg-[#f5f5dc] rounded-lg p-8 max-w-md w-full mx-4 shadow-lg">
       <DialogHeader>
-        <DialogTitle>Sign In</DialogTitle>
-        <DialogDescription>
-          Enter your information to continue
+        <div className="flex justify-between items-center mb-2">
+          <DialogTitle className="font-tufte text-xl text-foreground">Log In / Register</DialogTitle>
+        </div>
+        <DialogDescription className="text-muted-foreground">
+          Enter your name and email to log in or create a new account. No password needed!
         </DialogDescription>
       </DialogHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="block text-muted-foreground mb-2">Full Name</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="text" 
+                    {...field}
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
+                    required
+                    disabled={isSubmitting}
+                    placeholder="Enter your full name"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <div className="space-y-2">
-          <Input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="block text-muted-foreground mb-2">Email Address</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="email" 
+                    {...field}
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
+                    required
+                    disabled={isSubmitting}
+                    placeholder="your.email@example.com"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </Button>
-        </div>
-      </form>
+
+          {/* Display form-level errors */}
+          {form.formState.errors.root && (
+            <div className="text-red-700 text-sm border border-red-300 bg-[#f5f5dc] p-3 rounded-md shadow-sm">
+              {form.formState.errors.root.message}
+            </div>
+          )}
+
+          <div className="flex flex-col space-y-2">
+            <Button 
+              type="submit" 
+              className="w-full bg-accent text-background py-3 rounded-lg hover:bg-accent/90 transition duration-200 font-medium"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Processing...' : 'Continue'}
+            </Button>
+          </div>
+        </form>
+      </Form>
+
+      <div className="text-muted-foreground text-xs mt-6">
+        By continuing, you agree to our terms and conditions and privacy policy.
+      </div>
     </DialogContent>
   );
-}
+};
