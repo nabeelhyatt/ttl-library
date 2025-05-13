@@ -365,7 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const votesData = await votesResponse.json();
 
       // Filter votes for this member for more clarity
-      const memberVotes = votesData.records?.filter(record => {
+      const memberVotes = votesData.records?.filter((record: any) => {
         // Check if the record has Member field and if it's an array containing memberId
         return record.fields.Member && 
                Array.isArray(record.fields.Member) && 
@@ -420,17 +420,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(debugData);
     } catch (error) {
       console.error(`Error in test-game endpoint:`, error);
-      return res.status(500).json({ message: "Test game endpoint failed", error: error.message });
+      return res.status(500).json({ 
+        message: "Test game endpoint failed", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
   // Votes routes
-  app.post("/api/votes", async (req, res) => {
+  app.post("/api/votes", isAuthenticated, async (req: any, res) => {
     try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ message: "You must be logged in to vote" });
+      // User is authenticated with Replit Auth at this point
+      // Get the user from our storage using the Replit ID
+      const replitId = req.user.claims.sub;
+      const user = await storage.getUserByReplitId(replitId);
+      
+      if (!user) {
+        return res.status(404).json({ 
+          message: "User account not found. Please try logging out and in again."
+        });
       }
+      
+      // Store the user ID in the session for compatibility with old code
+      req.session.userId = user.id;
 
       // Validate vote data
       const voteSchema = z.object({
@@ -511,17 +523,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/votes/my-votes", async (req, res) => {
+  app.get("/api/votes/my-votes", isAuthenticated, async (req: any, res) => {
     try {
       // Log Airtable configuration status
       const airtableConfigured = process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID;
       console.log(`Airtable configuration status: ${airtableConfigured ? 'Configured' : 'Not configured'}`);
 
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        console.log("User not authenticated when trying to view votes");
-        return res.status(401).json({ message: "You must be logged in to view your votes" });
+      // Get user from Replit auth
+      const replitId = req.user.claims.sub;
+      const user = await storage.getUserByReplitId(replitId);
+      
+      if (!user) {
+        console.log(`User not found with Replit ID: ${replitId}`);
+        return res.status(404).json({ message: "User account not found. Please try logging out and in again." });
       }
+      
+      // Store in session for compatibility with existing code
+      req.session.userId = user.id;
 
       console.log(`Fetching votes for user ID: ${req.session.userId}`);
       const votes = await storage.getUserVotes(req.session.userId);
