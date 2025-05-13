@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { User, Vote, BGGGame, VoteType, voteTypeInfo } from '@shared/schema';
+import { Vote, BGGGame, VoteType, voteTypeInfo } from '@shared/schema';
 import { HexagonIcon } from '@/components/ui/hexagon-icon';
 import { getUserVotes, deleteVote } from '@/lib/airtable-api';
 import { getGameDetails } from '@/lib/bgg-api';
@@ -8,17 +8,15 @@ import { useToast } from '@/hooks/use-toast';
 import { GameCard } from '@/components/game/game-card';
 import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
-interface MyVotesProps {
-  user: User | null;
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VoteWithGame {
   vote: Vote;
   game: BGGGame;
 }
 
-const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
+const MyVotes = () => {
+  const { user } = useAuth();
   const [votesWithGames, setVotesWithGames] = useState<VoteWithGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [, setLocation] = useLocation();
@@ -155,7 +153,7 @@ const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {votes.map(({ vote, game }) => (
                     <div key={vote.id} className="relative">
-                      <GameCard game={game} user={user} onLogin={() => Promise.resolve(user!)} />
+                      <GameCard game={game} onVoteSuccess={() => handleDeleteVote(vote.id)} />
                       <Button
                         onClick={() => handleDeleteVote(vote.id)}
                         variant="destructive"
