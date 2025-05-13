@@ -8,9 +8,9 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { useAuth } from '../../hooks/useAuth';
 
 interface LoginDialogProps {
   isOpen: boolean;
