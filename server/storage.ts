@@ -3,13 +3,24 @@ import {
 } from "@shared/schema";
 
 // Storage interface
+// Interface for Replit user data from OpenID Connect
+interface ReplitUserData {
+  id: string;           // sub claim from OpenID Connect
+  email: string | null; // email claim
+  firstName: string | null; // first_name claim
+  lastName: string | null;  // last_name claim
+  profileImageUrl: string | null; // profile_image_url claim
+}
+
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserBySessionToken(sessionToken: string): Promise<User | undefined>;
+  getUserByReplitId(replitId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserLastLogin(id: number): Promise<User>;
+  upsertReplitUser(userData: ReplitUserData): Promise<User>;
   
   // Game methods
   getGame(id: number): Promise<Game | undefined>;
@@ -59,6 +70,48 @@ export class MemStorage implements IStorage {
     // In a real app, you would maintain a separate session tokens table
     return this.getUserByEmail(sessionToken);
   }
+  
+  async getUserByReplitId(replitId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.replitId === replitId
+    );
+  }
+  
+  async upsertReplitUser(userData: ReplitUserData): Promise<User> {
+    // Check if user exists by Replit ID
+    let user = await this.getUserByReplitId(userData.id);
+    
+    // If not found by Replit ID, try to find by email (for migrating existing users)
+    if (!user && userData.email) {
+      user = await this.getUserByEmail(userData.email);
+    }
+    
+    if (user) {
+      // Update existing user with Replit data
+      const updatedUser = {
+        ...user,
+        replitId: userData.id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        profileImageUrl: userData.profileImageUrl,
+        lastLogin: new Date()
+      };
+      this.users.set(user.id, updatedUser);
+      return updatedUser;
+    } else {
+      // Create new user
+      // For users coming from Replit Auth, we'll use their email as name initially
+      // This maintains backward compatibility with existing code
+      return this.createUser({
+        name: userData.email || "Replit User",
+        email: userData.email || `user-${userData.id}@example.com`,
+        replitId: userData.id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        profileImageUrl: userData.profileImageUrl
+      });
+    }
+  }
 
   async createUser(userData: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
@@ -66,7 +119,11 @@ export class MemStorage implements IStorage {
     const user: User = { 
       id, 
       ...userData,
-      lastLogin: now
+      lastLogin: now,
+      replitId: userData.replitId || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null
     };
     this.users.set(id, user);
     return user;

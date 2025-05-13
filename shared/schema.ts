@@ -1,18 +1,38 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User model
+// Session storage table - Required for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User model - Modified to support both current system and Replit auth
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   lastLogin: timestamp("last_login"),
+  // The following fields are for Replit Auth (will be used when migrating)
+  replitId: text("replit_id").unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   email: true,
+  replitId: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
 });
 
 // Game model
