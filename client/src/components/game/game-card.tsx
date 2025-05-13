@@ -1,25 +1,22 @@
 import { useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { BGGGame, User, VoteType, voteTypeInfo } from "@shared/schema";
+import { BGGGame, VoteType, voteTypeInfo } from "@shared/schema";
 import { getBGGtoTLCSWeight, getPrimaryGenre } from "@/lib/bgg-api";
 import { Dialog } from "@/components/ui/dialog";
 import { LoginDialog } from "@/components/auth/login-dialog";
 import { submitVote } from "@/lib/airtable-api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface GameCardProps {
   game: BGGGame;
-  user: User | null;
-  onLogin: (email: string, name: string) => Promise<User>;
   onVoteSuccess?: () => void;
 }
 
 export const GameCard: React.FC<GameCardProps> = ({
   game,
-  user,
-  onLogin,
   onVoteSuccess,
 }) => {
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [votingType, setVotingType] = useState<VoteType | null>(null);
   const [isVoting, setIsVoting] = useState(false);
@@ -28,7 +25,8 @@ export const GameCard: React.FC<GameCardProps> = ({
   const handleVoteClick = (voteType: VoteType) => {
     setVotingType(voteType);
 
-    if (!user) {
+    if (!isAuthenticated) {
+      // Open the login dialog with pending vote information
       setIsLoginOpen(true);
       return;
     }
@@ -37,7 +35,7 @@ export const GameCard: React.FC<GameCardProps> = ({
   };
 
   const processVote = async (voteType: VoteType) => {
-    if (!user) return;
+    if (!isAuthenticated) return;
 
     setIsVoting(true);
     try {
@@ -61,72 +59,6 @@ export const GameCard: React.FC<GameCardProps> = ({
         variant: "destructive",
       });
       console.error("Vote submission error:", error);
-    } finally {
-      setIsVoting(false);
-    }
-  };
-
-  const handleLoginSuccess = async (email: string, name: string) => {
-    console.log("Game card received login attempt:", { email, name });
-    
-    try {
-      setIsVoting(true);
-      console.log("Calling onLogin function with:", { email, name });
-      const loggedInUser = await onLogin(email, name);
-      console.log("Login successful:", loggedInUser);
-      
-      // Close the login dialog immediately
-      setIsLoginOpen(false);
-      
-      // Show a toast that auto-dismisses after 2 seconds
-      toast({
-        title: "Login Successful",
-        description: "Refreshing page...",
-        duration: 1000,
-      });
-      
-      // Force page reload after a brief delay to allow the toast to be seen
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-
-      if (votingType && loggedInUser) {
-        toast({
-          title: "Processing Vote",
-          description: "Please wait while we submit your vote...",
-        });
-        
-        try {
-          // Submit vote immediately after confirmed login
-          await submitVote(game.gameId, votingType);
-          
-          // Show toast notification instead of opening dialog
-          toast({
-            title: "Vote Registered!",
-            description: "Your vote has been recorded successfully.",
-            duration: 3000,
-            className: "bg-[#f5f5dc]", // Beige background to match design
-          });
-          
-          if (onVoteSuccess) {
-            onVoteSuccess();
-          }
-        } catch (err) {
-          console.error("Vote error after login:", err);
-          toast({
-            title: "Vote Failed", 
-            description: "We couldn't record your vote. Please try again.",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Login failed in game card:", error);
-      toast({
-        title: "Login Failed",
-        description: "Could not log in with this information. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsVoting(false);
     }
@@ -336,7 +268,8 @@ export const GameCard: React.FC<GameCardProps> = ({
       <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
         <LoginDialog
           onClose={() => setIsLoginOpen(false)}
-          onSubmit={handleLoginSuccess}
+          gameId={game.gameId}
+          voteType={votingType || undefined}
         />
       </Dialog>
     </>

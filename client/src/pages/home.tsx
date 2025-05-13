@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BGGGame, User } from '@shared/schema';
+import { BGGGame } from '@shared/schema';
 import { HexagonIcon } from '@/components/ui/hexagon-icon';
 import { GameSearch } from '@/components/game/game-search';
 import { GameFilters } from '@/components/game/game-filters';
@@ -8,13 +8,10 @@ import { GamesOnOrderProgress } from '@/components/progress/games-on-order-progr
 import { fetchHotGames, searchGames, getBGGtoTLCSWeight, getPrimaryGenre } from '@/lib/new-bgg-api';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/useAuth';
 
-interface HomeProps {
-  user: User | null;
-  onLogin: (email: string, name: string) => Promise<User>;
-}
-
-const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
+const Home: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
   const [games, setGames] = useState<BGGGame[]>([]);
   const [filteredGames, setFilteredGames] = useState<BGGGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -224,8 +221,6 @@ const Home: React.FC<HomeProps> = ({ user, onLogin }) => {
               <GameCard 
                 key={game.gameId} 
                 game={game} 
-                user={user} 
-                onLogin={onLogin}
                 onVoteSuccess={handleVoteSuccess}
               />
             ))}

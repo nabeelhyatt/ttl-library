@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { User, Vote, BGGGame, VoteType, voteTypeInfo } from '@shared/schema';
+import { Vote, BGGGame, VoteType, voteTypeInfo } from '@shared/schema';
 import { HexagonIcon } from '@/components/ui/hexagon-icon';
 import { getUserVotes, deleteVote } from '@/lib/airtable-api';
 import { getGameDetails } from '@/lib/bgg-api';
@@ -8,17 +8,15 @@ import { useToast } from '@/hooks/use-toast';
 import { GameCard } from '@/components/game/game-card';
 import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
-interface MyVotesProps {
-  user: User | null;
-}
+import { useAuth } from '@/hooks/useAuth';
 
 interface VoteWithGame {
   vote: Vote;
   game: BGGGame;
 }
 
-const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
+const MyVotes: React.FC = () => {
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [votesWithGames, setVotesWithGames] = useState<VoteWithGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [, setLocation] = useLocation();
@@ -26,7 +24,7 @@ const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
   
   useEffect(() => {
     // Redirect if not logged in
-    if (!user) {
+    if (!isAuthLoading && !isAuthenticated) {
       setLocation('/');
       return;
     }
