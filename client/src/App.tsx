@@ -10,42 +10,10 @@ import MyVotes from "@/pages/my-votes";
 import Rankings from "@/pages/rankings";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { useState, useEffect } from "react";
-import { apiRequest } from "./lib/queryClient";
-import { User } from "@shared/schema";
+import { useAuth } from "./contexts/AuthContext";
 
 function Router() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const checkAuthStatus = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiRequest("GET", "/api/auth/me");
-      const userData = await res.json();
-      setUser(userData);
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const login = async (email: string, name: string) => {
-    const res = await apiRequest("POST", "/api/auth/login", { email, name });
-    const userData = await res.json();
-    setUser(userData);
-    return userData;
-  };
-
-  const logout = async () => {
-    await apiRequest("POST", "/api/auth/logout");
-    setUser(null);
-  };
-
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  const { user, isLoading, logout } = useAuth();
 
   return (
     <div className="app-wrapper">
@@ -58,8 +26,8 @@ function Router() {
         </main>
       ) : (
         <Switch>
-          <Route path="/" component={() => <Home user={user} onLogin={login} />} />
-          <Route path="/my-votes" component={() => <MyVotes user={user} />} />
+          <Route path="/" component={Home} />
+          <Route path="/my-votes" component={() => <MyVotes />} />
           <Route path="/rankings" component={Rankings} />
           <Route component={NotFound} />
         </Switch>
