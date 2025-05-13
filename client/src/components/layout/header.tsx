@@ -63,8 +63,6 @@ export const Header = () => {
       <LoginDialog 
         isOpen={isLoginOpen} 
         onClose={() => setIsLoginOpen(false)}
-        title="Log In to The Tabletop Library"
-        description="Log in with Replit to vote on games, track your votes, and contribute to our community collection."
       />
     </header>
   );

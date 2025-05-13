@@ -283,8 +283,6 @@ export const GameCard: React.FC<GameCardProps> = ({
       <LoginDialog
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        title="Login Required to Vote"
-        description={`Please log in to vote for ${game.name}. Your vote selection will be applied after you log in.`}
       />
     </>
   );

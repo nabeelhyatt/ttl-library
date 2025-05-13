@@ -5,11 +5,8 @@ import React from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '../ui/dialog';
-import { Button } from '../ui/button';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginDialogProps {
@@ -22,8 +19,6 @@ interface LoginDialogProps {
 export const LoginDialog: React.FC<LoginDialogProps> = ({
   isOpen,
   onClose,
-  title = 'Log In Required',
-  description = 'Please log in to continue. Your vote will be saved and applied after you log in.',
 }) => {
   const { pendingVote } = useAuth();
 
@@ -34,37 +29,25 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px] bg-white border border-gray-300 shadow-md p-6">
-        <DialogTitle className="text-xl font-serif border-b border-gray-200 pb-2 mb-4">
-          {title}
-        </DialogTitle>
-        
-        <DialogDescription className="text-base mb-6 font-serif">
-          {description}
-          
-          {pendingVote && (
-            <div className="mt-4 p-3 border border-gray-200 bg-gray-50 rounded">
-              <p className="font-medium">Pending vote:</p>
-              <p className="italic">{pendingVote.gameName}</p>
-            </div>
-          )}
-        </DialogDescription>
+      <DialogContent className="sm:max-w-[425px] bg-white border border-gray-200 shadow-sm p-6 font-serif">
+        <h2 className="text-xl text-center mb-6 mt-2">
+          LOG IN TO THE TABLETOP LIBRARY
+        </h2>
 
-        <DialogFooter className="flex gap-4">
-          <Button
-            variant="outline"
+        <DialogFooter className="flex justify-center gap-8 mt-4">
+          <button
             onClick={onClose}
-            className="border-gray-300 hover:bg-gray-100"
+            className="px-6 py-1 border border-gray-300 hover:bg-gray-50"
           >
-            Cancel
-          </Button>
+            CANCEL
+          </button>
           
-          <Button 
+          <button 
             onClick={handleLogin}
-            className="bg-blue-700 hover:bg-blue-800 text-white"
+            className="px-6 py-1 border border-gray-800 bg-gray-800 text-white hover:bg-gray-900"
           >
-            Log In with Replit
-          </Button>
+            LOG IN
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
