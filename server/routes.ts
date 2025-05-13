@@ -35,7 +35,11 @@ interface AirtableGameInfo {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup session middleware
+  // Import and setup Replit Auth (we'll comment this out to keep using existing auth temporarily)
+  // import { setupAuth } from "./replitAuth";
+  // await setupAuth(app);
+  
+  // Setup session middleware (keeping existing implementation for now)
   app.use(
     session({
       secret: process.env.SESSION_SECRET || 'tabletoplibrary-secret-key',

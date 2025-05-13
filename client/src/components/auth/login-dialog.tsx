@@ -1,204 +1,139 @@
-import { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
-
-const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
-  email: z.string().email("Please enter a valid email address").min(5, "Email is too short").max(100, "Email is too long"),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginDialogProps {
-  onClose: () => void;
-  onSubmit: (email: string, name: string) => Promise<any>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onLoginSuccess?: () => void;
 }
 
-export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogProps) {
+  const { login, directLoginWithReplit, isLoading } = useAuth();
   const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-    },
-  });
-
-  // This is a direct submit handler that bypasses the form validation if needed
-  const handleDirectSubmit = () => {
-    const values = form.getValues();
-    console.log("Direct submit with values:", values);
-
-    if (values.email && values.name && onSubmit) {
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Simple validation
+    if (!email.trim()) {
+      setError("Please enter your email");
+      return;
+    }
+    
+    if (!name.trim()) {
+      setError("Please enter your name");
+      return;
+    }
+    
+    try {
+      setError("");
+      await login(email, name);
+      
       toast({
-        title: "Direct Login",
-        description: "Attempting direct login...",
+        title: "Login successful",
+        description: "You are now logged in.",
       });
-
-      setIsSubmitting(true);
-      onSubmit(values.email, values.name)
-        .then(() => {
-          console.log("Direct login successful");
-          // Close the dialog immediately
-          onClose();
-
-          // Show a toast that automatically dismisses
-          toast({
-            title: "Success",
-            description: "Login successful!",
-            duration: 2000,
-          });
-        })
-        .catch(error => {
-          console.error("Direct login failed:", error);
-          toast({
-            title: "Login Failed",
-            description: "Could not log in with the provided information.",
-            variant: "destructive",
-          });
-        })
-        .finally(() => {
-          setIsSubmitting(false);
-        });
-    } else {
-      toast({
-        title: "Missing Information",
-        description: "Please enter both email and name.",
-        variant: "destructive",
-      });
+      
+      onOpenChange(false);
+      
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Login failed. Please try again.");
     }
   };
 
-  const handleSubmit = async (values: FormValues) => {
-    setIsSubmitting(true);
-    try {
-      console.log("Submitting login with:", values);
-      const result = await onSubmit(values.email, values.name);
-
-      // Store login timestamp
-      localStorage.setItem('lastLoginTime', Date.now().toString());
-
-      // Close dialog immediately
-      onClose();
-
-      toast({
-        title: "Success",
-        description: "Login successful!",
-        duration: 2000,
-      });
-    } catch (error) {
-      console.error("Login failed:", error);
-      // Set specific field errors for better visibility
-      if (error instanceof Error) {
-        console.log("Error details:", error.message);
-      }
-
-      // Set more visible field errors
-      form.setError("email", { 
-        message: "There was a problem with your login. Please try again."
-      });
-
-      // Also set root error for general visibility
-      form.setError("root", { 
-        message: "Login failed. Please make sure both email and name are provided."
-      });
-
-      toast({
-        title: "Login Failed",
-        description: "Could not log in with the provided information.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+  const handleReplitLogin = () => {
+    // Store pending action in local storage to restore after redirect
+    if (window.localStorage) {
+      localStorage.setItem("pendingLogin", "true");
     }
+    directLoginWithReplit();
   };
 
   return (
-    <DialogContent className="bg-[#f5f5dc] rounded-lg p-8 max-w-md w-full mx-4 shadow-lg">
-      <DialogHeader>
-        <div className="flex justify-between items-center mb-2">
-          <DialogTitle className="font-tufte text-xl text-foreground">Log In / Register</DialogTitle>
-        </div>
-        <DialogDescription className="text-muted-foreground">
-          Enter your name and email to log in or create a new account. No password needed!
-        </DialogDescription>
-      </DialogHeader>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="block text-muted-foreground mb-2">Full Name</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="text" 
-                    {...field}
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
-                    required
-                    disabled={isSubmitting}
-                    placeholder="Enter your full name"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="block text-muted-foreground mb-2">Email Address</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="email" 
-                    {...field}
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
-                    required
-                    disabled={isSubmitting}
-                    placeholder="your.email@example.com"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Display form-level errors */}
-          {form.formState.errors.root && (
-            <div className="text-red-700 text-sm border border-red-300 bg-[#f5f5dc] p-3 rounded-md shadow-sm">
-              {form.formState.errors.root.message}
-            </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px] bg-white p-6 rounded-lg shadow-md font-serif">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-medium">Sign in</DialogTitle>
+          <DialogDescription className="text-sm text-gray-500">
+            Login to vote and customize your board game experience.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleEmailLogin} className="space-y-4 pt-4">
+          {error && (
+            <div className="text-red-500 text-sm">{error}</div>
           )}
-
-          <div className="flex flex-col space-y-2">
+          
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium">
+              Email
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your.email@example.com"
+              className="h-9 px-3 py-2 text-sm"
+              disabled={isLoading}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-medium">
+              Name
+            </Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your Name"
+              className="h-9 px-3 py-2 text-sm"
+              disabled={isLoading}
+            />
+          </div>
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button 
               type="submit" 
-              className="w-full bg-accent text-background py-3 rounded-lg hover:bg-accent/90 transition duration-200 font-medium"
-              disabled={isSubmitting}
+              className="w-full" 
+              disabled={isLoading}
             >
-              {isSubmitting ? 'Processing...' : 'Continue'}
+              {isLoading ? "Signing in..." : "Sign in"}
             </Button>
-          </div>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleReplitLogin}
+              disabled={isLoading}
+            >
+              Sign in with Replit
+            </Button>
+          </DialogFooter>
         </form>
-      </Form>
-
-      <div className="text-muted-foreground text-xs mt-6">
-        By continuing, you agree to our terms and conditions and privacy policy.
-      </div>
-    </DialogContent>
+      </DialogContent>
+    </Dialog>
   );
-};
+}

@@ -1,37 +1,47 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { CheckCircle } from "lucide-react";
 
 interface VoteSuccessDialogProps {
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  gameName: string;
+  voteType: string;
 }
 
-export const VoteSuccessDialog: React.FC<VoteSuccessDialogProps> = ({ onClose }) => {
+export function VoteSuccessDialog({
+  open,
+  onOpenChange,
+  gameName,
+  voteType,
+}: VoteSuccessDialogProps) {
   return (
-    <DialogContent className="bg-secondary rounded-lg p-8 max-w-md w-full mx-4">
-      <div className="flex justify-center mb-6">
-        <div className="h-16 w-16 rounded-full bg-vote-played/20 flex items-center justify-center mb-4">
-          <FontAwesomeIcon icon="check" className="text-vote-played text-2xl" />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px] bg-white p-6 rounded-lg shadow-md font-serif">
+        <DialogHeader className="flex flex-col items-center gap-2">
+          <CheckCircle className="h-12 w-12 text-green-500" />
+          <DialogTitle className="text-xl font-medium text-center">Vote Recorded</DialogTitle>
+          <DialogDescription className="text-sm text-gray-500 text-center">
+            Your vote for <span className="font-medium italic">{gameName}</span> has been recorded.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="flex flex-col items-center py-4">
+          <div className="text-center space-y-2">
+            <p className="text-sm">You voted:</p>
+            <p className="text-lg font-medium">{voteType}</p>
+          </div>
         </div>
-      </div>
-      
-      <DialogHeader>
-        <DialogTitle className="font-tufte text-center text-xl text-foreground mb-2">
-          Vote Registered!
-        </DialogTitle>
-        <DialogDescription className="text-muted-foreground text-center">
-          Your vote has been successfully recorded. Thank you for your contribution!
-        </DialogDescription>
-      </DialogHeader>
-      
-      <DialogFooter className="mt-6">
-        <Button 
-          onClick={onClose} 
-          className="w-full bg-accent text-background py-3 rounded-lg hover:bg-accent/90 transition duration-200 font-medium"
-        >
-          Continue Exploring
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+        
+        <DialogFooter>
+          <Button 
+            onClick={() => onOpenChange(false)} 
+            className="w-full"
+          >
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
-};
+}
