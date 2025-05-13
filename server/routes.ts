@@ -88,6 +88,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // User endpoint for the new authentication system
+  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+    try {
+      const replitId = req.user.claims.sub;
+      
+      // Get the user from storage
+      const user = await storage.getUserByReplitId(replitId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      return res.status(200).json(user);
+    } catch (error) {
+      console.error("Error fetching authenticated user:", error);
+      return res.status(500).json({ message: "Failed to fetch user data" });
+    }
+  });
+
+  // Keep existing endpoint for backward compatibility
   app.get("/api/auth/me", async (req, res) => {
     try {
       if (!req.session.userId) {
