@@ -30,6 +30,8 @@ export const Header = () => {
             >
               Rankings
             </Link>
+            
+            <div className="ml-4"></div> {/* Add extra spacing */}
 
             {user ? (
               <>
