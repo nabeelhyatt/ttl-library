@@ -1,45 +1,128 @@
 import { useState } from 'react';
-import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 
-// Define component props
+const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
+  email: z.string().email("Please enter a valid email address").min(5, "Email is too short").max(100, "Email is too long"),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
 interface LoginDialogProps {
   onClose: () => void;
-  // The pendingVote property will store information about a vote that was
-  // attempted before login, so it can be processed after authentication
-  pendingVoteId?: number;
-  gameId?: number;
-  voteType?: number;
+  onSubmit: (email: string, name: string) => Promise<any>;
 }
 
-export const LoginDialog: React.FC<LoginDialogProps> = ({ 
-  onClose, 
-  pendingVoteId,
-  gameId,
-  voteType 
-}) => {
-  const [isRedirecting, setIsRedirecting] = useState(false);
+export const LoginDialog: React.FC<LoginDialogProps> = ({ onClose, onSubmit }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleLogin = () => {
-    setIsRedirecting(true);
-    
-    // Construct login URL with any pending vote information
-    let loginUrl = '/api/login';
-    const params = new URLSearchParams();
-    
-    // Add return URL to current page
-    params.append('returnTo', window.location.pathname);
-    
-    // Add any pending vote information
-    if (gameId && voteType) {
-      params.append('gameId', gameId.toString());
-      params.append('voteType', voteType.toString());
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+    },
+  });
+
+  // This is a direct submit handler that bypasses the form validation if needed
+  const handleDirectSubmit = () => {
+    const values = form.getValues();
+    console.log("Direct submit with values:", values);
+
+    if (values.email && values.name && onSubmit) {
+      toast({
+        title: "Direct Login",
+        description: "Attempting direct login...",
+      });
+
+      setIsSubmitting(true);
+      onSubmit(values.email, values.name)
+        .then(() => {
+          console.log("Direct login successful");
+          // Close the dialog immediately
+          onClose();
+
+          // Show a toast that automatically dismisses
+          toast({
+            title: "Success",
+            description: "Login successful!",
+            duration: 2000,
+          });
+        })
+        .catch(error => {
+          console.error("Direct login failed:", error);
+          toast({
+            title: "Login Failed",
+            description: "Could not log in with the provided information.",
+            variant: "destructive",
+          });
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+        });
+    } else {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both email and name.",
+        variant: "destructive",
+      });
     }
-    
-    // Redirect to the Replit Auth login endpoint
-    window.location.href = `${loginUrl}?${params.toString()}`;
+  };
+
+  const handleSubmit = async (values: FormValues) => {
+    setIsSubmitting(true);
+    try {
+      console.log("Submitting login with:", values);
+      const result = await onSubmit(values.email, values.name);
+
+      // Store login timestamp
+      localStorage.setItem('lastLoginTime', Date.now().toString());
+
+      // Close dialog after short delay to show success state
+      setTimeout(() => {
+        onClose();
+        window.location.reload(); // Force clean reload
+      }, 1000);
+
+      toast({
+        title: "Success",
+        description: "Login successful! Refreshing page...",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Login failed:", error);
+      // Set specific field errors for better visibility
+      if (error instanceof Error) {
+        console.log("Error details:", error.message);
+      }
+
+      // Set more visible field errors
+      form.setError("email", { 
+        message: "There was a problem with your login. Please try again."
+      });
+
+      // Also set root error for general visibility
+      form.setError("root", { 
+        message: "Login failed. Please make sure both email and name are provided."
+      });
+
+      toast({
+        title: "Login Failed",
+        description: "Could not log in with the provided information.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -49,29 +132,72 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
           <DialogTitle className="font-tufte text-xl text-foreground">Log In / Register</DialogTitle>
         </div>
         <DialogDescription className="text-muted-foreground">
-          Sign in with your Replit account for seamless authentication. No password needed!
+          Enter your name and email to log in or create a new account. No password needed!
         </DialogDescription>
       </DialogHeader>
 
-      <div className="my-8 text-center">
-        <p className="mb-6 text-muted-foreground">
-          Click below to securely log in with Replit. We'll only access your basic profile information.
-        </p>
-        
-        {pendingVoteId && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
-            <p>You have a pending vote that will be applied after login.</p>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="block text-muted-foreground mb-2">Full Name</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="text" 
+                    {...field}
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
+                    required
+                    disabled={isSubmitting}
+                    placeholder="Enter your full name"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="block text-muted-foreground mb-2">Email Address</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="email" 
+                    {...field}
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
+                    required
+                    disabled={isSubmitting}
+                    placeholder="your.email@example.com"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Display form-level errors */}
+          {form.formState.errors.root && (
+            <div className="text-red-700 text-sm border border-red-300 bg-[#f5f5dc] p-3 rounded-md shadow-sm">
+              {form.formState.errors.root.message}
+            </div>
+          )}
+
+          <div className="flex flex-col space-y-2">
+            <Button 
+              type="submit" 
+              className="w-full bg-accent text-background py-3 rounded-lg hover:bg-accent/90 transition duration-200 font-medium"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Processing...' : 'Continue'}
+            </Button>
           </div>
-        )}
-        
-        <Button 
-          onClick={handleLogin} 
-          className="w-full bg-accent text-background py-3 rounded-lg hover:bg-accent/90 transition duration-200 font-medium"
-          disabled={isRedirecting}
-        >
-          {isRedirecting ? 'Redirecting...' : 'Continue with Replit'}
-        </Button>
-      </div>
+        </form>
+      </Form>
 
       <div className="text-muted-foreground text-xs mt-6">
         By continuing, you agree to our terms and conditions and privacy policy.

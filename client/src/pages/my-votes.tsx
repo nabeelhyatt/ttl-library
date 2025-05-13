@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Vote, BGGGame, VoteType, voteTypeInfo } from '@shared/schema';
+import { User, Vote, BGGGame, VoteType, voteTypeInfo } from '@shared/schema';
 import { HexagonIcon } from '@/components/ui/hexagon-icon';
 import { getUserVotes, deleteVote } from '@/lib/airtable-api';
 import { getGameDetails } from '@/lib/bgg-api';
@@ -8,15 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 import { GameCard } from '@/components/game/game-card';
 import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useAuth } from '@/hooks/useAuth';
+
+interface MyVotesProps {
+  user: User | null;
+}
 
 interface VoteWithGame {
   vote: Vote;
   game: BGGGame;
 }
 
-const MyVotes: React.FC = () => {
-  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+const MyVotes: React.FC<MyVotesProps> = ({ user }) => {
   const [votesWithGames, setVotesWithGames] = useState<VoteWithGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [, setLocation] = useLocation();
@@ -24,7 +26,7 @@ const MyVotes: React.FC = () => {
   
   useEffect(() => {
     // Redirect if not logged in
-    if (!isAuthLoading && !isAuthenticated) {
+    if (!user) {
       setLocation('/');
       return;
     }
@@ -153,7 +155,7 @@ const MyVotes: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {votes.map(({ vote, game }) => (
                     <div key={vote.id} className="relative">
-                      <GameCard game={game} />
+                      <GameCard game={game} user={user} onLogin={() => Promise.resolve(user!)} />
                       <Button
                         onClick={() => handleDeleteVote(vote.id)}
                         variant="destructive"

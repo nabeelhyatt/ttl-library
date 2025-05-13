@@ -1,19 +1,45 @@
 import { Link, useLocation } from "wouter";
+import { User } from "@shared/schema";
 import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { LoginDialog } from "@/components/auth/login-dialog";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  user: User | null;
+  onLogout: () => Promise<void>;
+}
+
+export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const [location] = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const { toast } = useToast();
-  const { user, isAuthenticated, isLoading } = useAuth();
   
-  const handleLogout = () => {
-    // Replit Auth handles logout through the API endpoint
-    window.location.href = '/api/logout';
+  const handleLogin = async (email: string, name: string) => {
+    try {
+      const res = await apiRequest("POST", "/api/auth/login", { email, name });
+      const userData = await res.json();
+      // Close the login dialog
+      setIsLoginOpen(false);
+      
+      // Show a brief message before reload
+      toast({
+        title: "Login Successful",
+        description: "Refreshing page...",
+        duration: 1000,
+      });
+      
+      // Force page reload after a brief delay to let the toast show
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
+      return userData;
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    }
   };
 
   return (
@@ -39,9 +65,7 @@ export const Header: React.FC = () => {
               Rankings
             </Link>
 
-            {isLoading ? (
-              <span className="px-4 py-2 text-sm opacity-50">Loading...</span>
-            ) : isAuthenticated ? (
+            {user ? (
               <>
                 <Link
                   href="/my-votes"
@@ -49,7 +73,7 @@ export const Header: React.FC = () => {
                 >
                   My Votes
                 </Link>
-                <button onClick={handleLogout} className="btn">
+                <button onClick={onLogout} className="btn">
                   Log out
                 </button>
               </>
@@ -65,6 +89,7 @@ export const Header: React.FC = () => {
       <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
         <LoginDialog 
           onClose={() => setIsLoginOpen(false)} 
+          onSubmit={handleLogin}
         />
       </Dialog>
     </header>
