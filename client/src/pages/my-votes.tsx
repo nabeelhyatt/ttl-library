@@ -153,7 +153,7 @@ const MyVotes: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {votes.map(({ vote, game }) => (
                     <div key={vote.id} className="relative">
-                      <GameCard game={game} user={user} onLogin={() => Promise.resolve(user!)} />
+                      <GameCard game={game} />
                       <Button
                         onClick={() => handleDeleteVote(vote.id)}
                         variant="destructive"

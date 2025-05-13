@@ -43,7 +43,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/user", isAuthenticated, async (req, res) => {
     try {
       // Get user ID from Replit auth claims
-      const userId = req.user.claims.sub;
+      const userId = req.user?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       
       // Get user from database
       const user = await storage.getUser(userId);
@@ -464,7 +468,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Airtable configuration status: ${airtableConfigured ? 'Configured' : 'Not configured'}`);
 
       // User must be authenticated due to isAuthenticated middleware
-      const userId = req.user.claims.sub;
+      const userId = req.user?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
       console.log(`Fetching votes for user ID: ${userId}`);
       
       const votes = await storage.getUserVotes(userId);
