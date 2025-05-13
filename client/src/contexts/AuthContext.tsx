@@ -1,7 +1,7 @@
 // ABOUTME: Provides authentication context for the application
 // ABOUTME: Manages user state and login/logout functionality
 
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import axios from 'axios';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -109,3 +109,14 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+// Export the hook to access auth context
+export function useAuth() {
+  const context = useContext(AuthContext);
+  
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
+}
