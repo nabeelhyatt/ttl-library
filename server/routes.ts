@@ -11,6 +11,7 @@ import * as z from "zod";
 import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 // Extend the express-session SessionData interface
 declare module 'express-session' {
@@ -35,28 +36,8 @@ interface AirtableGameInfo {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Import and setup Replit Auth (we'll comment this out to keep using existing auth temporarily)
-  // import { setupAuth } from "./replitAuth";
-  // await setupAuth(app);
-  
-  // Setup session middleware (keeping existing implementation for now)
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || 'tabletoplibrary-secret-key',
-      resave: false,
-      saveUninitialized: false,
-      rolling: true,
-      cookie: {
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        secure: process.env.NODE_ENV === "production",
-        sameSite: 'lax'
-      },
-      store: new MemoryStoreSession({
-        checkPeriod: 3600000, // prune expired entries every hour
-        stale: false
-      }),
-    })
-  );
+  // Setup Replit Auth (includes session middleware)
+  await setupAuth(app);
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {

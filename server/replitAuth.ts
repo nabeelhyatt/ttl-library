@@ -32,7 +32,7 @@ export function getSession() {
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || 'tabletoplibrary-secret-key',
+    secret: process.env.SESSION_SECRET || "tabletop-library-secret",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,

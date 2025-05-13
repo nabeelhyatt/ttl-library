@@ -4,7 +4,7 @@ import {
 
 // Storage interface
 // Interface for Replit user data from OpenID Connect
-interface ReplitUserData {
+export interface ReplitUserData {
   id: string;           // sub claim from OpenID Connect
   email: string | null; // email claim
   firstName: string | null; // first_name claim
