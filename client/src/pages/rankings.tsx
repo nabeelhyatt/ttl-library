@@ -82,10 +82,9 @@ export default function Rankings() {
     handleSearch(gameName);
   };
 
-  // Handle search by redirecting to home page with search parameter
+  // Handle search directly on rankings page
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
-      setLocation('/');
       return;
     }
 
@@ -96,10 +95,21 @@ export default function Rankings() {
 
     try {
       setIsSearching(true);
+      setLocation(`/rankings?search=${encodeURIComponent(query)}`, { replace: true });
       
-      // Simple redirect to home page with search parameter
-      // Let the home page handle the actual search process
-      setLocation(`/?search=${encodeURIComponent(query)}`);
+      const searchResults = await searchGames(query);
+      if (searchResults.length > 0) {
+        toast({
+          title: `Found ${searchResults.length} games`,
+          description: `Search results for "${query}"`,
+        });
+      } else {
+        toast({
+          title: "No results found",
+          description: `We couldn't find any games matching "${query}". Try a different search term.`,
+          variant: "default"
+        });
+      }
       
     } catch (error) {
       console.error('Search error:', error);
