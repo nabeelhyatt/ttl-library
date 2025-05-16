@@ -767,16 +767,16 @@ export class AirtableDirectService {
       
       console.log(`Fetching most voted games from Airtable (limit: ${limit})...`);
       
-      // Construct the URL to get games sorted by Total Votes
-      // We'll select fields we need and sort by Total Votes in descending order
+      // Construct the URL to get games sorted by vote count
+      // We'll select fields we need and sort by "# Votes" in descending order
       const fields = [
         'Title', 
         'BGG ID', 
-        'Total Votes',
+        '# Votes',
         'Subcategory Name (from TLCS Subcategory)'
       ].map(field => `fields%5B%5D=${encodeURIComponent(field)}`).join('&');
       
-      const url = `https://api.airtable.com/v0/${this.baseId}/Games?${fields}&sort%5B0%5D%5Bfield%5D=Total+Votes&sort%5B0%5D%5Bdirection%5D=desc&maxRecords=${limit}`;
+      const url = `https://api.airtable.com/v0/${this.baseId}/Games?${fields}&sort%5B0%5D%5Bfield%5D=%23+Votes&sort%5B0%5D%5Bdirection%5D=desc&maxRecords=${limit}`;
       
       const response = await fetch(url, {
         method: 'GET',
