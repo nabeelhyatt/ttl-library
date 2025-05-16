@@ -4,6 +4,7 @@ import { searchGames } from '@/lib/bgg-api';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { GameSearch } from '../components/game/game-search';
+import { GameCard } from '../components/game/game-card';
 import { useToast } from '../hooks/use-toast';
 import './rankings.css';
 import { useLocation } from 'wouter';
@@ -82,6 +83,11 @@ export default function Rankings() {
     handleSearch(gameName);
   };
 
+  const handleVoteSuccess = () => {
+    // Refresh data after voting
+    window.location.reload();
+  };
+
   // Handle search directly on rankings page
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
@@ -158,24 +164,26 @@ export default function Rankings() {
                     Error loading most voted games. Please try again later.
                   </div>
                 ) : (
-                  (mostVotedGames?.length ? mostVotedGames : fallbackGames).map((game) => (
-                    <div key={game.id} className="flex justify-between dotted-border">
-                      <div>
-                        <span 
-                          className="game-name cursor-pointer hover:underline"
-                          onClick={() => handleGameClick(game.bggId, game.name)}
-                        >
-                          {game.name}
-                        </span>
-                        {game.subcategory && (
-                          <div className="game-category mt-1 ml-6">
-                            {game.subcategory}
-                          </div>
-                        )}
-                      </div>
-                      <div className="vote-count">{game.voteCount}</div>
-                    </div>
-                  ))
+                  <div className="games-grid">
+                    {(mostVotedGames?.length ? mostVotedGames : fallbackGames).map((game) => (
+                      <GameCard 
+                        key={game.id} 
+                        game={{
+                          gameId: game.bggId,
+                          name: game.name,
+                          description: game.description,
+                          yearPublished: game.yearPublished,
+                          minPlayers: game.minPlayers,
+                          maxPlayers: game.maxPlayers,
+                          playingTime: game.playTime,
+                          weightRating: game.weightRating,
+                          voteCount: game.voteCount,
+                          subcategoryName: game.subcategory
+                        }}
+                        onVoteSuccess={handleVoteSuccess}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
