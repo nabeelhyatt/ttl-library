@@ -841,7 +841,7 @@ export class AirtableDirectService {
         'Category Code',
         'Category Name',
         'Category Description',
-        '# Votes' // Updated field name to match Airtable schema
+        'Total Games (Votes)' // Correct field name from TLCS Categories table
       ].map(field => `fields%5B%5D=${encodeURIComponent(field)}`).join('&');
       
       // Get the correct table ID for TLCS Categories
@@ -887,7 +887,7 @@ export class AirtableDirectService {
           id: categoryId || 0,
           name: fields['Category Name'] || '',
           description: fields['Category Description'] || '',
-          voteCount: parseInt(fields['Total Votes'] || 0)
+          voteCount: parseInt(fields['Total Games (Votes)'] || 0)
         };
       });
       
