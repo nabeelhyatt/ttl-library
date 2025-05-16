@@ -206,11 +206,11 @@ export default function Rankings() {
                   </div>
                 ) : (
                   (categoryData?.length ? categoryData : fallbackCategories).map((category) => (
-                    <div key={category.id}>
+                    <div key={category.code}>
                       <div className="flex justify-between mb-1">
                         <div>
-                          <span className="category-number">{category.id}</span>
-                          <span className="category-name">{category.name.toUpperCase()}:</span>
+                          <span className="category-number">{category.code}</span>
+                          <span className="category-name">{category.name}:</span>
                         </div>
                         <div className="vote-count">{category.voteCount}</div>
                       </div>

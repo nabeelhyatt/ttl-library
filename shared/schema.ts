@@ -182,3 +182,10 @@ export const voteTypeInfo = {
     textColor: "text-vote-teach" 
   }
 };
+
+export interface CategoryWithVotes {
+  code: string;
+  name: string;
+  description: string;
+  voteCount: number;
+}

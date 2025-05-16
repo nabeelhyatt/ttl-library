@@ -873,18 +873,8 @@ export class AirtableDirectService {
       // Map Airtable records to our CategoryWithVotes interface
       const categories: CategoryWithVotes[] = data.records.map((record: any) => {
         const fields = record.fields;
-        // Parse the category code as the ID, or use the record ID as a fallback
-        let categoryId = 0;
-        try {
-          // Try to extract numeric value from Category Code (e.g., "100" from "100")
-          const codeMatch = (fields['Category Code'] || '').match(/^(\d+)/);
-          categoryId = codeMatch ? parseInt(codeMatch[1]) : 0;
-        } catch (e) {
-          console.warn(`Could not parse category ID from ${fields['Category Code']}`);
-        }
-        
         return {
-          id: categoryId || 0,
+          code: fields['Category Code'] || '',
           name: fields['Category Name'] || '',
           description: fields['Category Description'] || '',
           voteCount: parseInt(fields['Total Games (Votes)'] || 0)
