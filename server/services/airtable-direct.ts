@@ -776,7 +776,7 @@ export class AirtableDirectService {
         'Subcategory Name (from TLCS Subcategory)'
       ].map(field => `fields%5B%5D=${encodeURIComponent(field)}`).join('&');
       
-      const url = `https://api.airtable.com/v0/${this.baseId}/Games?${fields}&sort%5B0%5D%5Bfield%5D=%23+Votes&sort%5B0%5D%5Bdirection%5D=desc&maxRecords=${limit}`;
+      const url = `https://api.airtable.com/v0/${this.baseId}/Games?${fields}&sort%5B0%5D%5Bfield%5D=${encodeURIComponent('# Votes')}&sort%5B0%5D%5Bdirection%5D=desc&maxRecords=${limit}`;
       
       const response = await fetch(url, {
         method: 'GET',
