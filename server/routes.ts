@@ -541,10 +541,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store in session for compatibility with existing code
       req.session.userId = user.id;
 
-      console.log(`Fetching votes for user ID: ${req.session.userId}`);
-      const votes = await storage.getUserVotes(req.session.userId);
-      console.log(`Retrieved ${votes.length} votes for user`);
-      return res.status(200).json(votes);
+      // First, get votes from local storage
+      console.log(`Fetching votes from local storage for user ID: ${req.session.userId}`);
+      const localVotes = await storage.getUserVotes(req.session.userId);
+      console.log(`Retrieved ${localVotes.length} votes from local storage`);
+      
+      // Next, try to fetch votes from Airtable if configured
+      let airtableVotes: Vote[] = [];
+      if (airtableConfigured) {
+        try {
+          console.log(`Fetching votes from Airtable for user: ${user.email}`);
+          
+          // Find user's member ID in Airtable
+          const baseId = process.env.AIRTABLE_BASE_ID as string;
+          const apiKey = process.env.AIRTABLE_API_KEY as string;
+          
+          // First try to find the member in Members table
+          const encodedFormula = encodeURIComponent(`{Email}="${user.email}"`);
+          const url = `https://api.airtable.com/v0/${baseId}/Members?filterByFormula=${encodedFormula}`;
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`
+            }
+          });
+          
+          if (!response.ok) {
+            console.error("Error connecting to Airtable:", response.statusText);
+            // Continue with local votes only
+          } else {
+            const data = await response.json();
+            
+            if (data.records && data.records.length > 0) {
+              const memberId = data.records[0].id;
+              console.log(`Found member in Airtable with ID: ${memberId}`);
+              
+              // Get all votes for this member
+              const votesUrl = `https://api.airtable.com/v0/${baseId}/Votes`;
+              
+              const votesResponse = await fetch(votesUrl, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${apiKey}`
+                }
+              });
+              
+              if (votesResponse.ok) {
+                const votesData = await votesResponse.json();
+                
+                // Filter votes for this member
+                const memberVotes = votesData.records?.filter((record: any) => {
+                  return record.fields.Member && 
+                         Array.isArray(record.fields.Member) && 
+                         record.fields.Member.includes(memberId);
+                }) || [];
+                
+                console.log(`Found ${memberVotes.length} votes for member in Airtable`);
+                
+                // Convert Airtable votes to our format and sync with local storage
+                for (const record of memberVotes) {
+                  try {
+                    if (record.fields.Game && Array.isArray(record.fields.Game) && record.fields.Game.length > 0) {
+                      // Get the game info using Airtable Game ID
+                      const gameId = record.fields.Game[0];
+                      const gameUrl = `https://api.airtable.com/v0/${baseId}/Games/${gameId}`;
+                      
+                      const gameResponse = await fetch(gameUrl, {
+                        method: 'GET',
+                        headers: {
+                          'Authorization': `Bearer ${apiKey}`
+                        }
+                      });
+                      
+                      if (gameResponse.ok) {
+                        const gameData = await gameResponse.json();
+                        
+                        if (gameData.fields && gameData.fields['BGG ID']) {
+                          const bggId = parseInt(gameData.fields['BGG ID']);
+                          
+                          // Check if this game exists in our local storage
+                          let game = await storage.getGameByBGGId(bggId);
+                          
+                          // If game doesn't exist locally, create it
+                          if (!game) {
+                            console.log(`Game with BGG ID ${bggId} not found locally, creating it`);
+                            
+                            // Get basic info from BGG
+                            try {
+                              // Create a basic game entry
+                              game = await storage.createGame({
+                                bggId: bggId,
+                                name: gameData.fields.Title || `Game #${bggId}`,
+                                description: '',
+                                image: '',
+                                thumbnail: '',
+                                categories: [],
+                                mechanics: []
+                              });
+                              console.log(`Created game with ID ${game.id}`);
+                            } catch (err) {
+                              console.error(`Error creating game: ${err}`);
+                              continue; // Skip this vote
+                            }
+                          }
+                          
+                          // Check if we already have this vote locally
+                          const existingVote = await storage.getUserVoteForGame(user.id, game.id);
+                          
+                          if (!existingVote) {
+                            // Create the vote locally
+                            let voteType = 1; // Default to Want to Try
+                            
+                            // Parse vote type from Airtable
+                            if (record.fields['Vote Type'] === 'Want to Try') {
+                              voteType = 1;
+                            } else if (record.fields['Vote Type'] === 'Played and Will Play Again') {
+                              voteType = 2;
+                            } else if (record.fields['Vote Type'] === 'Would Join a Club') {
+                              voteType = 3; 
+                            } else if (record.fields['Vote Type'] === 'Would Join a Tournament') {
+                              voteType = 4;
+                            } else if (record.fields['Vote Type'] === 'Would Teach') {
+                              voteType = 5;
+                            }
+                            
+                            try {
+                              const newVote = await storage.createVote({
+                                userId: user.id,
+                                gameId: game.id,
+                                voteType: voteType,
+                                createdAt: new Date(),
+                                updatedAt: new Date()
+                              });
+                              
+                              airtableVotes.push(newVote);
+                              console.log(`Created vote for game ${game.name} from Airtable`);
+                            } catch (err) {
+                              console.error(`Error creating vote: ${err}`);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } catch (err) {
+                    console.error(`Error processing Airtable vote: ${err}`);
+                  }
+                }
+              }
+            } else {
+              console.log(`Member not found in Airtable with email: ${user.email}`);
+            }
+          }
+        } catch (airtableError) {
+          console.error("Error syncing with Airtable:", airtableError);
+          // Continue with local votes only
+        }
+      }
+      
+      // Get the updated votes from storage after syncing with Airtable
+      const updatedVotes = await storage.getUserVotes(req.session.userId);
+      console.log(`Returning ${updatedVotes.length} total votes to client`);
+      return res.status(200).json(updatedVotes);
     } catch (error) {
       console.error("Error fetching user votes:", error);
       return res.status(500).json({ 
