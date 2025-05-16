@@ -188,4 +188,5 @@ export interface CategoryWithVotes {
   name: string;
   description: string;
   voteCount: number;
+  totalGames: number;
 }

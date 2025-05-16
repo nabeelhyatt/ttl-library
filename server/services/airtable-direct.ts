@@ -841,7 +841,8 @@ export class AirtableDirectService {
         'Category Code',
         'Category Name',
         'Category Description',
-        'Total Games (Votes)' // Correct field name from TLCS Categories table
+        'Total Games (Votes)', // Correct field name from TLCS Categories table
+        'Total Games' // Field for number of games in stock
       ].map(field => `fields%5B%5D=${encodeURIComponent(field)}`).join('&');
       
       // Get the correct table ID for TLCS Categories
