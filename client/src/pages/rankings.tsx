@@ -89,6 +89,8 @@ export default function Rankings() {
   };
 
   // Handle search directly on rankings page
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
       return;
@@ -101,8 +103,24 @@ export default function Rankings() {
 
     try {
       setIsSearching(true);
-      setLocation(`/?query=${query}`);
-
+      setSearchResults([]); // Clear previous results
+      
+      const results = await searchGames(query);
+      setSearchResults(results);
+      
+      if (results.length > 0) {
+        toast({
+          title: `Found ${results.length} games`,
+          description: `Search results for "${query}"`,
+        });
+      } else {
+        toast({
+          title: "No results found",
+          description: `We couldn't find any games matching "${query}". Try a different search term.`,
+          variant: "default"
+        });
+      }
+      
     } catch (error) {
       console.error('Search error:', error);
       toast({
@@ -110,6 +128,7 @@ export default function Rankings() {
         description: "We couldn't complete your search. Please try again.",
         variant: "destructive"
       });
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -124,14 +143,20 @@ export default function Rankings() {
         </div>
 
         {/* Search Results */}
-        {(isSearching) && (
+        {(isSearching || searchResults.length > 0) && (
           <div className="mb-8">
             <div className="games-grid">
               {isSearching ? (
                 <div className="flex justify-center items-center w-full">
                   <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
-              ) : null}
+              ) : searchResults.map((game) => (
+                <GameCard
+                  key={game.gameId}
+                  game={game}
+                  onVoteSuccess={handleVoteSuccess}
+                />
+              ))}
             </div>
           </div>
         )}
