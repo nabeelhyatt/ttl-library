@@ -878,7 +878,8 @@ export class AirtableDirectService {
           code: fields['Category Code'] || '',
           name: fields['Category Name'] || '',
           description: fields['Category Description'] || '',
-          voteCount: parseInt(fields['Total Games (Votes)'] || 0)
+          voteCount: parseInt(fields['Total Games (Votes)'] || 0),
+          totalGames: parseInt(fields['Total Games'] || 0)
         };
       });
       

@@ -212,7 +212,7 @@ export default function Rankings() {
                           <span className="category-number">{category.code}</span>
                           <span className="category-name">{category.name.toUpperCase()}:</span>
                         </div>
-                        <div className="vote-count">{category.voteCount}</div>
+                        <div className="vote-count">{category.voteCount} ({category.totalGames})</div>
                       </div>
                       <div className="category-description">
                         {category.description}
