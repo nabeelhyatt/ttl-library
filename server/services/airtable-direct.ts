@@ -874,6 +874,10 @@ export class AirtableDirectService {
       // Map Airtable records to our CategoryWithVotes interface
       const categories: CategoryWithVotes[] = data.records.map((record: any) => {
         const fields = record.fields;
+        
+        // Log the fields to debug the response
+        console.log(`Category ${fields['Category Name']} field data:`, fields);
+        
         return {
           code: fields['Category Code'] || '',
           name: fields['Category Name'] || '',
