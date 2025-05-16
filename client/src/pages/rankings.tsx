@@ -164,24 +164,24 @@ export default function Rankings() {
                     Error loading most voted games. Please try again later.
                   </div>
                 ) : (
-                  <div className="games-grid">
+                  <div className="space-y-2">
                     {(mostVotedGames?.length ? mostVotedGames : fallbackGames).map((game) => (
-                      <GameCard 
-                        key={game.id} 
-                        game={{
-                          gameId: game.bggId,
-                          name: game.name,
-                          description: game.description,
-                          yearPublished: game.yearPublished,
-                          minPlayers: game.minPlayers,
-                          maxPlayers: game.maxPlayers,
-                          playingTime: game.playTime,
-                          weightRating: game.weightRating,
-                          voteCount: game.voteCount,
-                          subcategoryName: game.subcategory
-                        }}
-                        onVoteSuccess={handleVoteSuccess}
-                      />
+                      <div key={game.id} className="flex justify-between items-center py-2 border-b border-[#d1d5db] last:border-b-0">
+                        <div className="flex-1">
+                          <button 
+                            onClick={() => handleGameClick(game.bggId, game.name)}
+                            className="game-name hover:underline"
+                          >
+                            {game.name}
+                          </button>
+                          {game.subcategory && (
+                            <span className="game-category ml-2">
+                              - {game.subcategory}
+                            </span>
+                          )}
+                        </div>
+                        <div className="vote-count">{game.voteCount}</div>
+                      </div>
                     ))}
                   </div>
                 )}
