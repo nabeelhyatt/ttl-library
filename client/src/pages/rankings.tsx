@@ -83,13 +83,8 @@ export default function Rankings() {
   };
 
   // Handle search directly on rankings page
-  const [searchResults, setSearchResults] = useState<BGGGame[]>([]);
-  const [isSearchActive, setIsSearchActive] = useState(false);
-
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
-      setIsSearchActive(false);
-      setSearchResults([]);
       return;
     }
 
@@ -100,15 +95,12 @@ export default function Rankings() {
 
     try {
       setIsSearching(true);
-      setIsSearchActive(true);
       setLocation(`/rankings?search=${encodeURIComponent(query)}`, { replace: true });
       
-      const results = await searchGames(query);
-      setSearchResults(results);
-      
-      if (results.length > 0) {
+      const searchResults = await searchGames(query);
+      if (searchResults.length > 0) {
         toast({
-          title: `Found ${results.length} games`,
+          title: `Found ${searchResults.length} games`,
           description: `Search results for "${query}"`,
         });
       } else {
@@ -121,7 +113,6 @@ export default function Rankings() {
       
     } catch (error) {
       console.error('Search error:', error);
-      setSearchResults([]);
       toast({
         title: "Search failed", 
         description: "We couldn't complete your search. Please try again.",
@@ -166,24 +157,6 @@ export default function Rankings() {
                   <div className="text-red-500 py-4">
                     Error loading most voted games. Please try again later.
                   </div>
-                ) : isSearchActive ? (
-                  searchResults.length > 0 ? searchResults.map((game) => (
-                    <div key={game.gameId} className="flex justify-between dotted-border">
-                      <div>
-                        <span 
-                          className="game-name cursor-pointer hover:underline"
-                          onClick={() => handleGameClick(game.gameId, game.name)}
-                        >
-                          {game.name}
-                        </span>
-                      </div>
-                      <div className="vote-count">{game.voteCount || 0}</div>
-                    </div>
-                  )) : (
-                    <div className="text-gray-500 py-4 text-center">
-                      No games found matching your search.
-                    </div>
-                  )
                 ) : (
                   (mostVotedGames?.length ? mostVotedGames : fallbackGames).map((game) => (
                     <div key={game.id} className="flex justify-between dotted-border">
