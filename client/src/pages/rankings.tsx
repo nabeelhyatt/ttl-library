@@ -193,6 +193,9 @@ export default function Rankings() {
                 We organize games by category to encourage your curiosity in browsing 
                 games. These are the current votes by game category.
               </p>
+              <div className="text-sm text-gray-600 mb-3 italic">
+                Category Name - Votes (In Stock)
+              </div>
 
               {/* Categories List */}
               <div className="space-y-4">
