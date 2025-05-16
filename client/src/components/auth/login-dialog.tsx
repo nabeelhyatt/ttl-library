@@ -29,22 +29,26 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px] bg-white border border-gray-200 shadow-sm p-6 font-serif">
-        <h2 className="text-xl text-center mb-6 mt-2">
+      <DialogContent className="sm:max-w-[425px] bg-[#f5f5dc] border border-gray-300 shadow-sm p-6 font-serif">
+        <h2 className="text-xl text-center mb-4 mt-2">
           LOG IN TO THE TABLETOP LIBRARY
         </h2>
+        
+        <p className="text-center text-sm mb-6">
+          Please login, ideally with the login you'll eventually use for your TTL membership.
+        </p>
 
         <DialogFooter className="flex justify-center gap-8 mt-4">
           <button
             onClick={onClose}
-            className="px-6 py-1 border border-gray-300 hover:bg-gray-50"
+            className="px-6 py-1 border border-gray-300 hover:bg-[#f0f0d8]"
           >
             CANCEL
           </button>
           
           <button 
             onClick={handleLogin}
-            className="px-6 py-1 border border-gray-800 bg-gray-800 text-white hover:bg-gray-900"
+            className="px-6 py-1 border border-[#f77213] bg-[#f77213] text-white hover:bg-[#e56b12]"
           >
             LOG IN
           </button>
