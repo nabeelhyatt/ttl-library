@@ -8,7 +8,7 @@ import { debugAirtableBase, testAirtableWrite } from "./services/airtable-debug"
 import { testAirtableMCP } from "./services/airtable-mcp-test";
 import { newBoardGameGeekService } from "./services/new-bgg-service";
 import * as z from "zod";
-import { insertUserSchema, insertVoteSchema, VoteType } from "@shared/schema";
+import { insertUserSchema, insertVoteSchema, VoteType, Vote } from "@shared/schema";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -670,9 +670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                               const newVote = await storage.createVote({
                                 userId: user.id,
                                 gameId: game.id,
-                                voteType: voteType,
-                                createdAt: new Date(),
-                                updatedAt: new Date()
+                                voteType: voteType
                               });
                               
                               airtableVotes.push(newVote);
