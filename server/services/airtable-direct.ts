@@ -812,7 +812,7 @@ export class AirtableDirectService {
               ? fields['Subcategory Name (from TLCS Subcategory)'][0] 
               : fields['Subcategory Name (from TLCS Subcategory)'] 
             : null,
-          voteCount: parseInt(fields['Total Votes'] || 0)
+          voteCount: parseInt(fields['# Votes'] || 0) // Updated to use '# Votes' field
         };
       });
       
@@ -841,7 +841,7 @@ export class AirtableDirectService {
         'Category Code',
         'Category Name',
         'Category Description',
-        'Total Votes'
+        '# Votes' // Updated field name to match Airtable schema
       ].map(field => `fields%5B%5D=${encodeURIComponent(field)}`).join('&');
       
       // Get the correct table ID for TLCS Categories
