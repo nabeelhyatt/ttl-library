@@ -1,23 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Palatino+Linotype:wght@400;700&display=swap');
 @import './styles/globals.css';
 
-/* Define the title font */
-.title-font {
-  font-family: "et-book", Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif !important;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-}
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* Define font families */
 :root {
-  /* Base color system */
-  --background-color: #f8f5f1; /* Light beige color */
-  --text-color: #000000;
+  /* Typography */
+  --font-serif: ETBook, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+  --font-sans: "Gill Sans", "Gill Sans MT", "Lato", Calibri, sans-serif;
+  --font-mono: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  
+  /* Colors */
+  --text-color: #111111;
+  --accent-color: #a00000;
+  --border-color: #333333;
+  --background-color: #fffff8;
   --grid-size: 24px;
   
   /* Grid system */
@@ -25,13 +19,13 @@
   --grid-gap: 48px;
   
   /* System colors */
-  --background: 36 30% 97%;
-  --foreground: 0 0% 0%;
+  --background: 60 30% 97%;
+  --foreground: 0 0% 7%;
   --muted: 0 0% 96.1%;
   --muted-foreground: 0 0% 45.1%;
-  --border: 0 0% 89.8%;
+  --border: 0 0% 20%;
   --input: 0 0% 89.8%;
-  --accent: 0 0% 0%;
+  --accent: 0 100% 31%;
   --accent-foreground: 0 0% 100%;
   --radius: 0;
   
@@ -41,6 +35,62 @@
   --vote-club: 260 59.4% 65.1%;
   --vote-tournament: 16 100% 65.3%;
   --vote-teach: 51 100% 50%;
+}
+
+/* Base styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global typography */
+body {
+  font-family: var(--font-serif);
+  color: var(--text-color);
+  background-color: var(--background-color);
+  line-height: 1.5;
+}
+
+/* Keep GameCard h2 and Header nav in sans-serif */
+.game-title,
+nav,
+nav a,
+.btn {
+  font-family: var(--font-sans);
+}
+
+/* Monospace elements */
+code,
+pre,
+.game-dewey {
+  font-family: var(--font-mono);
+}
+
+/* Links */
+a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Buttons */
+.btn {
+  border-color: var(--border-color);
+}
+
+.btn:hover {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+/* Title font class */
+.title-font {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: 0.03em;
 }
 
 @layer base {

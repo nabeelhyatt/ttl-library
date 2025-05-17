@@ -1,20 +1,28 @@
 :root {
+  /* Typography */
+  --font-serif: ETBook, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+  --font-sans: "Gill Sans", "Gill Sans MT", "Lato", Calibri, sans-serif;
+  --font-mono: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  
+  /* Colors */
+  --text-color: #111111;
+  --accent-color: #a00000;
+  --border-color: #333333;
+  --background-color: #fffff8;
   --grid-size: 24px;
-  --text-color: #000;
-  --bg-color: #f8f5f1; /* Light beige color */
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
 body {
-  background-color: var(--bg-color);
+  background-color: var(--background-color);
   color: var(--text-color);
   line-height: 1.5;
+  font-family: var(--font-serif);
 }
 
 .container {
@@ -39,13 +47,15 @@ body {
 
 /* Typography */
 .logo {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: var(--font-serif);
   font-size: 36px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
+/* Keep GameCard h2 in sans-serif */
 .game-title {
+  font-family: var(--font-sans);
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -54,9 +64,9 @@ body {
 
 .game-dewey {
   font-size: 12px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-weight: 500;
-  color: #000;
+  color: var(--text-color);
   align-self: start;
   text-align: right;
   margin-left: calc(var(--grid-size));
@@ -68,11 +78,13 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 8px;
+  font-family: var(--font-sans);
 }
 
 .game-description {
   font-size: 14px;
   margin-bottom: 16px;
+  font-family: var(--font-serif);
 }
 
 /* Navigation and buttons */
@@ -83,6 +95,7 @@ nav {
   justify-content: flex-end;
 }
 
+/* Keep nav in sans-serif */
 nav a {
   margin-left: 24px;
   text-decoration: none;
@@ -91,22 +104,27 @@ nav a {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-size: 14px;
+  font-family: var(--font-sans);
+}
+
+nav a:hover {
+  color: var(--accent-color);
 }
 
 .btn {
   margin-left: 24px;
   padding: 8px 16px;
   background: none;
-  border: 1px solid #000;
+  border: 1px solid var(--border-color);
   cursor: pointer;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--font-sans);
+  transition: all 0.2s ease-in-out;
 }
 
 .btn:hover {
-  background-color: #000;
-  color: #fff;
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
 }
 
 .login-btn {
