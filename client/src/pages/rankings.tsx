@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { Footer } from '../components/layout/footer';
-import { searchGames } from '@/lib/bgg-api';
+// ABOUTME: Rankings page component that displays most voted games and category rankings.
+// ABOUTME: Uses shared SearchContext for consistent search across the application.
+
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { GameSearch } from '../components/game/game-search';
-import { GameCard } from '../components/game/game-card';
+import { SearchResults } from '../components/game/search-results';
 import { useToast } from '../hooks/use-toast';
+import { useSearch } from '@/contexts/SearchContext';
 import './rankings.css';
-import { useLocation } from 'wouter';
 
 // Type definition for games with votes
 interface GameWithVotes {
@@ -24,18 +25,20 @@ interface CategoryWithVotes {
   name: string;
   description: string;
   voteCount: number;
+  code: string;
+  totalGames: number;
 }
 
 // Fallback category data for when API call fails
 const fallbackCategories: CategoryWithVotes[] = [
-  { id: 100, name: 'ABSTRACT STRATEGY', voteCount: 12, description: 'For games with deep strategic thinking and no theming' },
-  { id: 200, name: 'FAMILY FAVORITES', voteCount: 15, description: 'Accessible, widely appealing games' },
-  { id: 300, name: 'PARTY TIME', voteCount: 8, description: 'Social, high-interaction games' },
-  { id: 400, name: 'COOPERATIVE', voteCount: 10, description: 'Games where players work together' },
-  { id: 500, name: 'EURO STRATEGY', voteCount: 18, description: 'Resource management, optimization' },
-  { id: 600, name: 'CONFLICT & POLITICS', voteCount: 9, description: 'Direct competition, area control' },
-  { id: 700, name: 'THEMATIC ADVENTURES', voteCount: 14, description: 'Immersive storytelling and narrative-driven experiences' },
-  { id: 800, name: 'DEXTERITY & SKILL', voteCount: 7, description: 'Physical skill, precision, and hand-eye coordination' },
+  { id: 100, name: 'ABSTRACT STRATEGY', voteCount: 12, description: 'For games with deep strategic thinking and no theming', code: '100', totalGames: 15 },
+  { id: 200, name: 'FAMILY FAVORITES', voteCount: 15, description: 'Accessible, widely appealing games', code: '200', totalGames: 22 },
+  { id: 300, name: 'PARTY TIME', voteCount: 8, description: 'Social, high-interaction games', code: '300', totalGames: 12 },
+  { id: 400, name: 'COOPERATIVE', voteCount: 10, description: 'Games where players work together', code: '400', totalGames: 18 },
+  { id: 500, name: 'EURO STRATEGY', voteCount: 18, description: 'Resource management, optimization', code: '500', totalGames: 25 },
+  { id: 600, name: 'CONFLICT & POLITICS', voteCount: 9, description: 'Direct competition, area control', code: '600', totalGames: 14 },
+  { id: 700, name: 'THEMATIC ADVENTURES', voteCount: 14, description: 'Immersive storytelling and narrative-driven experiences', code: '700', totalGames: 20 },
+  { id: 800, name: 'DEXTERITY & SKILL', voteCount: 7, description: 'Physical skill, precision, and hand-eye coordination', code: '800', totalGames: 10 },
 ];
 
 // Fallback data for when API call fails
@@ -51,8 +54,8 @@ const fallbackGames = [
 ];
 
 export default function Rankings() {
-  const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
+  const { performSearch, query, setQuery } = useSearch();
 
   // Fetch most voted games from API
   const { 
@@ -73,60 +76,41 @@ export default function Rankings() {
     queryKey: ['/api/rankings/category-votes'],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
-  // Get wouter location hook for navigation
-  const [, setLocation] = useLocation();
-
-  // Handle game link click - redirects to home page with search query
+  
+  // Handle game click - performs search using the shared context
   const handleGameClick = (bggId: number, gameName: string) => {
-    // Navigate to home page with search query
-    handleSearch(gameName);
+    // First update the query in the context so UI components respond
+    setQuery(gameName);
+    
+    toast({
+      title: "Searching for game",
+      description: `Looking for "${gameName}"...`,
+    });
+    
+    // Then perform the search
+    performSearch(gameName);
+    
+    // Force scroll to top to ensure search results are visible
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+  
+  // Handle category click - search for games in a specific category
+  const handleCategoryClick = (categoryName: string) => {
+    toast({
+      title: "Searching by category",
+      description: `Looking for ${categoryName} games...`,
+    });
+    
+    performSearch(categoryName);
   };
 
+  // Handle vote success
   const handleVoteSuccess = () => {
     // Refresh data after voting
     window.location.reload();
-  };
-
-  // Handle search directly on rankings page
-  const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      return;
-    }
-
-    // Prevent multiple concurrent searches
-    if (isSearching) {
-      return;
-    }
-
-    try {
-      setIsSearching(true);
-      setLocation(`/rankings?search=${encodeURIComponent(query)}`, { replace: true });
-      
-      const searchResults = await searchGames(query);
-      if (searchResults.length > 0) {
-        toast({
-          title: `Found ${searchResults.length} games`,
-          description: `Search results for "${query}"`,
-        });
-      } else {
-        toast({
-          title: "No results found",
-          description: `We couldn't find any games matching "${query}". Try a different search term.`,
-          variant: "default"
-        });
-      }
-      
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Search failed", 
-        description: "We couldn't complete your search. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSearching(false);
-    }
   };
 
   return (
@@ -134,8 +118,15 @@ export default function Rankings() {
       <main className="flex-grow container mx-auto px-4 py-8">
         {/* Search Section */}
         <div className="mb-8">
-          <GameSearch onSearch={handleSearch} isSearching={isSearching} />
+          <GameSearch />
         </div>
+        
+        {/* Search Results (only shown when searching) */}
+        {query && (
+          <div className="search-results-wrapper mb-8 p-4 border-2 border-accent-color rounded-md bg-accent-bg">
+            <SearchResults />
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -222,7 +213,12 @@ export default function Rankings() {
                       <div className="flex justify-between mb-1">
                         <div>
                           <span className="category-number">{category.code}</span>
-                          <span className="category-name">{category.name.toUpperCase()}:</span>
+                          <button 
+                            onClick={() => handleCategoryClick(category.name)}
+                            className="category-name hover:underline hover:text-accent-color"
+                          >
+                            {category.name.toUpperCase()}:
+                          </button>
                         </div>
                         <div className="vote-count">{category.voteCount} ({category.totalGames})</div>
                       </div>

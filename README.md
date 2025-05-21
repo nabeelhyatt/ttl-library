@@ -47,29 +47,37 @@ This application serves as a voting and ranking system for board games, integrat
 
 The application implements an advanced search system with several layers of functionality:
 
-1. **Special Case Handling**: Common games like Chess, Catan, etc. are identified by direct ID lookup to improve reliability
+1. **Consistent Cross-Page Search**: Search functionality is implemented using a shared React context that maintains search state across all pages
+   - Search state persists when navigating between pages
+   - Search results are displayed consistently across the application
+   - URL parameters are synchronized with search queries for shareable links
+
+2. **Special Case Handling**: Common games like Chess, Catan, etc. are identified by direct ID lookup to improve reliability
    
-2. **Multi-Mode Search**: The search system supports two modes:
+3. **Multi-Mode Search**: The search system supports two modes:
    - Regular fuzzy search that finds related games
    - Exact search using quotes for precise matching (e.g., "Catan" for exact match)
    
-3. **Combined Results Strategy**: For popular games, the definitive version is shown first, followed by related games
+4. **Combined Results Strategy**: For popular games, the definitive version is shown first, followed by related games
    
-4. **Fallback Mechanisms**:
+5. **Fallback Mechanisms**:
    - If exact search fails, fallback to regular search
    - For multi-word queries with no results, try searching just the first word
    - For short queries (≤3 chars), add wildcards automatically
    
-5. **Caching System**: Implements intelligent caching with TTL (Time To Live) to reduce API calls and improve performance
+6. **Caching System**: Implements intelligent caching with TTL (Time To Live) to reduce API calls and improve performance
    
-6. **Rate Limiting**: Respects BoardGameGeek API rate limits to prevent throttling
+7. **Rate Limiting**: Respects BoardGameGeek API rate limits to prevent throttling
    
-7. **Airtable Enrichment**: Game data is automatically enriched with Airtable metadata when available
+8. **Airtable Enrichment**: Game data is automatically enriched with Airtable metadata when available
 
 ## Key Features
 
 1. **Advanced Game Search & Display**
    - Integration with BoardGameGeek API with robust error handling and rate limiting
+   - Consistent search functionality across all pages using React Context
+   - Search state persistence when navigating between pages
+   - URL parameter synchronization for shareable search results
    - Advanced search architecture with special case handling for popular games
    - Smart search that shows definitive games first, followed by related games
    - Support for exact match searches using quotes (e.g., "Chess" vs Chess)

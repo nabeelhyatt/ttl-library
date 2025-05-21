@@ -1,3 +1,6 @@
+// ABOUTME: Main application component that sets up providers and routing.
+// ABOUTME: Includes authentication, search context, and query client providers.
+
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,6 +13,7 @@ import Rankings from "@/pages/rankings";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SearchProvider } from "./contexts/SearchContext";
 
 // Updated implementation using AuthContext
 function Router() {
@@ -33,8 +37,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <Toaster />
-          <Router />
+          <SearchProvider>
+            <Toaster />
+            <Router />
+          </SearchProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

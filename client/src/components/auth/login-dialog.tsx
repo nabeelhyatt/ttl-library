@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '../ui/dialog';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -30,9 +31,9 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px] bg-[#f5f5dc] border border-gray-300 shadow-sm p-6 font-serif">
-        <h2 className="text-xl text-center mb-4 mt-2">
+        <DialogTitle className="text-xl text-center mb-4 mt-2">
           LOG IN TO THE TABLETOP LIBRARY
-        </h2>
+        </DialogTitle>
         
         <p className="text-center text-sm mb-6">
           Please login, ideally with the login you'll eventually use for your TTL membership.

@@ -1,14 +1,18 @@
+// ABOUTME: Home page component that displays hot games and search functionality.
+// ABOUTME: Uses shared SearchContext for consistent search across the application.
+
 import { useState, useEffect } from 'react';
 import { BGGGame } from '@shared/schema';
 import { HexagonIcon } from '@/components/ui/hexagon-icon';
 import { GameSearch } from '@/components/game/game-search';
 import { GameFilters } from '@/components/game/game-filters';
 import { GameCard } from '@/components/game/game-card';
+import { SearchResults } from '@/components/game/search-results';
 import { GamesOnOrderProgress } from '@/components/progress/games-on-order-progress';
-import { fetchHotGames, searchGames, getBGGtoTLCSWeight, getPrimaryGenre } from '@/lib/new-bgg-api';
+import { fetchHotGames, getBGGtoTLCSWeight, getPrimaryGenre } from '@/lib/new-bgg-api';
 import { useToast } from '@/hooks/use-toast';
-import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearch } from '@/contexts/SearchContext';
 
 const Home = () => {
   // Get user from Auth Context
@@ -16,17 +20,14 @@ const Home = () => {
   const [games, setGames] = useState<BGGGame[]>([]);
   const [filteredGames, setFilteredGames] = useState<BGGGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchMode, setSearchMode] = useState(false);
   const [weightFilter, setWeightFilter] = useState('all');
   const [genreFilter, setGenreFilter] = useState('all');
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
   
-  // Track the current search query from URL for the search box
-  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('');
+  // Get search context
+  const { query, results, isSearching } = useSearch();
   
-  // Fetch hot games on component mount and check for search parameter
+  // Fetch hot games on component mount
   useEffect(() => {
     const loadHotGames = async () => {
       try {
@@ -48,21 +49,11 @@ const Home = () => {
       }
     };
     
-    // Check if we have a search parameter in the URL
-    const params = new URLSearchParams(window.location.search);
-    const searchQuery = params.get('search');
-    
-    if (searchQuery) {
-      // Update the current search query for the search box
-      setCurrentSearchQuery(decodeURIComponent(searchQuery));
-      
-      // If we have a search query, perform search instead of loading hot games
-      handleSearch(searchQuery);
-    } else {
-      // Otherwise load hot games as usual
+    // Only load hot games if we're not searching
+    if (!query) {
       loadHotGames();
     }
-  }, []);
+  }, [query, weightFilter, genreFilter]);
   
   // Apply filters to games
   const applyFilters = (gamesList: BGGGame[], weightValue: string, genreValue: string) => {
@@ -88,89 +79,16 @@ const Home = () => {
     setFilteredGames(filtered);
   };
   
-  // Handle search with improved error handling and user feedback
-  const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      setSearchMode(false);
-      applyFilters(games, weightFilter, genreFilter);
-      // Clear search parameter from URL
-      setLocation('/');
-      return;
-    }
-    
-    // Prevent multiple concurrent searches
-    if (isSearching) {
-      toast({
-        title: "Search in progress",
-        description: "A search is already in progress. Please wait a moment.",
-      });
-      return;
-    }
-    
-    try {
-      setIsSearching(true);
-      setSearchMode(true);
-      
-      // Show search status to user
-      toast({
-        title: "Searching games",
-        description: `Looking for games matching "${query}"...`,
-      });
-      
-      // Update URL with search parameter (without page reload)
-      setLocation(`/?search=${encodeURIComponent(query)}`, { replace: true });
-      
-      const searchResults = await searchGames(query);
-      
-      // Update game list
-      setFilteredGames(searchResults);
-      
-      // Show appropriate message based on results
-      if (searchResults.length === 0) {
-        toast({
-          title: "No results found",
-          description: `We couldn't find any games matching "${query}". Try a different search term.`,
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: `Found ${searchResults.length} games`,
-          description: `Search results for "${query}"`,
-        });
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      // Set filtered games to empty so we show the no results message
-      setFilteredGames([]);
-      
-      toast({
-        title: "Search failed",
-        description: "We couldn't complete your search. Please try again in a moment.",
-        variant: "destructive"
-      });
-      
-      // If search fails, don't keep search mode active
-      if (games.length > 0) {
-        setSearchMode(false);
-        applyFilters(games, weightFilter, genreFilter);
-        // Clear search parameter from URL
-        setLocation('/');
-      }
-    } finally {
-      setIsSearching(false);
-    }
-  };
-  
   // Handle weight filter change
   const handleWeightFilterChange = (value: string) => {
     setWeightFilter(value);
-    applyFilters(searchMode ? filteredGames : games, value, genreFilter);
+    applyFilters(query ? [] : games, value, genreFilter);
   };
   
   // Handle genre filter change
   const handleGenreFilterChange = (value: string) => {
     setGenreFilter(value);
-    applyFilters(searchMode ? filteredGames : games, weightFilter, value);
+    applyFilters(query ? [] : games, weightFilter, value);
   };
   
   // Refresh games after vote
@@ -185,59 +103,48 @@ const Home = () => {
         <GamesOnOrderProgress />
         
         {/* Search Section */}
-        <GameSearch 
-          onSearch={handleSearch} 
-          isSearching={isSearching} 
-          initialQuery={currentSearchQuery} 
+        <GameSearch />
+        
+        {/* Weight and Genre Filters */}
+        <GameFilters 
+          weightFilter={weightFilter}
+          onWeightFilterChange={handleWeightFilterChange} 
+          genreFilter={genreFilter}
+          onGenreFilterChange={handleGenreFilterChange} 
+          disabled={isSearching}
         />
         
-        {/* Games List */}
-        {isLoading ? (
-          <div className="loading-indicator">
-            <div className="loading-message">Loading games from BoardGameGeek...</div>
-            <div className="loading-spinner"></div>
-            <div className="loading-note">
-              This may take a moment due to API rate limits.
-            </div>
-          </div>
-        ) : filteredGames.length === 0 ? (
-          <div className="empty-state">
-            <h3>No Games Found</h3>
-            <p>
-              {searchMode 
-                ? "We couldn't find any games matching your search criteria. Try a different search term."
-                : "We couldn't load any games at this time. The BoardGameGeek API may be rate-limited, please try again in a moment."
-              }
-            </p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="btn"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <div className="games-grid">
-            {filteredGames.map(game => (
-              <GameCard 
-                key={game.gameId} 
-                game={game} 
-                onVoteSuccess={handleVoteSuccess}
-              />
-            ))}
-          </div>
-        )}
+        {/* Search Results (only shown when searching) */}
+        {query && <SearchResults />}
         
-        {/* Optional Filters (can be added back if needed) */}
-        <div className="hidden">
-          <GameFilters 
-            weightFilter={weightFilter}
-            onWeightFilterChange={handleWeightFilterChange}
-            genreFilter={genreFilter}
-            onGenreFilterChange={handleGenreFilterChange}
-            disabled={isSearching}
-          />
-        </div>
+        {/* Hot Games (only shown when not searching) */}
+        {!query && (
+          isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <HexagonIcon className="animate-spin h-12 w-12 text-gray-400" />
+            </div>
+          ) : (
+            filteredGames.length > 0 ? (
+              <div>
+                <h2 className="text-xl font-serif mb-4">Hot Games</h2>
+                <div className="games-grid">
+                  {filteredGames.map(game => (
+                    <GameCard 
+                      key={game.gameId} 
+                      game={game} 
+                      onVoteSuccess={handleVoteSuccess} 
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-lg">No games found matching your filters.</p>
+                <p className="text-sm text-gray-500 mt-2">Try adjusting your filter settings.</p>
+              </div>
+            )
+          )
+        )}
       </div>
     </main>
   );
