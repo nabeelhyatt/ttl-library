@@ -83,22 +83,34 @@ The application implements an advanced search system with several layers of func
    - Support for exact match searches using quotes (e.g., "Chess" vs Chess)
    - Responsive game cards with detailed information
    - Automatic enrichment with Airtable metadata when available
-   - Game availability tags ("In Library", "For Sale", "Backordered") for quick status identification
-   - Batch processing for bulk searches to reduce API calls and avoid rate limiting
 
 2. **Game Collection Progress Tracking**
-   - Visual progress bar showing games in library, on order, and voted for
-   - Live data from Airtable TLCS Categories table
-   - Progress tracking toward collection goals
+   - Enhanced visual progress bar showing games in library, on order, and voted for
+   - **Enhanced Airtable Query Strategy**: Uses precise filtering to count games accurately
+   - **In Library**: Count of games marked as available in the library in Airtable
+   - **On Order**: Count of games marked as "to Order" OR "Ordered" in Airtable
+   - **Voted Only**: Count of games with votes that are NOT in library or on order
+   - Live data from Airtable Games table with parallel API queries
+   - Progress tracking toward collection goals with proper categorization
    - Color-coded segments showing collection status
-   - Real-time updates when new games are added
+   - Real-time updates when new games are added or status changes
 
 3. **Voting System**
    - User authentication
    - Vote tracking
    - Integration with Airtable for persistent storage
 
-4. **Rankings**
+4. **Bulk Game Search**
+   - Dedicated "/bulk" page for processing multiple game titles at once
+   - Text parsing that handles comma-separated, line-separated, and numbered lists
+   - Automatic search execution for each parsed game title (up to 10 games)
+   - Progress tracking with visual progress bar during bulk processing
+   - Results display showing found games using existing GameCard components
+   - Clear indication of games not found with suggestions for manual search
+   - Rate limiting protection with 500ms delays between searches
+   - Error handling for individual game search failures
+
+5. **Rankings**
    - Aggregated game rankings
    - Filtering and sorting capabilities
    - Real-time updates
@@ -133,9 +145,7 @@ The project includes shell scripts for testing various functionalities:
 
 1. **BGG API Rate Limiting**
    - The BoardGameGeek API has rate limiting that can cause intermittent failures
-   - The application implements retry mechanisms with exponential backoff
-   - BGG documentation recommends a 5-second wait between requests
-   - For bulk operations, the application uses batch requests to reduce API calls
+   - The application implements retry mechanisms with backoff
    - If searches consistently fail, wait a few minutes between attempts
 
 2. **Cache-Related Issues**
@@ -162,3 +172,57 @@ MIT License
 ## Note
 
 This project is specifically designed for the Tabletop Library and integrates with their existing Airtable database structure. The application handles game data synchronization between BoardGameGeek and Airtable, providing a seamless voting and ranking system for the library's community.
+
+# Maintaining a project
+
+- Create and maintain a readme.md file and describes the entire project, it's file structure, and features of the project. If I say "remember" then record a summary of the thing I tell you to remember in the readme.md file. Refer to the readme.md file for guidance. Refer to PROJECT_PLAN.MD to get state of the project.
+
+# Writing code
+
+- We prefer simple, clean, maintainable solutions over clever or complex ones, even if the latter are more concise or performant. Readability and maintainability are primary concerns.
+- Make the smallest reasonable changes to get to the desired outcome. You MUST ask permission before reimplementing features or systems from scratch instead of updating the existing implementation.
+- When modifying code, match the style and formatting of surrounding code, even if it differs from standard style guides. Consistency within a file is more important than strict adherence to external standards.
+- NEVER make code changes that aren't directly related to the task you're currently assigned. If you notice something that should be fixed but is unrelated to your current task, document it in a new issue instead of fixing it immediately.
+- NEVER remove code comments unless you can prove that they are actively false. Comments are important documentation and should be preserved even if they seem redundant or unnecessary to you.
+- All code files should start with a brief 2 line comment explaining what the file does. Each line of the comment should start with the string "ABOUTME: " to make it easy to grep for.
+- When writing comments, avoid referring to temporal context about refactors or recent changes. Comments should be evergreen and describe the code as it is, not how it evolved or was recently changed.
+- NEVER implement a mock mode for testing or for any purpose. We always use real data and real APIs, never mock implementations.
+- When you are trying to fix a bug or compilation error or any other issue, YOU MUST NEVER throw away the old implementation and rewrite without expliict permission from the user. If you are going to do this, YOU MUST STOP and get explicit permission from the user.
+- NEVER name things as 'improved' or 'new' or 'enhanced', etc. Code naming should be evergreen. What is new today will be "old" someday.
+
+# Getting help
+
+- ALWAYS ask for clarification rather than making assumptions.
+- If you're having trouble with something, it's ok to stop and ask for help. Especially if it's something your human might be better at.
+
+# Testing
+
+- Tests MUST cover the functionality being implemented.
+- NEVER ignore the output of the system or the tests - Logs and messages often contain CRITICAL information.
+- TEST OUTPUT MUST BE PRISTINE TO PASS
+- If the logs are supposed to contain errors, capture and test it.
+- NO EXCEPTIONS POLICY: Under no circumstances should you mark any test type as "not applicable". Every project, regardless of size or complexity, MUST have unit tests, integration tests, AND end-to-end tests. If you believe a test type doesn't apply, you need the human to say exactly "I AUTHORIZE YOU TO SKIP WRITING TESTS THIS TIME"
+
+## We practice TDD. That means:
+
+- Write tests before writing the implementation code
+- Only write enough code to make the failing test pass
+- Refactor code continuously while ensuring tests still pass
+
+### TDD Implementation Process
+
+- Write a failing test that defines a desired function or improvement
+- Run the test to confirm it fails as expected
+- Write minimal code to make the test pass
+- Run the test to confirm success
+- Refactor code to improve design while keeping tests green
+- Repeat the cycle for each new feature or bugfix
+
+# Specific Technologies
+
+## Python
+
+- I prefer to use uv for everything (uv add, uv run, etc)
+- Do not use old fashioned methods for package management like poetry, pip or easy_install.
+- Make sure that there is a pyproject.toml file in the root directory.
+- If there isn't a pyproject.toml file, create one using uv by running uv init.

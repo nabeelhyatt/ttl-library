@@ -89,7 +89,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     bggId: game.gameId,
     tlcsCode: game.tlcsCode,
     subcategoryName: game.subcategoryName,
-    forRent: game.forRent,
+    inLibrary: game.inLibrary,
     forSale: game.forSale,
     toOrder: game.toOrder,
   });
@@ -143,19 +143,19 @@ export const GameCard: React.FC<GameCardProps> = ({
 
           {/* Availability Status Overlay */}
           <div className="absolute top-2 right-2 flex flex-col gap-1">
-            {game.forRent === true && (
+            {game.inLibrary === true && (
               <span className="text-xs px-2 py-1 border border-black bg-white bg-opacity-90">
-                In the Library
+                In Library
               </span>
             )}
             {game.forSale === true && (
               <span className="text-xs px-2 py-1 border border-black bg-white bg-opacity-90">
-                In the Store
+                For Sale
               </span>
             )}
             {game.toOrder === true && (
               <span className="text-xs px-2 py-1 border border-black bg-white bg-opacity-90">
-                On order
+                Backordered
               </span>
             )}
           </div>

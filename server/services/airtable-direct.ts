@@ -47,12 +47,189 @@ export class AirtableDirectService {
   }
   
   /**
-   * Get game statistics from TLCS Categories table in Airtable
+   * Get count of voted games that are NOT in library or on order
+   * @param excludeBggIds Set of BGG IDs to exclude (games that are in library or on order)
+   */
+  private async getVotedOnlyGamesCount(excludeBggIds: Set<number>): Promise<number> {
+    try {
+      // Get all games that have been voted for from our local storage
+      const votedGames = await storage.getGamesWithVotes();
+      
+      // Filter out games that are in library or on order
+      const votedOnlyGames = votedGames.filter(game => !excludeBggIds.has(game.bggId));
+      
+      console.log(`Total voted games: ${votedGames.length}, Voted-only games (excluding in-library/on-order): ${votedOnlyGames.length}`);
+      
+      return votedOnlyGames.length;
+    } catch (error) {
+      console.error('Error getting voted-only games count:', error);
+      return 0;
+    }
+  }
+  
+  /**
+   * Debug method to inspect the Games table structure and sample data
+   */
+  async debugGamesTable(): Promise<any> {
+    try {
+      if (!this.apiKey || !this.baseId) {
+        return { error: 'Airtable configuration is incomplete' };
+      }
+      
+      // Fetch a few sample records to see the structure
+      const sampleUrl = `https://api.airtable.com/v0/${this.baseId}/Games?maxRecords=3`;
+      
+      const response = await fetch(sampleUrl, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${this.apiKey}` }
+      });
+      
+      if (!response.ok) {
+        return { 
+          error: `Airtable API error: ${response.status} ${response.statusText}` 
+        };
+      }
+      
+      const data = await response.json();
+      const records = data.records || [];
+      
+      // Extract field information
+      const fieldsSummary: any = {};
+      const sampleRecords: any[] = [];
+      
+      records.forEach((record: any, index: number) => {
+        const fields = record.fields || {};
+        sampleRecords.push({
+          recordId: record.id,
+          fields: fields
+        });
+        
+        // Track all field names and types
+        Object.keys(fields).forEach(fieldName => {
+          const value = fields[fieldName];
+          const valueType = Array.isArray(value) ? 'array' : typeof value;
+          
+          if (!fieldsSummary[fieldName]) {
+            fieldsSummary[fieldName] = {
+              type: valueType,
+              sampleValues: []
+            };
+          }
+          
+          fieldsSummary[fieldName].sampleValues.push(value);
+        });
+      });
+      
+      return {
+        success: true,
+        totalRecords: records.length,
+        fieldsSummary,
+        sampleRecords
+      };
+      
+    } catch (error) {
+      return { 
+        error: `Debug error: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
+  }
+  
+  /**
+   * Diagnose field names and return results for debugging
+   */
+  async diagnoseFields(): Promise<any> {
+    try {
+      if (!this.apiKey || !this.baseId) {
+        return { error: 'Airtable configuration is incomplete' };
+      }
+      
+      const testUrl = `https://api.airtable.com/v0/${this.baseId}/Games?maxRecords=3`;
+      const testResponse = await fetch(testUrl, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${this.apiKey}` }
+      });
+      
+      if (!testResponse.ok) {
+        return { 
+          error: `Airtable API error: ${testResponse.status} ${testResponse.statusText}` 
+        };
+      }
+      
+      const testData = await testResponse.json();
+      // Define types for the diagnosis object
+      interface FieldInfo {
+        fieldName: string;
+        sampleValues: any[];
+      }
+      
+      const diagnosis: {
+        totalRecords: number;
+        sampleRecords: any[];
+        foundFields: FieldInfo[];
+        missingFields: string[];
+      } = {
+        totalRecords: testData.records?.length || 0,
+        sampleRecords: [],
+        foundFields: [],
+        missingFields: []
+      };
+      
+      if (testData.records?.length > 0) {
+        // Get sample records
+        diagnosis.sampleRecords = testData.records.map((record: any, index: number) => ({
+          recordNumber: index + 1,
+          id: record.id,
+          fields: record.fields
+        }));
+        
+        // Test different field name variations
+        const testFields = [
+          'For Rent', 'for rent', 'For rent', 'FOR RENT',
+          'To Order', 'to Order', 'to order', 'TO ORDER',
+          'Ordered', 'ordered', 'ORDERED',
+          'BGG ID', 'bgg id', 'BGG Id', 'bggId', 'BGG_ID'
+        ];
+        
+        for (const fieldName of testFields) {
+          const hasField = testData.records.some((record: any) => 
+            record.fields.hasOwnProperty(fieldName)
+          );
+          
+          if (hasField) {
+            const sampleValues = testData.records
+              .map((record: any) => record.fields[fieldName])
+              .filter((val: any) => val !== undefined && val !== null);
+            
+            diagnosis.foundFields.push({
+              fieldName: fieldName,
+              sampleValues: sampleValues
+            });
+          } else {
+            diagnosis.missingFields.push(fieldName);
+          }
+        }
+      }
+      
+      return diagnosis;
+      
+    } catch (error) {
+      return { 
+        error: `Diagnosis error: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
+  }
+  
+  /**
+   * Get game statistics using enhanced Airtable query strategy
+   * 
+   * In Library: Count of different games in "In Library" column
+   * On Order: Count of different games in "To Order" and "Ordered" columns  
+   * Voted: Count of unique games with votes that are NOT in library or on order
    */
   async getGameStats(): Promise<{
     totalGames: number;
     gamesOnOrder: number;
-    gamesInStock: number;
+    gamesInLibrary: number;
     votedGames: number;
     categories: {
       id: string;
@@ -68,32 +245,91 @@ export class AirtableDirectService {
         return {
           totalGames: 0,
           gamesOnOrder: 0,
-          gamesInStock: 0,
+          gamesInLibrary: 0,
           votedGames: 0,
           categories: []
         };
       }
       
-      console.log('Fetching game statistics from Airtable');
+      console.log('Fetching game statistics using enhanced query strategy...');
       
-      // Get count of games explicitly marked as "to Order" from the Games table
-      // This helps us distinguish between games in stock vs on order
-      const encodedFormula = encodeURIComponent('{to Order}=1');
-      const gamesOnOrderUrl = `https://api.airtable.com/v0/${this.baseId}/Games?filterByFormula=${encodedFormula}&fields%5B%5D=BGG%20ID`;
+      // First, test if we can get any games at all from the table
+      const testUrl = `https://api.airtable.com/v0/${this.baseId}/Games?maxRecords=3`;
+      const testResponse = await fetch(testUrl, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${this.apiKey}` }
+      });
       
-      // Get count of games with at least one vote
-      const votedGamesUrl = `https://api.airtable.com/v0/${this.baseId}/Games?filterByFormula=NOT({# Votes}=BLANK())&fields%5B%5D=#%20Votes`;
+      if (!testResponse.ok) {
+        console.error('Cannot access Games table:', testResponse.status, testResponse.statusText);
+        throw new Error(`Airtable API error: ${testResponse.status}`);
+      }
       
-      // Get total number of games (count all records in Games table)
-      const totalGamesUrl = `https://api.airtable.com/v0/${this.baseId}/Games?fields%5B%5D=Title`;
+      const testData = await testResponse.json();
+      console.log('=== GAMES TABLE DIAGNOSIS ===');
+      console.log('Total records found:', testData.records?.length || 0);
       
-      // Make all requests in parallel
-      const [onOrderResponse, votedResponse, totalResponse] = await Promise.all([
-        fetch(gamesOnOrderUrl, {
+      if (testData.records?.length > 0) {
+        console.log('Sample records:');
+        testData.records.forEach((record: any, index: number) => {
+          console.log(`Record ${index + 1}:`, {
+            id: record.id,
+            fields: record.fields
+          });
+        });
+        
+        // Test different field name variations
+        const testFields = [
+          'In Library', 'in library', 'IN LIBRARY',
+          'To Order', 'to Order', 'to order', 'TO ORDER',
+          'Ordered', 'ordered', 'ORDERED',
+          'For Sale', 'for sale', 'FOR SALE',
+          'BGG ID', 'bgg id', 'BGG Id', 'bggId'
+        ];
+        
+        console.log('Testing field name variations...');
+        for (const fieldName of testFields) {
+          const hasField = testData.records.some((record: any) => 
+            record.fields.hasOwnProperty(fieldName)
+          );
+          if (hasField) {
+            console.log(`✓ Found field: "${fieldName}"`);
+            // Show sample values
+            const sampleValues = testData.records
+              .map((record: any) => record.fields[fieldName])
+              .filter((val: any) => val !== undefined && val !== null);
+            console.log(`  Sample values:`, sampleValues.slice(0, 3).map((val: any) => val.toString()));
+          }
+        }
+      } else {
+        console.log('❌ No records found in Games table');
+      }
+      console.log('=== END DIAGNOSIS ===');
+      
+      // Define field IDs as constants for better maintainability
+      const FIELD_ID_IN_LIBRARY = 'fldgJuQKJXbJBf6Ug'; // In Library field ID
+      const FIELD_ID_TO_ORDER = 'fldx7dx1fTX5uvtO1'; // to Order field ID
+      const FIELD_ID_ORDERED = 'flddAAXAi62wMynzd'; // Ordered field ID
+      const FIELD_ID_BGG_ID = 'fld5v2K9R0KKAEWMJ'; // BGG ID field ID
+      
+      // Query 1: In Library games - games with 'In Library' > 0 (using field ID)
+      const inLibraryFormula = encodeURIComponent(`{${FIELD_ID_IN_LIBRARY}}>0`);
+      const inLibraryUrl = `https://api.airtable.com/v0/${this.baseId}/Games?filterByFormula=${inLibraryFormula}&fields%5B%5D=${FIELD_ID_BGG_ID}`;
+      
+      // Query 2: On Order games - games with "to Order" > 0 OR "Ordered" > 0 (using field IDs)
+      const onOrderFormula = encodeURIComponent(`OR({${FIELD_ID_TO_ORDER}}>0, {${FIELD_ID_ORDERED}}>0)`);
+      const onOrderUrl = `https://api.airtable.com/v0/${this.baseId}/Games?filterByFormula=${onOrderFormula}&fields%5B%5D=${FIELD_ID_BGG_ID}`;
+      
+      // Query 3: All games for total count
+      const totalGamesUrl = `https://api.airtable.com/v0/${this.baseId}/Games?fields%5B%5D=${FIELD_ID_BGG_ID}`;
+      
+      // Make all Airtable requests in parallel
+      const [inLibraryResponse, onOrderResponse, totalResponse] = await Promise.all([
+        fetch(inLibraryUrl, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${this.apiKey}` }
         }),
-        fetch(votedGamesUrl, {
+        fetch(onOrderUrl, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${this.apiKey}` }
         }),
@@ -103,34 +339,50 @@ export class AirtableDirectService {
         })
       ]);
       
-      if (!onOrderResponse.ok || !votedResponse.ok || !totalResponse.ok) {
+      if (!inLibraryResponse.ok || !onOrderResponse.ok || !totalResponse.ok) {
         console.error('Error fetching game statistics from Airtable:', {
+          inLibraryStatus: inLibraryResponse.status,
           onOrderStatus: onOrderResponse.status,
-          votedStatus: votedResponse.status,
           totalStatus: totalResponse.status
         });
         return {
           totalGames: 0,
           gamesOnOrder: 0,
-          gamesInStock: 0,
+          gamesInLibrary: 0,
           votedGames: 0,
           categories: []
         };
       }
       
-      // Parse responses
-      const [onOrderData, votedData, totalData] = await Promise.all([
+      // Parse Airtable responses
+      const [inLibraryData, onOrderData, totalData] = await Promise.all([
+        inLibraryResponse.json(),
         onOrderResponse.json(),
-        votedResponse.json(),
         totalResponse.json()
       ]);
       
+      // Count unique games in each category
+      const gamesInLibrary = inLibraryData.records?.length || 0;
       const gamesOnOrder = onOrderData.records?.length || 0;
       const totalGames = totalData.records?.length || 0;
-      const votedGames = votedData.records?.length || 0;
-      const gamesInStock = totalGames - gamesOnOrder;
       
-      console.log(`Total: ${totalGames}, In Stock: ${gamesInStock}, On Order: ${gamesOnOrder}, Voted For: ${votedGames}`);
+      // Get BGG IDs of games that are in library or on order for exclusion from voted count
+      const inLibraryBggIds = new Set(
+        inLibraryData.records?.map((record: any) => record.fields[FIELD_ID_BGG_ID]).filter(Boolean) || []
+      );
+      const onOrderBggIds = new Set(
+        onOrderData.records?.map((record: any) => record.fields[FIELD_ID_BGG_ID]).filter(Boolean) || []
+      );
+      // Convert Sets to arrays before spreading to avoid TypeScript errors
+      const inLibraryBggIdsArray = Array.from(inLibraryBggIds);
+      const onOrderBggIdsArray = Array.from(onOrderBggIds);
+      const libraryOrOrderBggIds = new Set([...inLibraryBggIdsArray, ...onOrderBggIdsArray]);
+      
+      // Query 4: Voted games from local database, excluding those in library or on order
+      // Cast the Set to the expected type for compatibility
+      const votedGames = await this.getVotedOnlyGamesCount(libraryOrOrderBggIds as Set<number>);
+      
+      console.log(`Enhanced Stats - In Library: ${gamesInLibrary}, On Order: ${gamesOnOrder}, Voted Only: ${votedGames}, Total: ${totalGames}`);
       
       // For now, return empty categories since we're not using them in the UI
       // We can enhance this later if needed
@@ -138,7 +390,7 @@ export class AirtableDirectService {
       
       return {
         totalGames,
-        gamesInStock,
+        gamesInLibrary,
         gamesOnOrder,
         votedGames,
         categories
@@ -148,7 +400,7 @@ export class AirtableDirectService {
       return {
         totalGames: 0,
         gamesOnOrder: 0,
-        gamesInStock: 0,
+        gamesInLibrary: 0,
         votedGames: 0,
         categories: []
       };
@@ -385,6 +637,7 @@ export class AirtableDirectService {
   async getGameByBGGId(bggId: number): Promise<{
     tlcsCode?: string;
     subcategoryName?: string;
+    inLibrary?: boolean;
     forRent?: boolean;
     forSale?: boolean;
     toOrder?: boolean;
@@ -430,6 +683,7 @@ export class AirtableDirectService {
       const result: {
         tlcsCode?: string;
         subcategoryName?: string;
+        inLibrary?: boolean;
         forRent?: boolean;
         forSale?: boolean;
         toOrder?: boolean;
@@ -460,20 +714,39 @@ export class AirtableDirectService {
         console.log('No subcategory name found in fields');
       }
       
-      // Add availability information
-      const toOrderValue = fields['to Order'];
-      const forRentValue = fields['# for Rent'];
-      const forSaleValue = fields['# for Sale'];
+      // Add availability information using field IDs
+      const toOrderValue = fields['fldx7dx1fTX5uvtO1']; // to Order field ID
+      const inLibraryValue = fields['fldgJuQKJXbJBf6Ug']; // In Library field ID
+      const forSaleValue = fields['fldMmqGuBxyh7EwBg']; // For Sale field ID
+      const forRentValue = fields['fldkYjgXGQe8fGSqD']; // For Rent field ID
+      
+      // Also check by field name as fallback for backward compatibility
+      const toOrderByName = fields['to Order'];
+      const inLibraryByName = fields['In Library'];
+      const forSaleByName = fields['For Sale'];
+      const forRentByName = fields['For Rent'];
       
       console.log('Availability data:', {
-        toOrder: toOrderValue,
-        forRent: forRentValue,
-        forSale: forSaleValue
+        toOrder: toOrderValue || toOrderByName,
+        inLibrary: inLibraryValue || inLibraryByName,
+        forSale: forSaleValue || forSaleByName,
+        forRent: forRentValue || forRentByName
       });
       
-      result.toOrder = Boolean(toOrderValue);
-      result.forRent = Boolean(forRentValue && forRentValue > 0);
-      result.forSale = Boolean(forSaleValue && forSaleValue > 0);
+      // Use field ID value first, fall back to field name value if needed
+      result.toOrder = Boolean(toOrderValue || toOrderByName);
+      result.inLibrary = Boolean(
+        (inLibraryValue && inLibraryValue > 0) || 
+        (inLibraryByName && inLibraryByName > 0)
+      );
+      result.forSale = Boolean(
+        (forSaleValue && forSaleValue > 0) || 
+        (forSaleByName && forSaleByName > 0)
+      );
+      result.forRent = Boolean(
+        (forRentValue && forRentValue > 0) || 
+        (forRentByName && forRentByName > 0)
+      );
       
       // Return result
       console.log('Game data from Airtable:', result);
@@ -640,7 +913,8 @@ export class AirtableDirectService {
           "Player Count Min": game.minPlayers || null,
           "Player Count Max": game.maxPlayers || null,
           // Only add subcategory if we have one
-          ...(game.subcategory ? { "Subcategory": game.subcategory } : {})
+          // Handle subcategory if it exists in the game object
+          ...('subcategory' in game && game.subcategory ? { "Subcategory": game.subcategory } : {})
         }
       };
       

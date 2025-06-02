@@ -34,6 +34,7 @@ export interface IStorage {
   createVote(vote: InsertVote): Promise<Vote>;
   updateVote(id: number, data: Partial<InsertVote>): Promise<Vote>;
   deleteVote(id: number): Promise<void>;
+  getGamesWithVotes(): Promise<Game[]>;
 }
 
 // In-memory storage implementation
@@ -224,6 +225,25 @@ export class MemStorage implements IStorage {
   
   async deleteVote(id: number): Promise<void> {
     this.votes.delete(id);
+  }
+  
+  async getGamesWithVotes(): Promise<Game[]> {
+    // Get unique game IDs that have votes
+    const gameIdsWithVotes = new Set<number>();
+    for (const vote of this.votes.values()) {
+      gameIdsWithVotes.add(vote.gameId);
+    }
+    
+    // Return games that have votes
+    const gamesWithVotes: Game[] = [];
+    for (const gameId of gameIdsWithVotes) {
+      const game = this.games.get(gameId);
+      if (game) {
+        gamesWithVotes.push(game);
+      }
+    }
+    
+    return gamesWithVotes;
   }
 }
 

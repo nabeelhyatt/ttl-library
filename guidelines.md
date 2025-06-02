@@ -56,6 +56,25 @@ You must follow these rules at all times. Do not break or ignore them. This is n
 
 # Specific Technologies
 
+## BoardGameGeek API Integration
+
+- The BGG API has rate limiting that requires careful handling
+- Official documentation recommends a 5-second wait between requests
+- For bulk operations, use batch requests with comma-separated IDs
+- Implement exponential backoff for retry mechanisms (starting at 100ms)
+- Use caching aggressively to reduce API calls
+- Monitor and log rate limit errors (HTTP 429) for debugging
+
+## Game Availability Tags
+
+- Games have four availability properties: inLibrary, forSale, toOrder (Backordered), and forRent
+- If a game is forRent, it must also be inLibrary (automatic conversion)
+- Frontend displays these as tags on game cards with specific labels:
+  - "In Library" for inLibrary property
+  - "For Sale" for forSale property (previously "In the Store")
+  - "Backordered" for toOrder property (previously "On order")
+- All availability properties are optional booleans in the BGGGame interface
+
 ## Python
 
 - I prefer to use uv for everything (uv add, uv run, etc)

@@ -2,11 +2,13 @@ import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { LoginDialog } from "../auth/login-dialog";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSearch } from "../../contexts/SearchContext";
 
 export const Header = () => {
   const { user, logout } = useAuth();
   const [location] = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const { clearSearch } = useSearch();
 
   return (
     <header>
@@ -21,12 +23,21 @@ export const Header = () => {
             <Link
               href="/"
               className={location === "/" ? "active" : ""}
+              onClick={clearSearch}
             >
               Hot
             </Link>
             <Link
+              href="/bulk"
+              className={location === "/bulk" ? "active" : ""}
+              onClick={clearSearch}
+            >
+              Bulk
+            </Link>
+            <Link
               href="/rankings"
               className={location === "/rankings" ? "active" : ""}
+              onClick={clearSearch}
             >
               Rankings
             </Link>

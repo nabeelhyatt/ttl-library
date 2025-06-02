@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import MyVotes from "@/pages/my-votes";
 import Rankings from "@/pages/rankings";
+import Bulk from "@/pages/bulk";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -23,6 +24,7 @@ function Router() {
       <Header />
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/bulk" component={Bulk} />
         <Route path="/my-votes" component={MyVotes} />
         <Route path="/rankings" component={Rankings} />
         <Route component={NotFound} />

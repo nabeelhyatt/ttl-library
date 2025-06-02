@@ -397,6 +397,87 @@ class NewBoardGameGeekService {
     });
   }
   
+  /**
+   * Get details for multiple games in a single API call
+   * This is more efficient for bulk operations as it reduces the number of API calls
+   * @param gameIds Array of game IDs to fetch
+   * @returns Map of game ID to BGGGame object
+   */
+  async getMultipleGameDetails(gameIds: number[]): Promise<Map<number, BGGGame>> {
+    if (!gameIds || !gameIds.length) {
+      return new Map();
+    }
+    
+    // Filter out invalid IDs
+    const validIds = gameIds.filter(id => id && !isNaN(id) && id > 0);
+    if (!validIds.length) {
+      return new Map();
+    }
+    
+    // Check cache first and collect missing IDs
+    const now = Date.now();
+    const result = new Map<number, BGGGame>();
+    const missingIds: number[] = [];
+    
+    validIds.forEach(id => {
+      const cachedGame = this.gameDetailsCache.get(id);
+      if (cachedGame && now - cachedGame.timestamp < this.CACHE_TTL) {
+        result.set(id, cachedGame.data);
+      } else {
+        missingIds.push(id);
+      }
+    });
+    
+    // If all games were in cache, return early
+    if (!missingIds.length) {
+      return result;
+    }
+    
+    // Fetch missing games in batches to avoid URL length limits
+    // BGG API allows multiple IDs in a single request
+    const BATCH_SIZE = 25; // Reasonable batch size to avoid URL length issues
+    
+    for (let i = 0; i < missingIds.length; i += BATCH_SIZE) {
+      const batchIds = missingIds.slice(i, i + BATCH_SIZE);
+      const idString = batchIds.join(',');
+      
+      // Cache miss - fetch from BGG
+      await this.retryWithBackoff(async () => {
+        // Apply rate limiting
+        await this.rateLimit();
+        
+        console.log(`[DEBUG] Getting details for game IDs ${idString}`);
+        const response = await axios.get(`${this.API_BASE}thing?id=${idString}&stats=1`);
+        const parsedResult = await parseStringPromise(response.data, { explicitArray: true });
+        
+        if (!parsedResult.items || !parsedResult.items.item) {
+          console.warn(`No games found for IDs: ${idString}`);
+          return;
+        }
+        
+        // Handle single item or array of items
+        const items = Array.isArray(parsedResult.items.item) 
+          ? parsedResult.items.item 
+          : [parsedResult.items.item];
+        
+        items.forEach((gameData: any) => {
+          const gameId = parseInt(gameData.$.id, 10);
+          const game = this.gameDataToModel(gameData, gameId);
+          
+          // Cache the result
+          this.gameDetailsCache.set(gameId, {
+            data: game, 
+            timestamp: now
+          });
+          
+          result.set(gameId, game);
+        });
+      });
+    }
+    
+    return result;
+  }
+  
   // Helper methods
   
   private isSpecialCaseQuery(query: string): boolean {

@@ -26,10 +26,14 @@ import bggRoutes from "./routes/bgg-routes";
 const MemoryStoreSession = MemoryStore(session);
 
 // Define the interface explicitly to include subcategoryName
+/**
+ * Interface for game information returned from Airtable
+ */
 interface AirtableGameInfo {
   tlcsCode?: string;
   subcategoryName?: string;
-  forRent?: boolean;
+  inLibrary?: boolean;
+  forRent?: boolean; // Added forRent property
   forSale?: boolean;
   toOrder?: boolean;
   categories?: string[];
@@ -138,22 +142,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Use the new BGG routes
   app.use("/api/bgg", bggRoutes);
   
-  // Endpoint to get game statistics including games in stock and on order
+  // Endpoint to get game statistics including games in library and on order
   app.get("/api/airtable/game-stats", async (req, res) => {
     try {
       console.log("Fetching game statistics from Airtable...");
       const stats = await airtableDirectService.getGameStats();
       
-      // Set target for total games (in stock + on order)
+      // Set target for total games (in library + on order)
       const target = 200;
       
       return res.status(200).json({ 
         ...stats,
         target, 
         // Calculate percentages
-        stockPercentage: Math.min(100, Math.round((stats.gamesInStock / target) * 100)),
+        inLibraryPercentage: Math.min(100, Math.round((stats.gamesInLibrary / target) * 100)),
         orderPercentage: Math.min(100, Math.round((stats.gamesOnOrder / target) * 100)),
-        totalPercentage: Math.min(100, Math.round((stats.totalGames / target) * 100))
+        totalPercentage: Math.min(100, Math.round((stats.totalGames / target) * 100)),
+        // Keep backward compatibility
+        gamesInStock: stats.gamesInLibrary,
+        stockPercentage: Math.min(100, Math.round((stats.gamesInLibrary / target) * 100))
       });
     } catch (error) {
       console.error(`Error fetching game statistics:`, error);
@@ -194,6 +201,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error debugging Airtable:`, error);
       return res.status(500).json({ message: "Failed to debug Airtable connection" });
+    }
+  });
+
+  // Debug endpoint to inspect Games table structure
+  app.get("/api/airtable/debug-games", async (req, res) => {
+    try {
+      console.log("Inspecting Games table structure...");
+      const result = await airtableDirectService.debugGamesTable();
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error(`Error inspecting Games table:`, error);
+      return res.status(500).json({ 
+        message: "Failed to inspect Games table",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Advanced debug endpoint for field name diagnosis
+  app.get("/api/airtable/diagnose-fields", async (req, res) => {
+    try {
+      const diagnosis = await airtableDirectService.diagnoseFields();
+      return res.status(200).json(diagnosis);
+    } catch (error) {
+      console.error(`Error diagnosing fields:`, error);
+      return res.status(500).json({ 
+        message: "Failed to diagnose fields",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
@@ -411,6 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...game,
           tlcsCode: airtableData?.tlcsCode || null,
           subcategoryName: airtableData?.subcategoryName || null,
+          inLibrary: airtableData?.inLibrary || false,
           forRent: airtableData?.forRent || false,
           forSale: airtableData?.forSale || false,
           toOrder: airtableData?.toOrder || false

@@ -113,6 +113,7 @@ class AirtableService {
   async getGameByBGGId(bggId: number): Promise<{
     tlcsCode?: string;
     subcategoryName?: string;
+    inLibrary?: boolean;
     forRent?: boolean;
     forSale?: boolean;
     toOrder?: boolean;
@@ -155,6 +156,7 @@ class AirtableService {
       const result: {
         tlcsCode?: string;
         subcategoryName?: string;
+        inLibrary?: boolean;
         forRent?: boolean;
         forSale?: boolean;
         toOrder?: boolean;
@@ -194,12 +196,14 @@ class AirtableService {
       const toOrderValue = fields['to Order'];
       const forRentValue = fields['# for Rent'];
       const forSaleValue = fields['# for Sale'];
+      const inLibraryValue = fields['In Library']; // Field name for games in library
 
       // Log the values to help with debugging
       console.log('Availability data:', {
         toOrder: toOrderValue,
         forRent: forRentValue,
-        forSale: forSaleValue
+        forSale: forSaleValue,
+        inLibrary: inLibraryValue
       });
 
       // Convert to numbers if possible, otherwise use Boolean conversion
@@ -219,6 +223,18 @@ class AirtableService {
         result.forSale = forSaleValue > 0;
       } else {
         result.forSale = Boolean(forSaleValue);
+      }
+
+      // Set inLibrary based on 'In Library' field
+      if (typeof inLibraryValue === 'number') {
+        result.inLibrary = inLibraryValue > 0;
+      } else {
+        result.inLibrary = Boolean(inLibraryValue);
+      }
+      
+      // If any game is for rent, it's also in the library
+      if (result.forRent) {
+        result.inLibrary = true;
       }
 
       // Just use an empty array for categories since we don't have them in Airtable

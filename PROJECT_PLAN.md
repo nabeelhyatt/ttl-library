@@ -8,47 +8,36 @@ You should prioritize the first take, and only do one task at a time. When you s
 
 ## Priority Tasks
 
-1. **Fix Search Functionality on Rankings Page**
-   - Currently search only works from homepage/hot games view
-   - Implement consistent search functionality across all pages
-   - Ensure search parameters are properly passed between pages
+1. **Investigate BGG API Rate Limiting for Bulk Operations**
+   - Research official BGG API rate limit documentation and best practices
+   - Optimize batch processing for bulk game searches and updates
+   - Implement more sophisticated queuing system for API requests
+   - Add monitoring and logging for rate limit errors
+   - Consider implementing circuit breaker pattern for API resilience
 
-2. **Implement Bulk Game Processing via LLM**
-   - Create interface to input plain text lists of games
-   - Process through Claude/LLM to parse and identify games
-   - Conduct group searching based on parsed results
-   - Handle various input formats (comma-separated, line breaks, etc.)
+2. **Switch Authentication from Replit to Twilio**
+   - Research Twilio authentication options (Verify API, Authy, etc.)
+   - Design authentication flow with phone number verification
+   - Implement secure token-based session management
+   - Migrate existing user data to new authentication system
+   - Add user profile management with phone number verification
 
-3. **Fix User Vote History Retrieval**
-   - Resolve issue where previous votes aren't populated in new sessions
-   - Properly populate "My Votes" section with historical data from Airtable
-   - Ensure session persistence for returning users
-
-4. **Improve Search Algorithm**
-   - Fix "exact" search failures for common titles like "Chess" or "Heat"
-   - Implement sorting of search results by popularity
-   - Add weighting to search results for better relevance
-
-5. **Add "If You Like This You'll Like" Recommendation Engine**
+3. **Add "If You Like This You'll Like" Recommendation Engine**
    - After a user votes, show game recommendations
    - Base recommendations on game mechanics, categories, and other users' votes
    - Implement similarity algorithm for game recommendations
 
-6. **Link TLCS Codes to Category Games**
+4. **Link TLCS Codes to Category Games**
    - Make TLCS codes clickable to show all games in that category
    - Allow voting directly from category view
    - Improve category navigation and discovery
 
-7. **Enhance Rankings Page with Subcategory Drill-Down**
+5. **Enhance Rankings Page with Subcategory Drill-Down**
    - Make categories clickable to show subcategories from Airtable
    - Display hierarchical category structure
    - Maintain consistent voting functionality in subcategory views
 
-8. **Remove Direct Login Button**
-   - Remove the Direct Login button from the interface
-   - Ensure other login methods are prominent and functional
-
-9. **Optimize Game Card UI**
+6. **Optimize Game Card UI**
     - Replace full game description with shorter summary
     - Reduce overall card size for better visual density
     - Improve information hierarchy on game cards
@@ -71,6 +60,7 @@ We'll update this section as we complete tasks:
 - ✅ Implemented reliable fallback for hot games list
 - ✅ Added error handling for BGG API rate limiting
 - ✅ Added "Games on Order" Progress Graphic showing collection status
+- ✅ Implemented Bulk Game Processing allowing users to input up to 10 game titles at once
 
 ## Next Steps
 

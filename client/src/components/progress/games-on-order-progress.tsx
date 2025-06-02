@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface GameStatsData {
-  gamesInStock: number;
+  gamesInStock: number; // For backward compatibility
+  gamesInLibrary: number;
   gamesOnOrder: number; 
   totalGames: number;
   votedGames: number;
   target: number;
-  stockPercentage: number;
+  stockPercentage: number; // For backward compatibility
+  inLibraryPercentage: number;
   orderPercentage: number;
   totalPercentage: number;
   categories: {
@@ -64,12 +66,12 @@ export function GamesOnOrderProgress() {
     return null;
   }
 
-  // Calculate the voted percentage (but not yet in stock or on order)
+  // Calculate the voted percentage (but not yet in library or on order)
   const votedOnlyCount = statsData.votedGames;
   const votedOnlyPercentage = Math.min(100, Math.round((votedOnlyCount / statsData.target) * 100));
   
   // Calculate remaining percentage
-  const remainingPercentage = 100 - statsData.stockPercentage - statsData.orderPercentage - votedOnlyPercentage;
+  const remainingPercentage = 100 - statsData.inLibraryPercentage - statsData.orderPercentage - votedOnlyPercentage;
   
   return (
     <div className="games-collection-progress p-4 mb-4 bg-white rounded-lg shadow-sm">
@@ -82,17 +84,17 @@ export function GamesOnOrderProgress() {
       
       {/* Custom progress bar with four sections */}
       <div className="relative h-5 rounded bg-gray-200 overflow-hidden mb-2">
-        {/* In Stock Games (Black) */}
+        {/* In Library Games (Black) */}
         <div 
           className="absolute left-0 top-0 h-full bg-black" 
-          style={{ width: `${statsData.stockPercentage}%` }}
+          style={{ width: `${statsData.inLibraryPercentage}%` }}
         />
         
         {/* On Order Games (Dark Gray) */}
         <div 
           className="absolute h-full bg-gray-600" 
           style={{ 
-            left: `${statsData.stockPercentage}%`, 
+            left: `${statsData.inLibraryPercentage}%`, 
             width: `${statsData.orderPercentage}%` 
           }}
         />
@@ -101,17 +103,26 @@ export function GamesOnOrderProgress() {
         <div 
           className="absolute h-full bg-gray-400" 
           style={{ 
-            left: `${statsData.stockPercentage + statsData.orderPercentage}%`, 
+            left: `${statsData.inLibraryPercentage + statsData.orderPercentage}%`, 
             width: `${votedOnlyPercentage}%` 
+          }}
+        />
+        
+        {/* Remaining Games (Light) */}
+        <div 
+          className="absolute h-full bg-gray-100" 
+          style={{ 
+            left: `${statsData.inLibraryPercentage + statsData.orderPercentage + votedOnlyPercentage}%`, 
+            width: `${remainingPercentage}%` 
           }}
         />
         
         {/* Count labels on the progress bar */}
         <div className="relative z-10 flex items-center h-full">
           <span className="text-xs font-medium text-white pl-2">
-            In Stock: {statsData.gamesInStock}
+            In Library: {statsData.gamesInLibrary}
           </span>
-          <span className="text-xs font-medium text-white absolute" style={{ left: `${Math.max(statsData.stockPercentage + 2, 25)}%` }}>
+          <span className="text-xs font-medium text-white absolute" style={{ left: `${Math.max(statsData.inLibraryPercentage + 2, 25)}%` }}>
             On Order: {statsData.gamesOnOrder}
           </span>
         </div>
@@ -125,7 +136,7 @@ export function GamesOnOrderProgress() {
         <div className="flex items-center gap-3 text-xs flex-wrap">
           <div className="flex items-center gap-1">
             <span className="inline-block w-3 h-3 bg-black rounded-sm"></span>
-            <span>In Stock: {statsData.gamesInStock}</span>
+            <span>In Library: {statsData.gamesInLibrary}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="inline-block w-3 h-3 bg-gray-600 rounded-sm"></span>

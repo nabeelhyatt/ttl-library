@@ -130,7 +130,7 @@ export interface BGGGame {
   // Airtable-specific fields
   tlcsCode?: string | null;
   subcategoryName?: string | null;
-  forRent?: boolean;
+  inLibrary?: boolean;
   forSale?: boolean;
   toOrder?: boolean;
 }
