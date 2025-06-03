@@ -229,18 +229,17 @@ nav a:hover {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: var(--grid-size);
-  border-bottom: 1px solid #000;
+  padding: var(--grid-size) var(--grid-size) calc(var(--grid-size) * 0.5);
 }
 
 .game-content {
-  padding: var(--grid-size);
+  padding: 0 var(--grid-size) var(--grid-size);
   flex-grow: 1;
 }
 
 .game-ratings {
   padding: var(--grid-size) var(--grid-size) calc(var(--grid-size) * 0.75);
-  border-top: 1px solid #000;
+  border-top: 1px solid #eee;
 }
 
 .rating-grid {
