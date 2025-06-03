@@ -37,13 +37,22 @@ export function getSession() {
     console.warn('SESSION_SECRET environment variable not set. Using insecure default value for development only.');
   }
   
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  let sessionStore;
+  
+  // Use PostgreSQL store if DATABASE_URL is available, otherwise fallback to MemoryStore
+  if (process.env.DATABASE_URL) {
+    console.log('Using PostgreSQL session store');
+    const pgStore = connectPg(session);
+    sessionStore = new pgStore({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true, // Allow table creation for development
+      ttl: sessionTtl,
+      tableName: "sessions",
+    });
+  } else {
+    console.log('DATABASE_URL not set, using MemoryStore for sessions (development only)');
+    sessionStore = undefined; // express-session will use MemoryStore by default
+  }
   
   return session({
     secret: process.env.SESSION_SECRET || "tabletop-library-secret",

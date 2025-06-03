@@ -22,6 +22,7 @@ declare module 'express-session' {
 
 // Import modular routes
 import bggRoutes from "./routes/bgg-routes";
+import phoneAuthRoutes from "./routes/phone-auth-routes";
 
 const MemoryStoreSession = MemoryStore(session);
 
@@ -42,6 +43,9 @@ interface AirtableGameInfo {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth (includes session middleware)
   await setupAuth(app);
+
+  // Phone authentication routes (new system)
+  app.use("/api/auth", phoneAuthRoutes);
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {

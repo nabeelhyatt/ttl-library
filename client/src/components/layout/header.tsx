@@ -5,7 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSearch } from "../../contexts/SearchContext";
 
 export const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, getDisplayName, authType } = useAuth();
   const [location] = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const { clearSearch } = useSearch();
@@ -52,12 +52,24 @@ export const Header = () => {
                 >
                   My Votes
                 </Link>
-                <button 
-                  onClick={logout} 
-                  className="font-serif border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 transition-all"
-                >
-                  Log Out
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 font-serif">
+                    {getDisplayName()}
+                    {authType === 'phone' && (
+                      <span className="text-xs text-green-600 ml-1">📱</span>
+                    )}
+                    {authType === 'replit' && (
+                      <span className="text-xs text-blue-600 ml-1">💻</span>
+                    )}
+                  </span>
+                  <button 
+                    onClick={logout} 
+                    className="font-serif border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 transition-all"
+                    title={`Logout from ${authType === 'phone' ? 'phone' : 'Replit'} authentication`}
+                  >
+                    Log Out
+                  </button>
+                </div>
               </>
             ) : (
               <button 
