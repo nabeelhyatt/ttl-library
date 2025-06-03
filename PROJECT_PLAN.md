@@ -29,6 +29,7 @@ You should prioritize the first take, and only do one task at a time. When you s
 
 ## 🚨 CURRENT PRIORITY ISSUES
 
+
 ### 🔄 PRIORITY #1: Voting System Issues
 **Status**: Critical bugs affecting core functionality  
 **Estimate**: 1-2 days  
@@ -45,6 +46,8 @@ You should prioritize the first take, and only do one task at a time. When you s
 **Issues**:
 - **Game Collection progress not loading properly from Airtable**: Progress bar data source failing
 
+### Priority #2: Cross-device login flow from mobile one-click
+If you try to login on desktop it sends you a mobile sms, if you click it logs you in on mobile, it should instead log you in on the desktop website that you initiated the login from.
 
 ### 🔄 PRIORITY #3: UI/UX Improvements
 **Status**: User experience enhancements  

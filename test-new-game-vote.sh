@@ -1,32 +1,33 @@
 #!/bin/bash
 
-# This script tests whether the system can handle voting on a game that doesn't exist in Airtable yet
+# Test for a random BGG ID that likely isn't in our database
+BGG_ID=$(($RANDOM % 100000 + 200000))  # Random ID between 200000-300000
 
-# Login to get a session cookie
-echo "Logging in..."
-LOGIN_RESPONSE=$(curl -s -c cookies.txt -H "Content-Type: application/json" -X POST -d '{"email":"test@example.com"}' http://localhost:5000/api/auth/login)
-echo "Login response: $LOGIN_RESPONSE"
+LOGIN_RESPONSE=$(curl -s -c cookies.txt -H "Content-Type: application/json" -X POST -d '{"email":"test@example.com"}' http://localhost:3000/api/auth/login)
+echo "Login Response: $LOGIN_RESPONSE"
 
-# Use a specific game ID that's less likely to be in Airtable
-# Lifeboat BGG ID: 4174 - We've already verified this doesn't exist in the Airtable in our logs
-BGG_ID=4174
-GAME_NAME="Lifeboat"
-echo -e "\nUsing game: $GAME_NAME (BGG ID: $BGG_ID)"
+echo "Testing vote creation for random BGG ID: $BGG_ID"
+echo "This should create a new game entry and vote..."
 
-# Try to cast a vote for this game
-echo -e "\nVoting for game that should be auto-created in Airtable..."
-VOTE_RESPONSE=$(curl -s -b cookies.txt -H "Content-Type: application/json" -X POST -d "{\"bggId\":$BGG_ID,\"voteType\":1}" http://localhost:5000/api/votes)
-echo "Vote response: $VOTE_RESPONSE"
+echo "Creating vote for BGG ID $BGG_ID..."
+VOTE_RESPONSE=$(curl -s -b cookies.txt -H "Content-Type: application/json" -X POST -d "{\"bggId\":$BGG_ID,\"voteType\":1}" http://localhost:3000/api/votes)
+echo "Vote Response: $VOTE_RESPONSE"
 
-# Wait for a few seconds to give Airtable time to process
-echo -e "\nWaiting for 3 seconds for Airtable to process..."
+# Extract the vote ID from the response
+VOTE_ID=$(echo $VOTE_RESPONSE | grep -o '"id":[0-9]*' | grep -o '[0-9]*')
+
+echo "Vote ID created: $VOTE_ID"
+
+echo "Waiting 3 seconds for Airtable sync..."
 sleep 3
 
-# Check direct Airtable votes to verify sync
-echo -e "\nChecking Airtable votes to verify..."
-AIRTABLE_VOTES=$(curl -s -b cookies.txt http://localhost:5000/api/airtable/my-votes)
-echo "Filtered Airtable votes for current user:"
-echo $AIRTABLE_VOTES | jq -r '.memberVotes'
+echo "Fetching votes from Airtable to verify new game creation..."
+AIRTABLE_VOTES=$(curl -s -b cookies.txt http://localhost:3000/api/airtable/my-votes)
+echo "Airtable Votes Response: $AIRTABLE_VOTES"
+
+echo ""
+echo "=== SUMMARY ==="
+echo "Vote for new game (BGG ID: $BGG_ID) should create game entry and be visible in Airtable"
 
 # Clean up
 rm cookies.txt

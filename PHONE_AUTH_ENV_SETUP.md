@@ -20,12 +20,12 @@ SESSION_SECRET=tabletop-library-secret
 ### New Variables for Phone Authentication
 ```bash
 # Twilio Configuration
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=+1234567890
+TWILIO_ACCOUNT_SID=your_twilio_account_sid_here
+TWILIO_AUTH_TOKEN=your_twilio_auth_token_here
+TWILIO_PHONE_NUMBER=your_twilio_phone_number_here
 
 # Application Configuration
-APP_URL=http://localhost:5000
+APP_URL=http://localhost:3000
 NODE_ENV=development
 
 # Feature Flags
@@ -54,7 +54,7 @@ PHONE_AUTH_ENABLED=false
    TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    TWILIO_AUTH_TOKEN=your_auth_token_here
    TWILIO_PHONE_NUMBER=+1234567890
-   APP_URL=http://localhost:5000
+   APP_URL=http://localhost:3000
    ```
 
 ## Testing the Phone Authentication
@@ -64,12 +64,12 @@ Since we're in Phase 0 (Clean Slate Preparation), you can test the phone authent
 
 ```bash
 # Test phone number validation
-curl -X POST http://localhost:5000/api/auth/phone/send-link \
+curl -X POST http://localhost:3000/api/auth/phone/send-link \
   -H "Content-Type: application/json" \
   -d '{"phone": "+1234567890"}'
 
 # Check authentication stats
-curl http://localhost:5000/api/auth/phone/stats
+curl http://localhost:3000/api/auth/phone/stats
 ```
 
 ### Development vs Production
@@ -151,3 +151,39 @@ For development testing without actual SMS sending:
 3. Create frontend components for phone authentication
 4. Implement feature flag to switch between Replit and phone auth
 5. Complete migration to phone-only authentication 
+
+## Environment Variables for Phone Authentication
+
+```bash
+# Required for Airtable integration
+AIRTABLE_API_KEY=your_airtable_api_key_here
+AIRTABLE_BASE_ID=your_airtable_base_id_here
+
+# Required for SMS sending (production)
+TWILIO_ACCOUNT_SID=your_twilio_account_sid_here
+TWILIO_AUTH_TOKEN=your_twilio_auth_token_here  
+TWILIO_PHONE_NUMBER=your_twilio_phone_number_here
+
+# Optional: Override database connection (falls back to MemoryStore)
+DATABASE_URL=your_database_url_here
+
+# Optional: Set custom base URL for magic links (auto-detected otherwise)
+APP_URL=http://localhost:3000
+
+# Optional: Set environment explicitly
+NODE_ENV=development
+
+# ... existing code ...
+
+### Example Usage
+
+```bash
+# Send magic link to phone number
+curl -X POST http://localhost:3000/api/auth/phone/send-link \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+15551234567"}'
+
+# Check authentication stats
+curl http://localhost:3000/api/auth/phone/stats
+
+# ... existing code ... 

@@ -11,7 +11,7 @@ import { storage } from "./storage";
 // Check for REPLIT_DOMAINS in development, but provide a fallback for testing
 if (!process.env.REPLIT_DOMAINS) {
   console.warn("Environment variable REPLIT_DOMAINS not provided, using fallback");
-  process.env.REPLIT_DOMAINS = "localhost:5000";
+  process.env.REPLIT_DOMAINS = "localhost:3000";
 }
 
 // Check for REPL_ID in development, but provide a fallback for testing
