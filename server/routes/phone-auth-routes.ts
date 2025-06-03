@@ -10,6 +10,29 @@ const router = express.Router();
 const phoneAuthService = new PhoneAuthService();
 const memberService = new MemberService();
 
+// Helper function to get the correct base URL for magic links
+function getBaseUrl(): string {
+  // If APP_URL is explicitly set, use it
+  if (process.env.APP_URL) {
+    return process.env.APP_URL;
+  }
+  
+  // Check if we're running on localhost (development)
+  if (process.env.NODE_ENV === 'development' || 
+      !process.env.NODE_ENV || 
+      process.env.PORT === '3000') {
+    return 'http://localhost:3000';
+  }
+  
+  // In production on Replit, use the known production URL
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://ttlibrary.replit.app';
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:3000';
+}
+
 // Rate limiting for auth requests
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -236,7 +259,7 @@ router.get('/phone/test-token', async (req, res) => {
 
     const testPhone = '+15551234567';
     const token = await phoneAuthService.generateToken(testPhone);
-    const magicLink = `${process.env.APP_URL || 'http://localhost:3000'}/auth/verify?token=${token}`;
+    const magicLink = `${getBaseUrl()}/auth/verify?token=${token}`;
     
     res.json({ 
       success: true, 

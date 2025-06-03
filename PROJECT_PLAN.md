@@ -38,12 +38,13 @@ You should prioritize the first take, and only do one task at a time. When you s
 - **Votes not being recorded to Airtable**: Vote persistence broken
 - **Missing Airtable fields on My Votes page**: Need plain text fields for Airtable integration
 
-### 🔄 PRIORITY #2: Game Collection Progress Issues  
+### 🔄 PRIORITY #2: Various Bugs
 **Status**: Data visualization not working correctly  
 **Estimate**: 1 day  
 
 **Issues**:
 - **Game Collection progress not loading properly from Airtable**: Progress bar data source failing
+
 
 ### 🔄 PRIORITY #3: UI/UX Improvements
 **Status**: User experience enhancements  
@@ -75,26 +76,58 @@ You should prioritize the first take, and only do one task at a time. When you s
 - Session persistence working correctly
 - User experience: formatted phone display with authentication indicators
 
+### 🐛 Magic Link URL Bug Fix - COMPLETE
+**Completion Date**: Current Session  
+**Total Time**: 30 minutes  
+
+**Issue**: SMS magic links were using `localhost:3000` in production instead of correct deployed domain  
+**Solution**: Added smart base URL detection logic that:
+- Uses `APP_URL` environment variable if set
+- Detects development vs production environment correctly
+- Uses `https://ttlibrary.replit.app` for production
+- Uses `http://localhost:3000` for development
+- Fixed in both `PhoneAuthService.sendMagicLink()` and test token endpoint
+
+**Result**: Magic links now work correctly for users clicking them from their phones in production
+
 ## Other Priority Tasks
 
-### 2. **Investigate BGG API Rate Limiting for Bulk Operations**
+### 2. **Documentation File Structure Cleanup**
+**Status**: Medium priority cleanup task  
+**Estimate**: 1-2 hours  
+
+**Current Issue**: Significant redundancy across documentation files
+- README.md & CLAUDE.md have ~70% overlapping content
+- guidelines.md & CLAUDE.md both contain development guidelines
+- No historical record of completed implementations
+
+**Proposed Solution**:
+- **README.md**: Streamlined public-facing project documentation
+- **AI_CONTEXT.md**: Consolidated AI-specific context, guidelines, and technical details
+- **PROJECT_PLAN.md**: Keep as-is for active planning
+- **PROJECT_LOG.md**: New file for historical record of completed work and learnings
+- **Delete guidelines.md**: Merge into AI_CONTEXT.md
+
+**Benefits**: No redundancy, clear file purposes, rich AI context, preserved institutional knowledge
+
+### 3. **Investigate BGG API Rate Limiting for Bulk Operations**
    - Research official BGG API rate limit documentation and best practices
    - Optimize batch processing for bulk game searches and updates
    - Implement more sophisticated queuing system for API requests
    - Add monitoring and logging for rate limit errors
    - Consider implementing circuit breaker pattern for API resilience
 
-### 3. **Add "If You Like This You'll Like" Recommendation Engine**
+### 4. **Add "If You Like This You'll Like" Recommendation Engine**
    - After a user votes, show game recommendations
    - Base recommendations on game mechanics, categories, and other users' votes
    - Implement similarity algorithm for game recommendations
 
-### 4. **Link TLCS Codes to Category Games**
+### 5. **Link TLCS Codes to Category Games**
    - Make TLCS codes clickable to show all games in that category
    - Allow voting directly from category view
    - Improve category navigation and discovery
 
-### 5. **Enhance Rankings Page with Subcategory Drill-Down**
+### 6. **Enhance Rankings Page with Subcategory Drill-Down**
    - Make categories clickable to show subcategories from Airtable
    - Display hierarchical category structure
    - Maintain consistent voting functionality in subcategory views

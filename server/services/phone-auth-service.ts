@@ -34,6 +34,29 @@ export class PhoneAuthService {
     }
   }
   
+  // Get the correct base URL for magic links
+  private getBaseUrl(): string {
+    // If APP_URL is explicitly set, use it
+    if (process.env.APP_URL) {
+      return process.env.APP_URL;
+    }
+    
+    // Check if we're running on localhost (development)
+    if (process.env.NODE_ENV === 'development' || 
+        !process.env.NODE_ENV || 
+        process.env.PORT === '3000') {
+      return 'http://localhost:3000';
+    }
+    
+    // In production on Replit, use the known production URL
+    if (process.env.NODE_ENV === 'production') {
+      return 'https://ttlibrary.replit.app';
+    }
+    
+    // Default to localhost for development
+    return 'http://localhost:3000';
+  }
+  
   // Validate and format phone number
   validatePhone(phoneInput: string): { isValid: boolean; formattedPhone?: string; error?: string } {
     try {
@@ -79,7 +102,7 @@ export class PhoneAuthService {
     }
     
     try {
-      const magicLink = `${process.env.APP_URL || 'http://localhost:3000'}/auth/verify?token=${token}`;
+      const magicLink = `${this.getBaseUrl()}/auth/verify?token=${token}`;
       
       await this.twilioClient.messages.create({
         body: `Click to login to TTL Game Library: ${magicLink}\n\nExpires in 10 minutes.`,
