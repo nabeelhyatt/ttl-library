@@ -2,21 +2,11 @@
 
 This document outlines the upcoming features and improvements for the Tabletop Library Game Voting application.
 
-If I tell you one of these is complete you should delete it, and then add details of the implementation to readme.md
+If I tell you one of these is complete you should delete it, and then add details of the implementation to PROJECT_LOG.md and any overall architecture changes or high level notes to readme.md
 
 You should prioritize the first take, and only do one task at a time. When you start a project do not assume you know how it should be implemented or what I mean by it. Instead, write up a PRD of what you want to do and how, asking questions on areas that might be open to interpretation and lead to bugs. In general we want clean, isolated code.
 
 ## 📝 Key Reminders
-
-### Phone Authentication System Status:
-- **✅ MIGRATION COMPLETE**: Phone authentication system is 100% functional end-to-end
-- **Dual Authentication Working**: Phone auth tries first, gracefully falls back to Replit auth
-- **Complete Backend**: 100% functional phone authentication infrastructure  
-- **AuthContext Integration**: Smart user display, logout handling, and type safety for both auth types
-- **Production Ready**: System is working in production with both authentication types
-- **User Experience**: Phone users see (555) 123-4567 format with 📱 indicator, Replit users see 💻 indicator
-- **Frontend Login Component**: ✅ COMPLETED - Users can request magic links directly from the UI
-- **Session Persistence**: ✅ FIXED - Sessions now persist correctly using MemoryStore fallback
 
 ### Development Notes:
 - **Backend Endpoints**: All phone auth endpoints fully functional (`/api/auth/phone/*`)
@@ -55,6 +45,7 @@ If you try to login on desktop it sends you a mobile sms, if you click it logs y
 
 **Issues**:
 - **Bulk should be a button next to search**: Better UI integration
+- **Game card UX updates from v0 - ask for new designs from v0 and implement
 - **Game card should show Airtable rankings**: Replace current Ratings section with compact graphic format for Thematic Depth, Randomness, etc.
 - **Game card should show TLCS category & subcategory**: Display category information when available
 - **Game images need to be high resolution**: Improve image quality on game cards
@@ -93,44 +84,63 @@ If you try to login on desktop it sends you a mobile sms, if you click it logs y
 
 **Result**: Magic links now work correctly for users clicking them from their phones in production
 
+### 🔧 Port Consistency Fix - COMPLETE
+**Completion Date**: Current Session  
+**Total Time**: 20 minutes  
+
+**Issue**: Test scripts used mixed ports (5000/3000) causing confusion and deployment verification issues  
+**Solution**: Updated ALL infrastructure to use consistent port 3000:
+- Updated all test scripts: `test-vote.sh`, `test-summary.sh`, `test-create-and-verify.sh`, `test-new-game-vote.sh`, `test-delete-vote.sh`, `test-airtable-votes.sh`, `test-retrieve-votes.sh`
+- Updated `server/replitAuth.ts` fallback `REPLIT_DOMAINS` to `localhost:3000`
+- Updated `PHONE_AUTH_ENV_SETUP.md` documentation examples
+- Improved test script output formatting and error handling
+
+**Result**: All testing infrastructure now uses consistent port configuration matching current server setup
+
+### 📚 Documentation File Structure Cleanup - COMPLETE  
+**Completion Date**: Current Session  
+**Total Time**: 1 hour  
+
+**Issue**: Significant redundancy across documentation files (~70% overlap between README.md and CLAUDE.md)  
+**Solution**: Restructured documentation into focused, purpose-driven files:
+- **README.md**: Comprehensive public-facing project documentation
+- **AI_CONTEXT.md**: Consolidated AI-specific guidelines, technical details, and development context
+- **PROJECT_LOG.md**: Historical record of completed work, git commits, and lessons learned  
+- **PROJECT_PLAN.md**: Active planning and current priorities (this file)
+
+**Benefits Achieved**:
+- ✅ Eliminated content redundancy between files
+- ✅ Clear, distinct file purposes and responsibilities  
+- ✅ Comprehensive AI context preserved for development assistance
+- ✅ Historical institutional knowledge captured and organized
+- ✅ Public documentation streamlined and user-friendly
+
+**Files Created/Updated**:
+- Created `AI_CONTEXT.md` with all development guidelines and technical architecture
+- Created `PROJECT_LOG.md` with detailed implementation history and lessons learned
+- Updated `README.md` with streamlined, comprehensive public documentation
+- Removed redundant content while preserving all valuable information
+
 ## Other Priority Tasks
 
-### 2. **Documentation File Structure Cleanup**
-**Status**: Medium priority cleanup task  
-**Estimate**: 1-2 hours  
-
-**Current Issue**: Significant redundancy across documentation files
-- README.md & CLAUDE.md have ~70% overlapping content
-- guidelines.md & CLAUDE.md both contain development guidelines
-- No historical record of completed implementations
-
-**Proposed Solution**:
-- **README.md**: Streamlined public-facing project documentation
-- **AI_CONTEXT.md**: Consolidated AI-specific context, guidelines, and technical details
-- **PROJECT_PLAN.md**: Keep as-is for active planning
-- **PROJECT_LOG.md**: New file for historical record of completed work and learnings
-- **Delete guidelines.md**: Merge into AI_CONTEXT.md
-
-**Benefits**: No redundancy, clear file purposes, rich AI context, preserved institutional knowledge
-
-### 3. **Investigate BGG API Rate Limiting for Bulk Operations**
+### 2. **Investigate BGG API Rate Limiting for Bulk Operations**
    - Research official BGG API rate limit documentation and best practices
    - Optimize batch processing for bulk game searches and updates
    - Implement more sophisticated queuing system for API requests
    - Add monitoring and logging for rate limit errors
    - Consider implementing circuit breaker pattern for API resilience
 
-### 4. **Add "If You Like This You'll Like" Recommendation Engine**
+### 3. **Add "If You Like This You'll Like" Recommendation Engine**
    - After a user votes, show game recommendations
    - Base recommendations on game mechanics, categories, and other users' votes
    - Implement similarity algorithm for game recommendations
 
-### 5. **Link TLCS Codes to Category Games**
+### 4. **Link TLCS Codes to Category Games**
    - Make TLCS codes clickable to show all games in that category
    - Allow voting directly from category view
    - Improve category navigation and discovery
 
-### 6. **Enhance Rankings Page with Subcategory Drill-Down**
+### 5. **Enhance Rankings Page with Subcategory Drill-Down**
    - Make categories clickable to show subcategories from Airtable
    - Display hierarchical category structure
    - Maintain consistent voting functionality in subcategory views
@@ -149,6 +159,7 @@ For each task, we will:
 
 We'll update this section as we complete tasks:
 - ✅ **Phone Authentication Migration** (100% COMPLETE - All phases done)
+- ✅ **Documentation File Structure Cleanup** (100% COMPLETE - All files organized)
 - ✅ Fixed game name display issue in BGG API integration
 - ✅ Implemented reliable fallback for hot games list
 - ✅ Added error handling for BGG API rate limiting
